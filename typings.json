@@ -1,0 +1,10 @@
+{
+  "name": "pgdb-ts",
+  "globalDependencies": {
+    "lodash": "registry:dt/lodash#3.10.0+20160619033623",
+    "node": "registry:dt/node#6.0.0+20160831021119"
+  },
+  "dependencies": {
+    "pg": "registry:npm/pg#6.0.2+20160712175116"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "version": "0.9.0",
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "es6",
+    "sourceMap": true,
+    "declaration": true,
+    "forceConsistentCasingInFileNames": true,
+    "suppressImplicitAnyIndexErrors": true,
+    "rootDir": "./",
+    "outDir": "../lib",
+    "types": [
+      "jasmine", "node"
+    ]
+  },
+  "include": [
+    "./*.ts",
+    "./**/*.ts",
+    "../typings/index.d.ts"
+  ]
+}

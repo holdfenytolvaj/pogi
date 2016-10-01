@@ -1,0 +1,39 @@
+{
+  "resolution": "main",
+  "tree": {
+    "src": "https://raw.githubusercontent.com/typed-typings/typed-pg/7e1518cf1053321fc117ba91fa55b05aac626937/typings.json",
+    "raw": "registry:npm/pg#6.0.2+20160712175116",
+    "main": "index.d.ts",
+    "global": false,
+    "dependencies": {
+      "pg-pool": {
+        "src": "https://raw.githubusercontent.com/typed-typings/npm-pg-pool/32c9470c06a0c203bb3e1c203210f88766d44853/typings.json",
+        "raw": "github:typed-typings/npm-pg-pool#32c9470c06a0c203bb3e1c203210f88766d44853",
+        "main": "index.d.ts",
+        "global": false,
+        "dependencies": {
+          "es6-promise": {
+            "src": "https://raw.githubusercontent.com/typed-typings/npm-es6-promise/fb04188767acfec1defd054fc8024fafa5cd4de7/typings.json",
+            "raw": "registry:npm/es6-promise#3.0.0+20160211003958",
+            "main": "dist/es6-promise.d.ts",
+            "global": false,
+            "name": "es6-promise",
+            "type": "typings"
+          },
+          "generic-pool": {
+            "src": "https://raw.githubusercontent.com/goenning/typed-generic-pool/b4170bc80dae5cddda5568d2f35d6a39ce2d5bf0/typings.json",
+            "raw": "github:goenning/typed-generic-pool#b4170bc80dae5cddda5568d2f35d6a39ce2d5bf0",
+            "main": "index.d.ts",
+            "global": false,
+            "name": "generic-pool",
+            "type": "typings"
+          }
+        },
+        "name": "pg-pool",
+        "type": "typings"
+      }
+    },
+    "name": "pg",
+    "type": "typings"
+  }
+}
