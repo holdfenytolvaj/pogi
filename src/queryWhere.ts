@@ -205,7 +205,7 @@ function parseKey(key):FieldAndOperator {
     let field;
     let quotedField;
 
-    let quotedByUser = key[0]=='"';
+    let quotedByUser = key.indexOf('"')>-1; //key[0]=='"'; -> lets make it possible to write transformed columns, e.g. LOWER("field")
     if (quotedByUser) {
         field = key;
         quotedField = key;
