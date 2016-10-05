@@ -7,6 +7,7 @@
     "definition": "pgdb.d.ts"
   },
   "scripts": {
+    "build": "tsc -p src/tsconfig.json && babel lib/*.js -d ./",
     "test": "babel-node spec/run.js"
   },
   "repository": {
@@ -15,21 +16,24 @@
   },
   "keywords": [
     "typescript",
+    "postgre sql",
     "postgres",
     "postgre",
     "pgsql",
     "pg"
   ],
   "dependencies": {
-    "babel-cli": "~6.14.0",
-    "babel-preset-es2015": "~6.14.0",
     "lodash": "~3.10.1",
-    "pg": "^6.0.3",
-    "@types/jasmine": "^2.2.31",
-    "@types/node": "^6.0.35"
-
+    "moment": "^2.15.1",
+    "pg": "^6.0.3"
   },
   "devDependencies": {
+    "@types/jasmine": "^2.2.31",
+    "@types/node": "^6.0.35",
+    "babel-cli": "~6.14.0",
+    "babel-plugin-transform-es2015-destructuring": "^6.16.0",
+    "babel-plugin-transform-es2015-parameters": "^6.17.0",
+    "babel-preset-es2015": "~6.14.0",
     "jasmine": "~2.4.1",
     "typescript": "^2.0.0"
   },
