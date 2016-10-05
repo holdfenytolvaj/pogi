@@ -13,7 +13,7 @@ export declare class QueryAble {
     constructor();
     setLogger(logger: PgDbLogger): void;
     protected getLogger(useConsoleAsDefault: any): any;
-    run(sql: string): Promise<any>;
+    run(sql: string): Promise<any[]>;
     /**
      * Params can be
      * 1) array, then sql should have $1 $2 for placeholders
@@ -23,8 +23,8 @@ export declare class QueryAble {
      * e.g. query('select * from a.b where id=$1;',['the_stage_is_set']);
      * e.g. query('select * from :!schema.:!table where id=:id;',{schema:'a',table:'b', id:'the_stage_is_set'});
      */
-    query(sql: string, params?: any[]): any;
-    query(sql: string, params?: Object): any;
+    query(sql: string, params?: any[]): Promise<any[]>;
+    query(sql: string, params?: Object): Promise<any[]>;
     /** @return one record's one field */
     getOneField(sql: string, params?: any[]): any;
     getOneField(sql: string, params?: Object): any;

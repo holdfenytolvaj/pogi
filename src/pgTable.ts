@@ -22,8 +22,8 @@ export class PgTable extends QueryAble {
         return this.qualifiedName;
     }
 
-    public async insert(records:{}, returnResult?:boolean): Promise<{}>
-    public async insert(records:{}[], returnResult?:boolean): Promise<{}[]>
+    public async insert(records:{}, returnResult?:boolean): Promise<any>
+    public async insert(records:{}[], returnResult?:boolean): Promise<any[]>
     public async insert(records:any, returnResult:boolean=true): Promise<any> {
         var returnSingle = false;
 
@@ -63,8 +63,6 @@ export class PgTable extends QueryAble {
     };
 
     /**
-     * NOTE-JSON: we could try to guess whether the field is json or not, but there are edge cases where it is not possible
-     *    e.g. empty array, or array with basic types.
      * NOTE-DATE: there are 2 approaches to keep tz (the time correctly):
      *    1) use Date.toISOString() function, but then the $x placeholder should be TIMESTAMP WITH TIME ZONE $x
      *    2) use Date, and then no need to change the placeholder $x
@@ -126,13 +124,13 @@ export class PgTable extends QueryAble {
         return +res[0].sum;
     };
 
-    public async updateAndGet(conditions:{[k:string]:any}, fields:{[k:string]:any}):Promise<Array<any>> {
+    public async updateAndGet(conditions:{[k:string]:any}, fields:{[k:string]:any}):Promise<any[]> {
         let {sql, parameters} = this.getUpdateQuery(conditions, fields);
         sql += " RETURNING *";
         return this.query(sql, parameters);
     };
 
-    private getDeleteQuery(conditions:{[k:string]:any}):{sql:string, parameters:Array<any>} {
+    private getDeleteQuery(conditions:{[k:string]:any}):{sql:string, parameters:any[]} {
         let sql = util.format("DELETE FROM %s ", this.qualifiedName);
 
         var parsedWhere;
@@ -147,23 +145,23 @@ export class PgTable extends QueryAble {
         let sql = util.format("DELETE FROM %s ", this.qualifiedName);
         sql = "WITH __RESULT as ( " + sql + " RETURNING 1) SELECT SUM(1) FROM __RESULT";
         let res = await this.query(sql);
-        return res[0].sum;
+        return +res[0].sum;
     }
 
     public async delete(conditions:{[k:string]:any}):Promise<number> {
         let {sql, parameters} = this.getDeleteQuery(conditions);
         sql = "WITH __RESULT as ( " + sql + " RETURNING 1) SELECT SUM(1) FROM __RESULT";
         let res = await this.query(sql, parameters);
-        return res[0].sum;
+        return +res[0].sum;
     }
 
-    public async deleteAndGet(conditions:{[k:string]:any}):Promise<Array<any>> {
+    public async deleteAndGet(conditions:{[k:string]:any}):Promise<any[]> {
         let {sql, parameters} = this.getDeleteQuery(conditions);
         sql += " RETURNING *";
         return this.query(sql, parameters);
     }
 
-    public async deleteAndGetOne(conditions:{[k:string]:any}): Promise<any> {
+    public async deleteOneAndGet(conditions:{[k:string]:any}): Promise<any> {
         let result = await this.deleteAndGet(conditions);
         if (result.length > 1) {
             throw new Error('More then one record has been deleted!');
@@ -179,7 +177,7 @@ export class PgTable extends QueryAble {
         return affected;
     }
 
-    public async find(conditions:{[k:string]:any}, options?:QueryOptions):Promise<Array<any>> {
+    public async find(conditions:{[k:string]:any}, options?:QueryOptions):Promise<any[]> {
         let where = _.isEmpty(conditions) ? {where: " ", params: null} : generateWhere(conditions, this.fieldType, this.qualifiedName);
         let sql = "SELECT * FROM " + this.qualifiedName + (where.where ? where.where : '');
 
@@ -188,7 +186,6 @@ export class PgTable extends QueryAble {
                 sql = "SELECT " + options.fields.join(',') + " FROM " + this.qualifiedName + where.where;
             }
             sql += QueryAble.processQueryOptions(options);
-            if (options.logger) options.logger.log(sql, where.params);
         }
         return this.query(sql, where.params);
     }

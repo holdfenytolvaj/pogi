@@ -22,6 +22,7 @@ export interface ConnectionOptions {
     fallback_application_name?: string;
     parseInputDatesAsUTC?: boolean;
     connectionString?: string;
+    idleTimeoutMillis?: number;
     logger?: PgDbLogger;
 }
 /**
@@ -65,10 +66,10 @@ export declare class PgDb extends QueryAble {
      */
     private setConnectionMode(connectionMode);
     transactionBegin(): Promise<PgDb>;
-    transactionCommit(): Promise<this>;
-    transactionRollback(): Promise<this>;
-    isTransactionActive(): any;
-    execute(fileName: any, transformer?: (string) => string): Promise<{}>;
+    transactionCommit(): Promise<PgDb>;
+    transactionRollback(): Promise<PgDb>;
+    isTransactionActive(): boolean;
+    execute(fileName: any, transformer?: (string) => string): Promise<void>;
 }
 export declare class PgSchema extends QueryAble {
     db: PgDb;

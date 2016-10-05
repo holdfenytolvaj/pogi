@@ -61,10 +61,10 @@ export interface ConnectionOptions {
     fallback_application_name?:string;
     parseInputDatesAsUTC?:boolean;
     connectionString?:string;
+    idleTimeoutMillis?:number; // how long a client is allowed to remain idle before being closed
 
     logger?:PgDbLogger;
 }
-
 
 /**
  * log will get 3 parameters:
@@ -169,10 +169,10 @@ export class PgDb extends QueryAble {
             // if a client is idle in the pool
             // and receives an error - for example when your PostgreSQL server restarts
             // the pool will catch the error & let you handle it here
-            (this.logger || console).error('pool error', e);
+            this.getLogger(true).error('pool error', e);
         });
         await this.reload();
-        (this.logger || console).log('Successfully connected to Db');
+        this.getLogger(true).log('Successfully connected to Db');
         return this;
     }
 
@@ -310,30 +310,30 @@ export class PgDb extends QueryAble {
         return pgDb;
     }
 
-    public async transactionCommit() {
+    public async transactionCommit():Promise<PgDb> {
         await this.query('COMMIT');
         await this.setConnectionMode('pool');
         return this;
     }
 
-    public async transactionRollback() {
+    public async transactionRollback():Promise<PgDb> {
         await this.query('ROLLBACK');
         await this.setConnectionMode('pool');
         return this;
     }
 
-    public isTransactionActive() {
-        return this.connection;
+    public isTransactionActive():boolean {
+        return this.connection!=null;
     }
 
-    public async execute(fileName, transformer?:(string)=>string) {
+    public async execute(fileName, transformer?:(string)=>string):Promise<void> {
         var consume = (commands) => {
             commands = commands.slice();
-            //(this.logger || console).log('consumer start', commands.length);
+            //this.getLogger(true).log('consumer start', commands.length);
             return new Promise((resolve, reject)=> {
                 var i = 0;
                 var runCommand = ()=> {
-                    //(this.logger || console).log('commnads length', commands.length, i);
+                    //this.getLogger(true).log('commnads length', commands.length, i);
                     if (commands.length == i) {
                         resolve();
                     } else {
@@ -341,7 +341,7 @@ export class PgDb extends QueryAble {
                         if (transformer) {
                             command = transformer(command);
                         }
-                        // (this.logger || console).log('run', commands[i]);
+                        // this.getLogger(true).log('run', commands[i]);
                         this.query(command)
                             .then(()=>runCommand(), reject)
                             .catch(reject);
@@ -354,7 +354,7 @@ export class PgDb extends QueryAble {
             });
         };
 
-        return new Promise((resolve, reject)=> {
+        return new Promise<void>((resolve, reject)=> {
             var commands = [];
             var tmp = '', m;
             var consumer;
@@ -422,7 +422,7 @@ export class PgDb extends QueryAble {
                         // console.log('done');
                         resolve();
                     }).catch((e)=> {
-                        (this.logger || console).error('error', e);
+                        this.getLogger(true).error(e);
                         reject();
                     });
                 }

@@ -26,7 +26,7 @@ export class QueryAble {
         return this.logger || this.schema && this.schema.logger || this.db.logger || (useConsoleAsDefault ? console : this.db.defaultLogger);
     }
 
-    public async run(sql:string) {
+    public async run(sql:string): Promise<any[]> {
         return this.query(sql);
     }
 
@@ -39,9 +39,9 @@ export class QueryAble {
      * e.g. query('select * from a.b where id=$1;',['the_stage_is_set']);
      * e.g. query('select * from :!schema.:!table where id=:id;',{schema:'a',table:'b', id:'the_stage_is_set'});
      */
-    public async query(sql:string, params?:any[])
-    public async query(sql:string, params?:Object)
-    public async query(sql:string, params?:any) {
+    public async query(sql:string, params?:any[]): Promise<any[]>
+    public async query(sql:string, params?:Object): Promise<any[]>
+    public async query(sql:string, params?:any): Promise<any[]> {
         let connection = this.db.connection;
 
         try {

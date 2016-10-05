@@ -18,11 +18,9 @@ export declare class PgTable extends QueryAble {
         schema: string;
     }, fieldType?: {});
     toString(): string;
-    insert(records: {}, returnResult?: boolean): Promise<{}>;
-    insert(records: {}[], returnResult?: boolean): Promise<{}[]>;
+    insert(records: {}, returnResult?: boolean): Promise<any>;
+    insert(records: {}[], returnResult?: boolean): Promise<any[]>;
     /**
-     * NOTE-JSON: we could try to guess whether the field is json or not, but there are edge cases where it is not possible
-     *    e.g. empty array, or array with basic types.
      * NOTE-DATE: there are 2 approaches to keep tz (the time correctly):
      *    1) use Date.toISOString() function, but then the $x placeholder should be TIMESTAMP WITH TIME ZONE $x
      *    2) use Date, and then no need to change the placeholder $x
@@ -49,7 +47,7 @@ export declare class PgTable extends QueryAble {
         [k: string]: any;
     }, fields: {
         [k: string]: any;
-    }): Promise<Array<any>>;
+    }): Promise<any[]>;
     private getDeleteQuery(conditions);
     deleteAll(): Promise<number>;
     delete(conditions: {
@@ -57,8 +55,8 @@ export declare class PgTable extends QueryAble {
     }): Promise<number>;
     deleteAndGet(conditions: {
         [k: string]: any;
-    }): Promise<Array<any>>;
-    deleteAndGetOne(conditions: {
+    }): Promise<any[]>;
+    deleteOneAndGet(conditions: {
         [k: string]: any;
     }): Promise<any>;
     deleteOne(conditions: {
@@ -66,7 +64,7 @@ export declare class PgTable extends QueryAble {
     }): Promise<number>;
     find(conditions: {
         [k: string]: any;
-    }, options?: QueryOptions): Promise<Array<any>>;
+    }, options?: QueryOptions): Promise<any[]>;
     findWhere(where: string, params: any): Promise<any[]>;
     findAll(): Promise<any[]>;
     findOne(conditions: any): Promise<any>;
