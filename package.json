@@ -2,8 +2,10 @@
   "name": "pgdb-ts",
   "version": "0.9.0",
   "description": "An easy db handler over pg.js (node-postgres)",
-  "main": "js/index.js",
-  "typings": "js/index",
+  "main": "lib/pgdb.js",
+  "typescript": {
+    "definition": "pgdb.d.ts"
+  },
   "scripts": {
     "test": "babel-node spec/run.js"
   },

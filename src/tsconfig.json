@@ -1,8 +1,9 @@
 {
   "version": "0.9.0",
   "compilerOptions": {
-    "module": "commonjs",
     "target": "es6",
+    "module": "commonjs",
+    "moduleResolution": "node",
     "sourceMap": true,
     "declaration": true,
     "forceConsistentCasingInFileNames": true,
