@@ -1,7 +1,8 @@
 import {QueryAble, QueryOptions} from "./queryAble";
 
-import {PgDb, FieldType, PgSchema} from "./pgdb";
+import {PgDb, FieldType} from "./pgdb";
 import generateWhere from "./queryWhere";
+import {PgSchema} from "./pgSchema";
 var util = require('util');
 var _ = require('lodash');
 

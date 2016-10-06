@@ -1,4 +1,5 @@
 import { QueryAble } from "./queryAble";
+import { PgSchema } from "./pgSchema";
 export declare enum FieldType {
     JSON = 0,
     ARRAY = 1,
@@ -70,11 +71,5 @@ export declare class PgDb extends QueryAble {
     transactionRollback(): Promise<PgDb>;
     isTransactionActive(): boolean;
     execute(fileName: any, transformer?: (string) => string): Promise<void>;
-}
-export declare class PgSchema extends QueryAble {
-    db: PgDb;
-    schemaName: string;
-    schema: PgSchema;
-    constructor(db: PgDb, schemaName: string);
 }
 export default PgDb;
