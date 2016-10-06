@@ -7,7 +7,7 @@ let schema:PgSchema = pgdb.schemas['test1'];
 ## setLogger(logger:PgDbLogger) 
 Note: inherited.
 
-Sets the logger per schema (Note:not used for tables with their own loggers).
+Sets the logger per schema (Note:not used for tables and queries with their own loggers specified).
 ```js
 schema.setLogger(console);
 ```

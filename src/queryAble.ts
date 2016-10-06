@@ -4,9 +4,9 @@ var util = require('util');
 const NAMED_PARAMS_REGEXP = /(?:^|[^:]):(!?[a-zA-Z0-9_]+)/g;    // do not convert "::type cast"
 export interface QueryOptions {
     limit?:number;
-    orderBy?:string;//free text
-    groupBy?:string;//free text
-    fields?:Array<string>;
+    orderBy?:string|string[];//free text or column list
+    groupBy?:string|string[];//free text or column list
+    fields?: string|string[];//free text or column list
     logger?:PgDbLogger;
 }
 
@@ -142,10 +142,18 @@ export class QueryAble {
     static processQueryOptions(options:QueryOptions) {
         let extra = '';
         if (options.groupBy) {
-            extra += 'GROUP BY ' + options.groupBy + ' ';
+            if (Array.isArray(options.groupBy)) {
+                extra += 'GROUP BY ' + options.groupBy.map(f=>f.indexOf('"')==-1 ? '"' + f + '"' : f).join(',') + ' ';
+            } else {
+                extra += 'GROUP BY ' + options.groupBy + ' ';
+            }
         }
         if (options.orderBy) {
-            extra += 'ORDER BY ' + options.orderBy + ' ';
+            if (Array.isArray(options.orderBy)) {
+                extra += 'ORDER BY ' + options.orderBy.map(f=>f.indexOf('"')==-1 ? '"' + f + '"' : f).join(',') + ' ';
+            } else {
+                extra += 'ORDER BY ' + options.orderBy + ' ';
+            }
         }
         if (options.limit) {
             extra += util.format('LIMIT %d ', options.limit);

@@ -6,7 +6,7 @@ let pgdb:PgDb     = PgDb.connect(..);
 ## setLogger(logger:PgDbLogger) 
 Note: inherited.
 
-Sets the fallback logger for all queries (if no schema or table level logger is set, this will be used).
+Sets the fallback logger for all queries (if no schema, table or query level logger is set, this will be used).
 ```js
 pgdb.setLogger(console);
 ```

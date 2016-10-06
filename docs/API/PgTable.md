@@ -8,7 +8,7 @@ let table:PgTable = pgdb.schemas['test1']['users'];
 ## setLogger(logger:PgDbLogger) 
 Note: inherited.
 
-Sets the logger per table.
+Sets the logger per table (not used if the query has logger specified).
 
 ## async run(sql:string):Promise<Record[]>
 Note: inherited, uses table level log if present (if not then schema, then db).

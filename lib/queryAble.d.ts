@@ -1,9 +1,9 @@
 import { PgDbLogger } from "./pgdb";
 export interface QueryOptions {
     limit?: number;
-    orderBy?: string;
-    groupBy?: string;
-    fields?: Array<string>;
+    orderBy?: string | string[];
+    groupBy?: string | string[];
+    fields?: string | string[];
     logger?: PgDbLogger;
 }
 export declare class QueryAble {

@@ -183,7 +183,12 @@ export class PgTable extends QueryAble {
 
         if (options) {
             if (options.fields) {
-                sql = "SELECT " + options.fields.join(',') + " FROM " + this.qualifiedName + where.where;
+                if (Array.isArray(options.fields)) {
+                    sql = 'SELECT ' + options.fields.map(f=>f.indexOf('"')==-1 ? '"' + f + '"' : f).join(',');
+                } else {
+                    sql = 'SELECT ' + options.fields ;
+                }
+                sql += ' FROM ' + this.qualifiedName + where.where;
             }
             sql += QueryAble.processQueryOptions(options);
         }
