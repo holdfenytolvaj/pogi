@@ -8,7 +8,7 @@
   },
   "scripts": {
     "build": "tsc -p src/tsconfig.json && babel lib/*.js -d ./",
-    "test": "babel-node spec/run.js"
+    "test": "node --harmony spec/run.js"
   },
   "repository": {
     "type": "git",
@@ -25,7 +25,8 @@
   "dependencies": {
     "lodash": "~3.10.1",
     "moment": "^2.15.1",
-    "pg": "^6.0.3"
+    "pg": "^6.0.3",
+    "pg-query-stream": "^1.0.0"
   },
   "devDependencies": {
     "@types/jasmine": "^2.2.31",

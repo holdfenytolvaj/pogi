@@ -301,4 +301,12 @@ describe("pgdb", () => {
         expect(res[1].name).toEqual('B');
     }));
 
+
+    it("stream - auto connection handling",  w(async() => {
+        var size = await table.count();
+        let stream = await table.queryAsStream(`select * from ${table}`);
+        let streamSize = 0;
+        stream.on('data',()=>{streamSize++});
+        expect(size).toEqual(streamSize);
+    }));
 });

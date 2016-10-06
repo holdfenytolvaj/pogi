@@ -1,6 +1,9 @@
+/// <reference types="node" />
 import { PgDbLogger } from "./pgdb";
+import { Readable } from 'stream';
 export interface QueryOptions {
     limit?: number;
+    offset?: number;
     orderBy?: string | string[];
     groupBy?: string | string[];
     fields?: string | string[];
@@ -25,6 +28,8 @@ export declare class QueryAble {
      */
     query(sql: string, params?: any[]): Promise<any[]>;
     query(sql: string, params?: Object): Promise<any[]>;
+    queryAsStream(sql: string, params?: any[]): Promise<Readable>;
+    queryAsStream(sql: string, params?: Object): Promise<Readable>;
     /** @return one record's one field */
     getOneField(sql: string, params?: any[]): any;
     getOneField(sql: string, params?: Object): any;
