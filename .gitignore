@@ -1,0 +1,4 @@
+.idea
+.babelrc
+lib/test
+node_modules
