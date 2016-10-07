@@ -252,7 +252,7 @@ export class PgDb extends QueryAble {
                 case 1182: // date[]
                 case 1183: // time[]
                 case 1185: // timestamptz[]
-                case 1270: // timetz
+                case 1270: // timetz[]
                     pg.types.setTypeParser(r.typid, arraySplitToDate);
                     break;
                 default :

@@ -257,11 +257,44 @@ describe("pgdb", () => {
     }));
 
     it("timestamptz[]",  w(async() => {
-        await table.insert({name: 'A', timestamptzList:[new Date('2000-01-01 00:00:00').toISOString(), new Date('2001-01-01 00:00:00').toISOString()]});
-        let res = await table.findOne({name:'A'});
+        await table.insert({
+            name: 'A',
+            timestamptzList: [new Date('2000-01-01 00:00:00').toISOString(), new Date('2001-01-01 00:00:00').toISOString()]
+        });
+        let res = await table.findOne({name: 'A'});
         expect(res.timestamptzList[0]).toEqual(new Date('2000-01-01 00:00:00'));
         expect(res.timestamptzList[1]).toEqual(new Date('2001-01-01 00:00:00'));
         expect(res.timestamptzList.length).toEqual(2);
+    }));
+
+    it("timestamp and timestamptz",  w(async() => {
+        await table.insert({name: 'A',
+            created:new Date('2000-01-01 00:00:00'),
+            createdtz:new Date('2000-01-01 00:00:00')
+        });
+        let res = await table.findOne({name:'A'});
+
+        expect(res.created).toEqual(new Date('2000-01-01 00:00:00'));
+        expect(res.createdtz).toEqual(new Date('2000-01-01 00:00:00'));
+
+        res = await table.count({'created':new Date('2000-01-01 00:00:00')});
+        expect(res).toEqual(1);
+
+        res = await table.count({'createdtz':new Date('2000-01-01 00:00:00')});
+        expect(res).toEqual(1);
+
+        let d = new Date('2000-01-01 00:00:00').toISOString();
+        await table.query(`INSERT INTO ${table} (name, created, createdtz) values ('A2', '${d}'::timestamptz, '${d}'::timestamptz)`);
+        res = await table.findOne({name:'A2'});
+
+        expect(res.created).toEqual(new Date('2000-01-01 00:00:00'));
+        expect(res.createdtz).toEqual(new Date('2000-01-01 00:00:00'));
+
+        res = await table.query(`SELECT * FROM ${table} WHERE name='A2' AND created='${d}'::timestamptz`);
+        expect(res.length).toEqual(1);
+
+        res = await table.query(`SELECT * FROM ${table} WHERE name='A2' AND createdtz='${d}'::timestamptz`);
+        expect(res.length).toEqual(1);
     }));
 
     it("transaction - rollback",  w(async() => {

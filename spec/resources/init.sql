@@ -34,7 +34,9 @@ CREATE TABLE IF NOT EXISTS "users" (
 
 	"permission" "permissionForResourceType",
 	"permissionList" "permissionForResourceType"[],
-	"updated" timestamp with time zone
+	"updated" timestamp with time zone,
+	"created" timestamp,
+	"createdtz" timestamptz
 );
 
 
