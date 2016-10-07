@@ -7,26 +7,44 @@ import {pgUtils} from "./pgUtils";
 var util = require('util');
 var _ = require('lodash');
 
+interface InsertOption {
+    return?:string[]|boolean;
+}
 
 export class PgTable extends QueryAble {
     qualifiedName:string;
     db:PgDb;
-    public fieldType:{[index:string]:FieldType};
+    public fieldTypes:{[index:string]:FieldType};
 
-    constructor(public schema:PgSchema, protected desc:{name:string, pk:string, schema:string}, fieldType={}) {
+    constructor(public schema:PgSchema, protected desc:{name:string, pk:string, schema:string}, fieldTypes={}) {
         super();
         this.db = schema.db;
         this.qualifiedName = util.format('"%s"."%s"', desc.schema, desc.name);
-        this.fieldType = fieldType;
+        this.fieldTypes = fieldTypes;
     }
 
     public toString() {
         return this.qualifiedName;
     }
 
-    public async insert(records:Object, returnResult?:boolean): Promise<Object>
-    public async insert(records:Object[], returnResult?:boolean): Promise<Object[]>
-    public async insert(records:any, returnResult:boolean=true): Promise<any> {
+    /**
+     * If you dont want to use the result set the options.return to false
+     * by default it is true. Also can set it to the fields that need to be returned,
+     * e.g.:
+     *
+     * let res = await table.insert([{username:'anonymous'},{username:'anonymous2'}], {return:['id']})
+     * res; // [{id:1},{id:2}]
+     *
+     * let res = await table.insert({username:'anonymous'}, {return:false})
+     * res; // void
+     *
+     * let res = await table.insert({username:'anonymous'})
+     * res; // {id:1, name:'anonymous', created:'...'}
+     *
+     */
+    public async insert<T>(records:T,   options?:InsertOption ): Promise<T>
+    public async insert<T>(records:T[], options?:InsertOption ): Promise<T[]>
+    public async insert<T>(records:any, options?:InsertOption ): Promise<any> {
         var returnSingle = false;
 
         if (!records) {
@@ -46,15 +64,19 @@ export class PgTable extends QueryAble {
         for (var i = 0, seed = 0; i < records.length; ++i) {
             values.push(util.format('(%s)', _.map(records[i], () => "$" + (++seed)).join(', ')));
             _.forEach(records[i], (param, fieldName) => {
-                parameters.push(this.transformInsertUpdateParams(param, this.fieldType[fieldName]));
+                parameters.push(this.transformInsertUpdateParams(param, this.fieldTypes[fieldName]));
             });
         }
         sql += values.join(",\n");
-        if (returnResult) {
-            sql += " RETURNING *";
+        if (!options || options.return) {
+            if (Array.isArray(options.return)) {
+                sql += " RETURNING " + (<Array>options.return).join(',');
+            } else {
+                sql += " RETURNING *";
+            }
         }
         let result = await this.query(sql, parameters);
-        if (!returnResult) {
+        if (options && !options.return) {
             return;
         }
         if (returnSingle) {
@@ -96,7 +118,7 @@ export class PgTable extends QueryAble {
         let sql = util.format("UPDATE %s SET %s", this.qualifiedName, f.join(', '));
 
         if (!hasConditions || !_.isEmpty(conditions)) {
-            var parsedWhere = generateWhere(conditions, this.fieldType, this.qualifiedName, parameters.length);
+            var parsedWhere = generateWhere(conditions, this.fieldTypes, this.qualifiedName, parameters.length);
             sql += parsedWhere.where;
         }
         parameters = parameters.concat(_.flatten(_.values(conditions).filter(v=>v!==undefined)));
@@ -137,17 +159,10 @@ export class PgTable extends QueryAble {
 
         var parsedWhere;
         if (!_.isEmpty(conditions)) {
-            parsedWhere = generateWhere(conditions, this.fieldType, this.qualifiedName);
+            parsedWhere = generateWhere(conditions, this.fieldTypes, this.qualifiedName);
             sql += parsedWhere.where;
         }
         return {sql, parameters:parsedWhere.params||[]}
-    }
-
-    public async deleteAll():Promise<number> {
-        let sql = util.format("DELETE FROM %s ", this.qualifiedName);
-        sql = "WITH __RESULT as ( " + sql + " RETURNING 1) SELECT SUM(1) FROM __RESULT";
-        let res = await this.query(sql);
-        return +res[0].sum;
     }
 
     public async delete(conditions:{[k:string]:any}):Promise<number> {
@@ -180,7 +195,7 @@ export class PgTable extends QueryAble {
     }
 
     public async find(conditions:{[k:string]:any}, options?:QueryOptions):Promise<any[]> {
-        let where = _.isEmpty(conditions) ? {where: " ", params: null} : generateWhere(conditions, this.fieldType, this.qualifiedName);
+        let where = _.isEmpty(conditions) ? {where: " ", params: null} : generateWhere(conditions, this.fieldTypes, this.qualifiedName);
         let sql = 'SELECT'
             + pgUtils.processQueryFields(options)
             + ' FROM ' + this.qualifiedName
@@ -215,7 +230,7 @@ export class PgTable extends QueryAble {
     }
 
     public async count(conditions?):Promise<number> {
-        var where = _.isEmpty(conditions) ? {where: " ", params: null} : generateWhere(conditions, this.fieldType, this.qualifiedName);
+        var where = _.isEmpty(conditions) ? {where: " ", params: null} : generateWhere(conditions, this.fieldTypes, this.qualifiedName);
         var sql = "SELECT COUNT(*) c FROM " + this.qualifiedName + where.where;
         return (await this.getOneField(sql, where.params));
     }

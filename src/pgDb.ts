@@ -102,7 +102,7 @@ export class PgDb extends QueryAble {
             this.schemas[schemaName] = schema;
             for (let tableName in pgdb.schemas[schemaName]) {
                 if (pgdb.schemas[schemaName][tableName] instanceof PgTable) {
-                    schema[tableName] = new PgTable(schema, pgdb.schemas[schemaName][tableName].desc, pgdb.schemas[schemaName][tableName].fieldType);
+                    schema[tableName] = new PgTable(schema, pgdb.schemas[schemaName][tableName].desc, pgdb.schemas[schemaName][tableName].fieldTypes);
                 }
             }
         }
@@ -197,7 +197,7 @@ export class PgDb extends QueryAble {
                         = await this.pool.query(LIST_SPECIAL_TYPE_FIELDS);
 
         for (let r of specialTypeFields.rows) {
-            this.schemas[r.schema_name][r.table_name].fieldType[r.column_name] =
+            this.schemas[r.schema_name][r.table_name].fieldTypes[r.column_name] =
                 ([3802, 114].indexOf(r.typid)>-1) ? FieldType.JSON :
                 ([1082, 1083, 1114, 1184, 1266].indexOf(r.typid)>-1) ? FieldType.TIME:
                         FieldType.ARRAY;
