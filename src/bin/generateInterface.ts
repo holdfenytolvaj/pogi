@@ -2,8 +2,9 @@ import {PgDb} from "../pgDb";
 import {PgTable} from "../pgTable";
 
 (async function () {
-    let pgdb = await PgDb.connect({}); //using PGUSER + PGDATABASE env variables
-    
+    let pgdb = await PgDb.connect({logger:{log:()=>{},error:()=>{}}}); //using PGUSER, PGPASSWORD + PGDATABASE env variables
+
+    console.log('import {PgDb, PgSchema, PgTable} from "pgdb/lib/index";\n')
     console.log('export interface PgDbType extends PgDb {');
     console.log('    \'schemas\': {');
     for (let schemaName in pgdb.schemas) {

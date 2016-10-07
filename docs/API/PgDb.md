@@ -1,6 +1,8 @@
 For all the examples below 
 ```js
-let pgdb:PgDb     = PgDb.connect(..);
+import {PgDb} from "pgdb/lib/index";
+
+let pgdb = PgDb.connect(..);
 ```
 
 ## setLogger(logger:PgDbLogger) 

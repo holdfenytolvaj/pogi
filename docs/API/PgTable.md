@@ -1,5 +1,7 @@
 For all the examples below 
 ```js
+import {PgDb, PgSchema, PgTable} from "pgdb/lib/index";
+
 let pgdb:PgDb     = PgDb.connect(..);
 let table:PgTable = pgdb.schemas['test1']['users'];  
 ```

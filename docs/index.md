@@ -1,5 +1,5 @@
 ## What
-**pgdb.js** is an easy to use postgreDB handler for javascript, built on top of pg.js 
+**pgdb** is an easy to use postgreDB handler for javascript, built on top of pg.js 
 (and inherited few things from Massive). Supporting connection pooling, transaction, 
 typescript, async-await, custom logger, executable sql files and built with a lot of sensible default.
 
@@ -10,7 +10,7 @@ So makes a seemless integration with js objects and removes boiler plate but kee
 the power of custom queries.
 
 ```js
-import pgdb from "pgdb";
+import {PgDb} from "pgdb/lib/index";
 
 let pgdb = await PgDb.connect({connectionString: "postgres://"});
 
