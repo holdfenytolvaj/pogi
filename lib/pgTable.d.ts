@@ -19,8 +19,8 @@ export declare class PgTable extends QueryAble {
         schema: string;
     }, fieldType?: {});
     toString(): string;
-    insert(records: {}, returnResult?: boolean): Promise<any>;
-    insert(records: {}[], returnResult?: boolean): Promise<any[]>;
+    insert(records: Object, returnResult?: boolean): Promise<Object>;
+    insert(records: Object[], returnResult?: boolean): Promise<Object[]>;
     /**
      * NOTE-DATE: there are 2 approaches to keep tz (the time correctly):
      *    1) use Date.toISOString() function, but then the $x placeholder should be TIMESTAMP WITH TIME ZONE $x
@@ -66,10 +66,10 @@ export declare class PgTable extends QueryAble {
     find(conditions: {
         [k: string]: any;
     }, options?: QueryOptions): Promise<any[]>;
-    findWhere(where: string, params: any): Promise<any[]>;
-    findAll(): Promise<any[]>;
-    findOne(conditions: any): Promise<any>;
-    findFirst(conditions: any): Promise<any>;
+    findWhere(where: string, params?: any, options?: QueryOptions): Promise<any[]>;
+    findAll(options?: QueryOptions): Promise<any[]>;
+    findOne(conditions: any, options?: QueryOptions): Promise<any>;
+    findFirst(conditions: any, options?: QueryOptions): Promise<any>;
     count(conditions?: any): Promise<number>;
-    findOneFieldOnly(conditions: any, field: string): Promise<any>;
+    findOneFieldOnly(conditions: any, field: string, options?: QueryOptions): Promise<any>;
 }

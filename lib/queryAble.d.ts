@@ -36,11 +36,4 @@ export declare class QueryAble {
     /** @return one column for the matching records */
     getOneColumn(sql: string, params?: any[]): any;
     getOneColumn(sql: string, params?: Object): any;
-    /**
-     * :named -> $1 (not works with DDL (schema, table, column))
-     * :!named -> "value" (for DDL (schema, table, column))
-     * do not touch ::type cast
-     */
-    private processNamedParams(sql, params);
-    static processQueryOptions(options: QueryOptions): string;
 }

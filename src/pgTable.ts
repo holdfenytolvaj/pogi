@@ -3,6 +3,7 @@ import {QueryAble, QueryOptions} from "./queryAble";
 import {PgDb, FieldType} from "./pgDb";
 import generateWhere from "./queryWhere";
 import {PgSchema} from "./pgSchema";
+import {pgUtils} from "./pgUtils";
 var util = require('util');
 var _ = require('lodash');
 
@@ -23,8 +24,8 @@ export class PgTable extends QueryAble {
         return this.qualifiedName;
     }
 
-    public async insert(records:{}, returnResult?:boolean): Promise<any>
-    public async insert(records:{}[], returnResult?:boolean): Promise<any[]>
+    public async insert(records:Object, returnResult?:boolean): Promise<Object>
+    public async insert(records:Object[], returnResult?:boolean): Promise<Object[]>
     public async insert(records:any, returnResult:boolean=true): Promise<any> {
         var returnSingle = false;
 
@@ -88,7 +89,7 @@ export class PgTable extends QueryAble {
         _.each(fields, (value, fieldName) => {
             if (value === undefined) return;
 
-            f.push(util.format('"%s" = $%s', fieldName, (++seed)));
+            f.push(util.format('%s = $%s', pgUtils.quoteField(fieldName), (++seed)));
             parameters.push(this.transformInsertUpdateParams(value, this.fieldType[fieldName]));
         });
 
@@ -180,42 +181,36 @@ export class PgTable extends QueryAble {
 
     public async find(conditions:{[k:string]:any}, options?:QueryOptions):Promise<any[]> {
         let where = _.isEmpty(conditions) ? {where: " ", params: null} : generateWhere(conditions, this.fieldType, this.qualifiedName);
-        let sql = "SELECT * FROM " + this.qualifiedName + (where.where ? where.where : '');
-
-        if (options) {
-            if (options.fields) {
-                if (Array.isArray(options.fields)) {
-                    sql = 'SELECT ' + options.fields.map(f=>f.indexOf('"')==-1 ? '"' + f + '"' : f).join(',');
-                } else {
-                    sql = 'SELECT ' + options.fields ;
-                }
-                sql += ' FROM ' + this.qualifiedName + where.where;
-            }
-            sql += QueryAble.processQueryOptions(options);
-        }
+        let sql = 'SELECT'
+            + pgUtils.processQueryFields(options)
+            + ' FROM ' + this.qualifiedName
+            + (where.where ? where.where : '')
+            + pgUtils.processQueryOptions(options);
         return this.query(sql, where.params);
     }
 
-    public async findWhere(where:string, params):Promise<any[]> {
-        let sql = "SELECT * FROM " + this.qualifiedName + ' WHERE ' + where;
+    public async findWhere(where:string, params?, options?:QueryOptions):Promise<any[]> {
+        let sql = `SELECT ${pgUtils.processQueryFields(options)} FROM ${this.qualifiedName} WHERE ${where} ${pgUtils.processQueryOptions(options)}`;
         return this.query(sql, params);
     }
 
-    public async findAll():Promise<any[]> {
-        let sql = "SELECT * FROM " + this.qualifiedName;
+    public async findAll(options?:QueryOptions):Promise<any[]> {
+        let sql = `SELECT ${pgUtils.processQueryFields(options)} FROM ${this.qualifiedName} ${pgUtils.processQueryOptions(options)}`;
         return this.query(sql);
     }
 
-    public async findOne(conditions):Promise<any> {
-        let res = await this.find(conditions);
+    public async findOne(conditions, options?:QueryOptions):Promise<any> {
+        let res = await this.find(conditions, options);
         if (res.length > 1) {
             throw new Error('More then one rows exists');
         }
         return res[0];
     }
 
-    public async findFirst(conditions):Promise<any> {
-        let res = await this.find(conditions, {limit:1});
+    public async findFirst(conditions, options?:QueryOptions):Promise<any> {
+        options = options || {};
+        options.limit = 1;
+        let res = await this.find(conditions, options);
         return res[0];
     }
 
@@ -225,9 +220,10 @@ export class PgTable extends QueryAble {
         return (await this.getOneField(sql, where.params));
     }
 
-    public async findOneFieldOnly(conditions, field:string):Promise<any> {
-        let res = await this.findOne(conditions);
+    public async findOneFieldOnly(conditions, field:string, options?:QueryOptions):Promise<any> {
+        options = options || {};
+        options.fields = [field];
+        let res = await this.findOne(conditions, options);
         return res ? res[field] : null;
     }
-
 }

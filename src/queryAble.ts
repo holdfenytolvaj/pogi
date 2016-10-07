@@ -2,8 +2,8 @@ import {PgDbLogger} from "./pgDb";
 var util = require('util');
 var QueryStream = require('pg-query-stream');
 import {Readable} from 'stream';
+import {pgUtils} from "./pgUtils";
 
-const NAMED_PARAMS_REGEXP = /(?:^|[^:]):(!?[a-zA-Z0-9_]+)/g;    // do not convert "::type cast"
 export interface QueryOptions {
     limit?: number;
     offset?: number;
@@ -49,7 +49,7 @@ export class QueryAble {
 
         try {
             if (params && !Array.isArray(params)) {
-                let p = this.processNamedParams(sql, params);
+                let p = pgUtils.processNamedParams(sql, params);
                 sql = p.sql;
                 params = p.params;
             }
@@ -87,7 +87,7 @@ export class QueryAble {
 
         try {
             if (params && !Array.isArray(params)) {
-                let p = this.processNamedParams(sql, params);
+                let p = pgUtils.processNamedParams(sql, params);
                 sql = p.sql;
                 params = p.params;
             }
@@ -96,8 +96,6 @@ export class QueryAble {
                 this.getLogger(false).log(sql, util.inspect(params, false, null), connection.processID);
                 var query = new QueryStream(sql, params);
                 var stream = connection.query(query);
-                // release the client when the stream is finished
-                // stream.on('end',()=>);
                 return stream;
             } else {
                 connection = await this.db.pool.connect();
@@ -142,73 +140,5 @@ export class QueryAble {
         let res = await this.query(sql, params);
         let fieldName = Object.keys(res[0])[0];
         return res.map(r=>r[fieldName]);
-    }
-
-    /**
-     * :named -> $1 (not works with DDL (schema, table, column))
-     * :!named -> "value" (for DDL (schema, table, column))
-     * do not touch ::type cast
-     */
-    private processNamedParams(sql: string, params: Object) {
-        let sql2 = [];
-        let params2 = [];
-
-        let p = NAMED_PARAMS_REGEXP.exec(sql);
-        let lastIndex = 0;
-        while (p) {
-            let ddl = false;
-            let name = p[1];
-            if (name[0] == '!') {
-                name = name.slice(1);
-                ddl = true;
-            }
-
-            if (!(name in params)) {
-                throw new Error(`No ${p[1]} in params (keys: ${Object.keys(params)})`);
-            }
-            sql2.push(sql.slice(lastIndex, NAMED_PARAMS_REGEXP.lastIndex - p[1].length - 1));
-
-            if (ddl) {
-                sql2.push('"' + ('' + params[name]).replace(/"/g, '""') + '"');
-            } else {
-                params2.push(params[name]);
-                sql2.push('$' + params2.length);
-            }
-            lastIndex = NAMED_PARAMS_REGEXP.lastIndex;
-            p = NAMED_PARAMS_REGEXP.exec(sql);
-        }
-        sql2.push(sql.substr(lastIndex));
-
-        return {
-            sql: sql2.join(''),
-            params: params2
-        }
-    }
-
-    static processQueryOptions(options: QueryOptions) {
-        let extra = '';
-        let quoteIfNotQuoted = f=>f.indexOf('"') == -1 ? '"' + f + '"' : f;
-
-        if (options.groupBy) {
-            if (Array.isArray(options.groupBy)) {
-                extra += ' GROUP BY ' + options.groupBy.map(quoteIfNotQuoted).join(',') + ' ';
-            } else {
-                extra += ' GROUP BY ' + quoteIfNotQuoted(options.groupBy) + ' ';
-            }
-        }
-        if (options.orderBy) {
-            if (Array.isArray(options.orderBy)) {
-                extra += ' ORDER BY ' + options.orderBy.map(quoteIfNotQuoted).join(',') + ' ';
-            } else {
-                extra += ' ORDER BY ' + quoteIfNotQuoted(options.orderBy) + ' ';
-            }
-        }
-        if (options.limit) {
-            extra += util.format(' LIMIT %d ', options.limit);
-        }
-        if (options.offset) {
-            extra += util.format(' OFFSET %d ', options.offset);
-        }
-        return extra;
     }
 }
