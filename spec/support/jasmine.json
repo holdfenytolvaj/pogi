@@ -1,8 +1,8 @@
 {
   "spec_dir": "lib/test",
   "spec_files": [
-    "**/pgdbOperatorSpec.js",
-    "**/pgdbSpec.js"
+    "**/pgDbOperatorSpec.js",
+    "**/pgDbSpec.js"
   ],
   "stopSpecOnExpectationFailure": false,
   "random": false
