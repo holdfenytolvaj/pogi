@@ -1,5 +1,5 @@
-import operationsMap from "./pgdb_operators";
-import {FieldType} from "./pgdb";
+import operationsMap from "./pgDbOperators";
+import {FieldType} from "./pgDb";
 var _ = require("lodash");
 var util = require("util");
 

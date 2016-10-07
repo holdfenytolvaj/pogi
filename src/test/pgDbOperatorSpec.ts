@@ -1,4 +1,4 @@
-import {PgDb} from "../pgdb";
+import {PgDb} from "../pgDb";
 import {PgTable} from "../pgTable";
 var util = require('util');
 

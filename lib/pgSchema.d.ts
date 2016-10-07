@@ -1,5 +1,5 @@
 import { QueryAble } from "./queryAble";
-import { PgDb } from "./pgdb";
+import { PgDb } from "./pgDb";
 export declare class PgSchema extends QueryAble {
     db: PgDb;
     schemaName: string;

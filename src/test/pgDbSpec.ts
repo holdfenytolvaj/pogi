@@ -1,4 +1,4 @@
-import {PgDb} from "../pgdb";
+import {PgDb} from "../pgDb";
 import {PgTable} from "../pgTable";
 var util = require('util');
 
@@ -86,7 +86,7 @@ describe("pgdb", () => {
     }));
 
     beforeEach(w(async() => {
-        await table.run('DELETE FROM ' + table);
+        await table.deleteAll();
     }));
 
     it("After adding parser should be able to parse complex type", w(async() => {

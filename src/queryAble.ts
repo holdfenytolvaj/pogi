@@ -1,4 +1,4 @@
-import {PgDbLogger} from "./pgdb";
+import {PgDbLogger} from "./pgDb";
 var util = require('util');
 var QueryStream = require('pg-query-stream');
 import {Readable} from 'stream';

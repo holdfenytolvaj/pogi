@@ -1,5 +1,4 @@
 {
-  "version": "0.9.0",
   "compilerOptions": {
     "target": "es2015",
     "module": "commonjs",
@@ -10,7 +9,8 @@
     "rootDir": "./",
     "outDir": "../lib",
     "types": [
-      "jasmine", "node"
+      "jasmine",
+      "node"
     ]
   },
   "include": [

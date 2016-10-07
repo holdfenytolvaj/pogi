@@ -1,5 +1,5 @@
 import { QueryAble, QueryOptions } from "./queryAble";
-import { PgDb, FieldType } from "./pgdb";
+import { PgDb, FieldType } from "./pgDb";
 import { PgSchema } from "./pgSchema";
 export declare class PgTable extends QueryAble {
     schema: PgSchema;

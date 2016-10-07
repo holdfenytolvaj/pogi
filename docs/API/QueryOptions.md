@@ -4,6 +4,7 @@ Query option has to follow the following interface:
 ```js
 interface QueryOptions {
     limit?:number;
+    offset?: number;
     orderBy?:string|string[];//free text or column list
     groupBy?:string|string[];//free text or column list
     fields?: string|string[];//free text or column list

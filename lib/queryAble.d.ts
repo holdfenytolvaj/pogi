@@ -1,5 +1,5 @@
 /// <reference types="node" />
-import { PgDbLogger } from "./pgdb";
+import { PgDbLogger } from "./pgDb";
 import { Readable } from 'stream';
 export interface QueryOptions {
     limit?: number;

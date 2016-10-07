@@ -1,18 +1,19 @@
 {
-  "name": "pgdb-ts",
-  "version": "0.9.0",
+  "name": "pgdb",
+  "version": "1.0.0",
   "description": "An easy db handler over pg.js (node-postgres)",
-  "main": "lib/pgdb.js",
+  "main": "lib/index.js",
   "typescript": {
-    "definition": "pgdb.d.ts"
+    "definition": "src/index.ts"
   },
+  "types": "lib/index.d.ts",
   "scripts": {
     "build": "tsc -p src/tsconfig.json && babel lib/*.js -d ./",
     "test": "node --harmony spec/run.js"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/holdfenytolvaj/pgdb-ts.git"
+    "url": "git+https://github.com/holdfenytolvaj/pgdb.git"
   },
   "keywords": [
     "typescript",
@@ -29,7 +30,7 @@
     "pg-query-stream": "^1.0.0"
   },
   "devDependencies": {
-    "@types/jasmine": "^2.2.31",
+    "@types/jasmine": "~2.5.35",
     "@types/node": "^6.0.35",
     "babel-cli": "~6.14.0",
     "babel-plugin-transform-es2015-destructuring": "^6.16.0",
@@ -41,7 +42,7 @@
   "author": "Laszlo Radics<garaboncias@gmail.com>, Geza Radics<radicsge@protonmail.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/holdfenytolvaj/pgdb-ts/issues"
+    "url": "https://github.com/holdfenytolvaj/pgdb/issues"
   },
-  "homepage": "https://github.com/holdfenytolvaj/pgdb-ts#readme"
+  "homepage": "https://github.com/holdfenytolvaj/pgdb#readme"
 }
