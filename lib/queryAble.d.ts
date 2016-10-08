@@ -4,7 +4,9 @@ import { Readable } from 'stream';
 export interface QueryOptions {
     limit?: number;
     offset?: number;
-    orderBy?: string | string[];
+    orderBy?: string | string[] | {
+        [fieldName: string]: 'asc' | 'desc';
+    };
     groupBy?: string | string[];
     fields?: string | string[];
     logger?: PgDbLogger;

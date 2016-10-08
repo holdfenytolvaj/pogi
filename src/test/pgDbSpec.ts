@@ -346,9 +346,10 @@ describe("pgdb", () => {
         await table.insert({name: 'A'});
         await table.insert({name: 'B'});
         var size = await table.count();
-        let stream = await table.queryAsStream(`select * from ${table}`);
+        let stream = await table.queryAsStream(`SELECT * FROM ${table}`);
         let streamSize = 0;
-        stream.on('data',()=>{streamSize++});
+        stream.on('data',()=>streamSize++);
+        await new Promise((resolve) => stream.on('end', resolve));
         expect(size).toEqual(streamSize);
     }));
 
@@ -359,6 +360,28 @@ describe("pgdb", () => {
 
         var size = await table.count();
         expect(size).toEqual(0);
+    }));
+
+    it("orderBy",  w(async() => {
+        await table.insert({name: 'A', aCategory:'A'});
+        await table.insert({name: 'B', aCategory:'B'});
+        await table.insert({name: 'C', aCategory:'C'});
+        await table.insert({name: 'A2', aCategory:'A'});
+        await table.insert({name: 'B2', aCategory:'B'});
+        await table.insert({name: 'C2', aCategory:'C'});
+
+        let res;
+        res = await table.find({}, {orderBy:['aCategory', 'name'], fields:['name']});
+        expect(res.map(v=>v.name)).toEqual(['A','A2','B','B2','C','C2']);
+
+        res = await table.find({}, {orderBy:['aCategory asc', 'name desc'], fields:['name']});
+        expect(res.map(v=>v.name)).toEqual(['A2','A','B2','B','C2','C']);
+
+        res = await table.find({}, {orderBy:['+aCategory', '-name'], fields:['name']});
+        expect(res.map(v=>v.name)).toEqual(['A2','A','B2','B','C2','C']);
+
+        res = await table.find({}, {orderBy:'"aCategory" asc, name desc', fields:['name']});
+        expect(res.map(v=>v.name)).toEqual(['A2','A','B2','B','C2','C']);
     }));
 
 });

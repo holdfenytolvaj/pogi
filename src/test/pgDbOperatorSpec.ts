@@ -40,6 +40,8 @@ describe("pgdb", () => {
 
         //pgdb.setLogger(console);
         table = pgdb.schemas[schema]['users'];
+
+        return Promise.resolve();
     }));
 
     beforeEach(w(async() => {

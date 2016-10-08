@@ -20,6 +20,7 @@ CREATE SEQUENCE "users_id_seq";
 CREATE TABLE IF NOT EXISTS "users" (
 	"id" varchar PRIMARY KEY NOT NULL DEFAULT ('us' || nextval('users_id_seq')::text || (LPAD(floor(random()*100)::text, 2, '0'))),
 	"name" varchar UNIQUE NOT NULL,
+    "aCategory" varchar,
 
 	"textList" text[],
 	"numberList" integer[], -- int4

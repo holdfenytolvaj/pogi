@@ -7,7 +7,7 @@ import {pgUtils} from "./pgUtils";
 export interface QueryOptions {
     limit?: number;
     offset?: number;
-    orderBy?: string|string[];//free text or column list
+    orderBy?: string|string[]|{[fieldName:string]:'asc'|'desc'};//free text or column list
     groupBy?: string|string[];//free text or column list
     fields?: string|string[];//free text or column list
     logger?: PgDbLogger;
@@ -108,15 +108,17 @@ export class QueryAble {
                 try {
                     var query = new QueryStream(sql, params);
                     var stream = connection.query(query);
-                    stream.on('end', ()=>connection.release());
-                    return stream;
-                } finally {
-                    try {
+                    stream.on('end', ()=>{
                         connection.release();
-                    } catch (e) {
-                        connection = null;
-                        this.getLogger(true).error('connection error', e.message);
-                    }
+                    });
+                    stream.on('error', ()=>{
+                        connection.release();
+                    });
+
+                    return stream;
+                }  catch (e) {
+                    this.getLogger(true).error('connection error', e.message);
+                    try{connection.release();} catch(e) {}
                 }
             }
         } catch (e) {

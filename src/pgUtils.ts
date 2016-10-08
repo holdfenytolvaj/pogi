@@ -2,10 +2,11 @@ import {QueryOptions} from "./queryAble";
 var util = require('util');
 const NAMED_PARAMS_REGEXP = /(?:^|[^:]):(!?[a-zA-Z0-9_]+)/g;    // do not convert "::type cast"
 import {FieldType} from "./pgDb";
+const ASC_DESC_REGEXP = /^([^" (]+)( asc| desc)?$/;
 
 export var pgUtils = {
     quoteField(f) {
-        return f.indexOf('"') == -1 ? '"' + f + '"' : f;
+        return f.indexOf('"') == -1 && f.indexOf('(') == -1? '"' + f + '"' : f;
     },
 
     processQueryFields(options: QueryOptions): string {
@@ -73,10 +74,19 @@ export var pgUtils = {
             }
         }
         if (options.orderBy) {
-            if (Array.isArray(options.orderBy)) {
-                sql += ' ORDER BY ' + options.orderBy.map(pgUtils.quoteField).join(',');
-            } else {
+            if (typeof options.orderBy == 'string') {
                 sql += ' ORDER BY ' + pgUtils.quoteField(options.orderBy);
+            }
+            else if (Array.isArray(options.orderBy)) {
+                let orderBy = options.orderBy.map(v =>
+                    v[0]=='+' ? pgUtils.quoteField(v.substr(1,v.length-1)) + ' asc' :
+                    v[0]=='-' ? pgUtils.quoteField(v.substr(1,v.length-1)) + ' desc' :
+                    v.replace(ASC_DESC_REGEXP, '"$1"$2'));
+                sql += ' ORDER BY ' + orderBy.join(',');
+            } else {
+                let orderBy = [];
+                _.forEach(options.orderBy, (v, k) => orderBy.push(pgUtils.quoteField(k) + ' ' + v));
+                sql += ' ORDER BY ' + orderBy.join(',');
             }
         }
         if (options.limit) {
