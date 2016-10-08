@@ -185,8 +185,10 @@ export class PgDb extends QueryAble {
         let schemas_and_tables = await this.pool.query(LIST_SCHEMAS_TABLES);
         this.schemas = {};
         for (let r of schemas_and_tables.rows) {
-            this.schemas[r.schema] = this[r.schema] = this.schemas[r.schema] || new PgSchema(this, r.schema);
-            this.schemas[r.schema].tables[r.name] = this.schemas[r.schema][r.name] = new PgTable(this.schemas[r.schema], r);
+            this.schemas[r.schema] = this.schemas[r.schema] || new PgSchema(this, r.schema);
+            this[r.schema] = this[r.schema] || this.schemas[r.schema]; //lets not overwrite anything
+            this.schemas[r.schema].tables[r.name] = new PgTable(this.schemas[r.schema], r);
+            this.schemas[r.schema][r.name] = this.schemas[r.schema][r.name] || this.schemas[r.schema].tables[r.name]; //lets not overwrite anything
         }
     }
 
