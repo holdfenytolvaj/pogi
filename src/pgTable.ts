@@ -73,18 +73,20 @@ export class PgTable extends QueryAble {
             return [];  // just return empty arrays so bulk inserting variable-length lists is more friendly
         }
 
-        let delimitedColumnNames = Object.keys(records[0]).map(pgUtils.quoteField);
-        let sql = util.format("INSERT INTO %s (%s) VALUES\n", this.qualifiedName, delimitedColumnNames.join(", "));
+        let columnsMap = {};
+        records.forEach(rec => {
+            for(let field in rec) columnsMap[field] = true;
+        });
+        let columns = Object.keys(columnsMap);
+        let sql = util.format("INSERT INTO %s (%s) VALUES\n", this.qualifiedName, columns.map(pgUtils.quoteField).join(", "));
         let parameters = [];
-        let values = [];
+        let placeholders = [];
 
-        for (var i = 0, seed = 0; i < records.length; ++i) {
-            values.push(util.format('(%s)', _.map(records[i], () => "$" + (++seed)).join(', ')));
-            _.forEach(records[i], (param, fieldName) => {
-                parameters.push(pgUtils.transformInsertUpdateParams(param, this.fieldTypes[fieldName]));
-            });
+        for (let i = 0, seed = 0; i < records.length; i++) {
+            placeholders.push('(' + columns.map(c => "$" + (++seed)).join(', ') + ')');
+            parameters.push.apply(parameters, columns.map(c => pgUtils.transformInsertUpdateParams(records[i][c], this.fieldTypes[c])));
         }
-        sql += values.join(",\n");
+        sql += placeholders.join(",\n");
         if (options.return == null || options.return == true) {
             if (Array.isArray(options.return)) {
                 sql += " RETURNING " + options.return.map(pgUtils.quoteField).join(',');
