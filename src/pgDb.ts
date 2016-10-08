@@ -88,6 +88,7 @@ export class PgDb extends QueryAble {
     public schemas:{[name:string]:PgSchema};
     private defaultLogger;
     private customTypeOverrides = {};
+    [name:string]:any|PgSchema;
 
     private constructor(pgdb:{config?,schemas?,pool?} = {}) {
         super();
@@ -99,11 +100,9 @@ export class PgDb extends QueryAble {
 
         for (let schemaName in pgdb.schemas) {
             let schema = new PgSchema(this, schemaName);
-            this.schemas[schemaName] = schema;
-            for (let tableName in pgdb.schemas[schemaName]) {
-                if (pgdb.schemas[schemaName][tableName] instanceof PgTable) {
-                    schema[tableName] = new PgTable(schema, pgdb.schemas[schemaName][tableName].desc, pgdb.schemas[schemaName][tableName].fieldTypes);
-                }
+            this.schemas[schemaName] = this[schemaName] = schema;
+            for (let tableName in pgdb.schemas[schemaName].tables) {
+                schema.tables[tableName] = schema[tableName] = new PgTable(schema, pgdb.schemas[schemaName][tableName].desc, pgdb.schemas[schemaName][tableName].fieldTypes);
             }
         }
     }
@@ -186,8 +185,8 @@ export class PgDb extends QueryAble {
         let schemas_and_tables = await this.pool.query(LIST_SCHEMAS_TABLES);
         this.schemas = {};
         for (let r of schemas_and_tables.rows) {
-            this.schemas[r.schema] = this.schemas[r.schema] || new PgSchema(this, r.schema);
-            this.schemas[r.schema][r.name] = new PgTable(this.schemas[r.schema], r);
+            this.schemas[r.schema] = this[r.schema] = this.schemas[r.schema] || new PgSchema(this, r.schema);
+            this.schemas[r.schema].tables[r.name] = this.schemas[r.schema][r.name] = new PgTable(this.schemas[r.schema], r);
         }
     }
 

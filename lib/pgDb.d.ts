@@ -45,10 +45,11 @@ export declare class PgDb extends QueryAble {
     config: ConnectionOptions;
     db: any;
     schemas: {
-        [index: string]: PgSchema;
+        [name: string]: PgSchema;
     };
     private defaultLogger;
     private customTypeOverrides;
+    [name: string]: any | PgSchema;
     private constructor(pgdb?);
     /** If planned to used as a static singleton */
     static getInstance(config: ConnectionOptions): Promise<PgDb>;

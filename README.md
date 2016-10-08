@@ -23,11 +23,11 @@ so all the basics that you would expect in 2016.
 
 ##Some example to get the taste
 ```js
-import {PgDb} from "pgdb/lib/index";
+import {PgDb} from "pgdb";
 
 let pgdb = await PgDb.connect({connectionString: "postgres://"});
 
-let table = pgdb.schemas['test']['users'];
+let table = pgdb['test']['users']; //or pgdb.test.users if you generate the interface
 
 let c1 = await pgdb.query(`SELECT COUNT(*) as c FROM ${table} WHERE active=:active`, {active:true});
 let c2 = await table.count({active:true});

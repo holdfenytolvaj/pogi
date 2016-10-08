@@ -1,6 +1,6 @@
-![Image](https://www.flickr.com/photos/radicsge/29544431994) 
+![Image](https://c3.staticflickr.com/6/5680/29544431994_954237c121_b.jpg) 
 
-## PgDb 
+## pgdb 
 **pgdb** is an easy to use postgreDB handler for javascript, built on top of [pg.js](https://github.com/brianc/node-postgres) 
 (and inherited few things from [MassiveJS](https://github.com/robconery/massive-js)). Supporting connection pooling, transaction, 
 typescript, async-await, custom logger, executable sql files and built with a lot of sensible default.
@@ -12,11 +12,11 @@ So makes a seemless integration with js objects and removes boiler plate but kee
 the power of custom queries.
 
 ```js
-import {PgDb} from "pgdb/lib/index";
+import {PgDb} from "pgdb";
 
 let pgdb = await PgDb.connect({connectionString: "postgres://"});
 
-let table = pgdb.schemas['test']['users'];
+let table = pgdb['test']['users']; //or pgdb.test.users if you generate the interface
 
 let c1 = await pgdb.query(`SELECT COUNT(*) as c FROM ${table} WHERE active=:active`, {active:true});
 let c2 = await table.count({active:true});
@@ -67,11 +67,13 @@ this equals to:
 select * from users where created>'2000-01-01 00:00:00';
 ```
 
-### Column type change / truncate
-If a column type changes or truncates occur, the postgres data type's oid numbers might changes, after
-these queries the pgdb need to rerun the initial column type queries. This can be done as easy as 
+### Table or column type change / truncate
+If a column type changes or truncates occur (truncate needs a double check, it might be possible), 
+the postgres data type's oid numbers might changes, after
+these queries the pgdb needs to rerun the initial column type queries. 
+This can be done as easy as 
 ```js
-pgdb.reload();
+await pgdb.reload();
 ```
 
 ### Results' object constructor

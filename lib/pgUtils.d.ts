@@ -1,4 +1,5 @@
 import { QueryOptions } from "./queryAble";
+import { FieldType } from "./pgDb";
 export declare var pgUtils: {
     quoteField(f: any): any;
     processQueryFields(options: QueryOptions): string;
@@ -7,4 +8,5 @@ export declare var pgUtils: {
         params: any[];
     };
     processQueryOptions(options: QueryOptions): string;
+    transformInsertUpdateParams(param: any, fieldType: FieldType): any;
 };

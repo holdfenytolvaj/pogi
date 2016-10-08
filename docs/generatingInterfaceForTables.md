@@ -9,21 +9,25 @@ node --harmony pgdb/lib/bin/generateInterface > testDbInterface.ts
 ```
 It will generate something like:
 ```js 
-import {PgDb, PgSchema, PgTable} from "pgdb/lib/index";
+import {PgDb, PgSchema, PgTable} from "pgdb";
 
 export interface PgDbType extends PgDb {
+    'pgdb_test': PgSchema_pgdb_test;
     'schemas': {
-        'pgdb_test': pgdb_testSchemaType;
+        'pgdb_test': PgSchema_pgdb_test;
     }
 }
 
-export interface pgdb_testSchemaType extends PgSchema {
-    users: PgTable;
+export interface PgSchema_pgdb_test extends PgSchema {
+    'users': PgTable;
+    tables: {
+        'users': PgTable;
+    }
 }
 ```
 
 So you can use it as 
 ```js
 let pgdb = <PgDbType>await PgDb.connect({connectionString: "postgres://"});
-let users = await pgdb.schemas.pgdb_test.users.findAll();
+let users = await pgdb.pgdb_test.users.findAll();
 ```

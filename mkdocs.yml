@@ -1,6 +1,6 @@
 site_name: pgdb | The postgres db handler you have dreamed of :)
 repo_url: https://github.com/holdfenytolvaj/pgdb
-site_url: http://pgdb.readthedocs.org
+site_url: http://pgdb.readthedocs.io
 theme: readthedocs
 pages:
 - Home : index.md
@@ -9,6 +9,8 @@ pages:
 - Executing SQL files : executingSqlFile.md
 - Transaction : transaction.md
 - Generate interface for Db : generatingInterfaceForTables.md
+- Mapping database types : mappingDatabaseTypes.md
+- FAQ : faq.md
 - API :
   - PgDb: API/PgDb.md
   - PgSchema: API/PgSchema.md

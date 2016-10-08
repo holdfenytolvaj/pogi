@@ -8,7 +8,12 @@ var util = require('util');
 var _ = require('lodash');
 
 export interface InsertOption {
-    return?:string[]|boolean;
+    'return'?:string[]|true;
+    logger?: PgDbLogger;
+}
+
+export interface InsertOption2 {
+    'return': false;
     logger?: PgDbLogger;
 }
 
@@ -16,7 +21,7 @@ export interface UpdateDeleteOption {
     return?:string[];
     logger?: PgDbLogger;
 }
-export interface UpdateDeleteOption2 {
+export interface UpdateDeleteOptionDefault {
     logger?: PgDbLogger;
 }
 
@@ -51,9 +56,11 @@ export class PgTable extends QueryAble {
      * res; // {id:1, name:'anonymous', created:'...'}
      *
      */
-    public async insert<T>(records:T,   options?:InsertOption ): Promise<T>
-    public async insert<T>(records:T[], options?:InsertOption ): Promise<T[]>
-    public async insert<T>(records:any, options?:InsertOption ): Promise<any> {
+    public async insert<T>(records:T,   options?:InsertOption  ): Promise<T>
+    public async insert<T>(records:T,   options?:InsertOption2 ): Promise<void>
+    public async insert<T>(records:T[], options?:InsertOption  ): Promise<T[]>
+    public async insert<T>(records:T[], options?:InsertOption2 ): Promise<void>
+    public async insert<T>(records:any, options?:InsertOption|InsertOption2 ): Promise<any> {
         var returnSingle = false;
 
         if (!records) {
@@ -95,7 +102,7 @@ export class PgTable extends QueryAble {
         }
     };
 
-    public async updateOne(conditions:{[k:string]:any}, fields:{[k:string]:any}, options?:UpdateDeleteOption2): Promise<number> {
+    public async updateOne(conditions:{[k:string]:any}, fields:{[k:string]:any}, options?:UpdateDeleteOptionDefault): Promise<number> {
         let affected = await this.update(conditions, fields, options);
         if (affected > 1) {
             throw new Error('More then one record has been updated!');
@@ -111,7 +118,7 @@ export class PgTable extends QueryAble {
         return result[0];
     }
 
-    public async update(conditions:{[k:string]:any}, fields:{[k:string]:any}, options?:UpdateDeleteOption2):Promise<number> {
+    public async update(conditions:{[k:string]:any}, fields:{[k:string]:any}, options?:UpdateDeleteOptionDefault):Promise<number> {
         let {sql, parameters} = this.getUpdateQuery(conditions, fields);
         sql = "WITH __RESULT as ( " + sql + " RETURNING 1) SELECT SUM(1) FROM __RESULT";
         let res = await this.query(sql, parameters, {logger:options.logger});
@@ -125,14 +132,14 @@ export class PgTable extends QueryAble {
     };
 
 
-    public async delete(conditions:{[k:string]:any}, options?:UpdateDeleteOption2):Promise<number> {
+    public async delete(conditions:{[k:string]:any}, options?:UpdateDeleteOptionDefault):Promise<number> {
         let {sql, parameters} = this.getDeleteQuery(conditions);
         sql = "WITH __RESULT as ( " + sql + " RETURNING 1) SELECT SUM(1) FROM __RESULT";
         let res = await this.query(sql, parameters, {logger:options.logger});
         return res[0].sum;
     }
 
-    public async deleteOne(conditions:{[k:string]:any}, options?:UpdateDeleteOption2):Promise<number> {
+    public async deleteOne(conditions:{[k:string]:any}, options?:UpdateDeleteOptionDefault):Promise<number> {
         let affected = await this.delete(conditions, options);
         if (affected > 1) {
             throw new Error('More then one record has been deleted!');
@@ -140,18 +147,25 @@ export class PgTable extends QueryAble {
         return affected;
     }
 
-    public async deleteAndGet(conditions:{[k:string]:any}, options?:UpdateDeleteOption):Promise<any[]> {
+    public async deleteAndGet(conditions:{[k:string]:any}, options?:UpdateDeleteOption): Promise<any[]> {
         let {sql, parameters} = this.getDeleteQuery(conditions);
         sql += " RETURNING " + options && options.return ? options.return.map(pgUtils.quoteField).join(',') : '*';
         return this.query(sql, parameters);
     }
 
-    public async deleteOneAndGet(conditions:{[k:string]:any}, options?:UpdateDeleteOption): Promise<any> {
+    public async deleteAndGetOne(conditions:{[k:string]:any}, options?:UpdateDeleteOption): Promise<any> {
         let result = await this.deleteAndGet(conditions, options);
         if (result.length > 1) {
             throw new Error('More then one record has been deleted!');
         }
         return result[0];
+    }
+
+    public async deleteAll(options?:UpdateDeleteOptionDefault):Promise<number> {
+        let sql = util.format("DELETE FROM %s ", this.qualifiedName);
+        sql = "WITH __RESULT as ( " + sql + " RETURNING 1) SELECT SUM(1) FROM __RESULT";
+        let res = await this.query(sql, {logger:options.logger});
+        return res[0].sum;
     }
 
     public async find(conditions:{[k:string]:any}, options?:QueryOptions):Promise<any[]> {
@@ -160,7 +174,9 @@ export class PgTable extends QueryAble {
         return this.query(sql, where.params, {logger:options.logger});
     }
 
-    public async findWhere(where:string, params?, options?:QueryOptions):Promise<any[]> {
+    public async findWhere(where:string, params:any[], options?:QueryOptions):Promise<any[]>
+    public async findWhere(where:string, params:Object, options?:QueryOptions):Promise<any[]>
+    public async findWhere(where:string, params:any, options?:QueryOptions):Promise<any[]> {
         let sql = `SELECT ${pgUtils.processQueryFields(options)} FROM ${this.qualifiedName} WHERE ${where} ${pgUtils.processQueryOptions(options)}`;
         return this.query(sql, params, {logger:options.logger});
     }
