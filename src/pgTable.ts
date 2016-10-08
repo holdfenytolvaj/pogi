@@ -25,6 +25,12 @@ export interface UpdateDeleteOptionDefault {
     logger?: PgDbLogger;
 }
 
+export interface TruncateOptions{
+    restartIdentity?: boolean,
+    cascade?: boolean,
+    logger?: PgDbLogger;
+}
+
 export class PgTable extends QueryAble {
     qualifiedName:string;
     db:PgDb;
@@ -164,11 +170,22 @@ export class PgTable extends QueryAble {
         return result[0];
     }
 
-    public async deleteAll(options?:UpdateDeleteOptionDefault):Promise<number> {
-        let sql = util.format("DELETE FROM %s ", this.qualifiedName);
-        sql = "WITH __RESULT as ( " + sql + " RETURNING 1) SELECT SUM(1) FROM __RESULT";
-        let res = await this.query(sql, {logger:options.logger});
-        return res[0].sum;
+    // public async deleteAll(options?:UpdateDeleteOptionDefault):Promise<number> {
+    //     let sql = util.format("DELETE FROM %s ", this.qualifiedName);
+    //     sql = "WITH __RESULT as ( " + sql + " RETURNING 1) SELECT SUM(1) FROM __RESULT";
+    //     let res = await this.query(sql, {logger:options.logger});
+    //     return res[0].sum;
+    // }
+
+    public async truncate(options?:TruncateOptions):Promise<void> {
+        let sql = `TRUNCATE ${this.qualifiedName}`;
+        if (options && options.restartIdentity){
+            sql += ' RESTART IDENTITY';
+        }
+        if (options && options.cascade) {
+            sql += ' CASCADE';
+        }
+        await this.query(sql, null, options);
     }
 
     public async find(conditions:{[k:string]:any}, options?:QueryOptions):Promise<any[]> {

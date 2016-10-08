@@ -16,6 +16,11 @@ export interface UpdateDeleteOption {
 export interface UpdateDeleteOptionDefault {
     logger?: PgDbLogger;
 }
+export interface TruncateOptions {
+    restartIdentity?: boolean;
+    cascade?: boolean;
+    logger?: PgDbLogger;
+}
 export declare class PgTable extends QueryAble {
     schema: PgSchema;
     protected desc: {
@@ -85,7 +90,7 @@ export declare class PgTable extends QueryAble {
     deleteAndGetOne(conditions: {
         [k: string]: any;
     }, options?: UpdateDeleteOption): Promise<any>;
-    deleteAll(options?: UpdateDeleteOptionDefault): Promise<number>;
+    truncate(options?: TruncateOptions): Promise<void>;
     find(conditions: {
         [k: string]: any;
     }, options?: QueryOptions): Promise<any[]>;

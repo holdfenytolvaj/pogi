@@ -249,7 +249,7 @@ describe("pgdb", () => {
         expect(res.numberList).toEqual([1,2,3]);
     }));
 
-    it("bigInt[]",  w(async() => {
+    xit("bigInt[]",  w(async() => {
         await table.insert({name: 'A', bigNumberList: [1,2,3]});
         let res = await table.findOne({name:'A'});
         expect(res.bigNumberList).toEqual([1,2,3]);
@@ -343,6 +343,8 @@ describe("pgdb", () => {
 
 
     it("stream - auto connection handling",  w(async() => {
+        await table.insert({name: 'A'});
+        await table.insert({name: 'B'});
         var size = await table.count();
         let stream = await table.queryAsStream(`select * from ${table}`);
         let streamSize = 0;
@@ -350,6 +352,13 @@ describe("pgdb", () => {
         expect(size).toEqual(streamSize);
     }));
 
+    xit("truncate",  w(async() => {
+        await table.insert({name: 'A'});
+        await table.insert({name: 'B'});
+        await table.truncate();
 
+        var size = await table.count();
+        expect(size).toEqual(0);
+    }));
 
 });
