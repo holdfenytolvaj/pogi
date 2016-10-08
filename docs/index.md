@@ -1,10 +1,12 @@
-## What
+![Image](https://www.flickr.com/photos/radicsge/29544431994) 
+
+## PgDb 
 **pgdb** is an easy to use postgreDB handler for javascript, built on top of [pg.js](https://github.com/brianc/node-postgres) 
-(and inherited few things from Massive). Supporting connection pooling, transaction, 
+(and inherited few things from [MassiveJS](https://github.com/robconery/massive-js)). Supporting connection pooling, transaction, 
 typescript, async-await, custom logger, executable sql files and built with a lot of sensible default.
 
 It is not a full-featured ORM, it is rather aligned with KISS. 
-Therefore no initial definitions needed, rather it make some initial queries
+Therefore no initial definitions needed. It rather runs some initial queries
 to look up the schemas and tablenames and some special column types at startup.
 So makes a seemless integration with js objects and removes boiler plate but keeps 
 the power of custom queries.
@@ -16,17 +18,17 @@ let pgdb = await PgDb.connect({connectionString: "postgres://"});
 
 let table = pgdb.schemas['test']['users'];
 
-let count1 = await pgdb.query(`SELECT COUNT(*) as c FROM ${table} WHERE active=:active`, {active:true});
-let count2 = await table.count({active:true});
-count1[0].c == count2; //true
+let c1 = await pgdb.query(`SELECT COUNT(*) as c FROM ${table} WHERE active=:active`, {active:true});
+let c2 = await table.count({active:true});
+c1[0].c == c2; //true
 
 let user = {..}
 let userWithId = await table.insert(user);
 ```
 
-## Why
+## Why we need +1?
 Since wanted to keep things simple, ORMs were out of consideration. pg.js on the other 
-hand was too basic, still required a lot of boiler place. Massive looked promising, but
+hand was too basic, still required a lot of boiler place. MassiveJs looked promising, but
 there again too much restriction applied (no pool, no ts, no transaction, not mixing of 
 standard fields and json, etc).
 
@@ -77,6 +79,6 @@ Result objects have a special constructor that are not callable outside pg.js.
 It's rarely an issue, except e.g. if you use xlsx npm package, where after cloning 
 the object, it calls the object's constructor it can cause some issues
 
-## Connectivity(?)
+### Connectivity(?)
 See [pg-ka-fix](https://github.com/numminorihsf/pg-ka-fix). Haven't met with the issue,
 but need to investigate, leave it here as a possible issue. 

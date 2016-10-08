@@ -1,11 +1,16 @@
 For all the examples below 
 ```js
-import {PgDb} from "pgdb/lib/index";
+import {PgDb} from "pgdb/lib";
 
 let pgdb = PgDb.connect(..);
 ```
 
-## setLogger(logger:PgDbLogger) 
+##Properties
+### db:PgDb
+### schemas:{[name:string]:PgSchema}
+
+##Functions
+### `setLogger(logger:PgDbLogger)` 
 Note: inherited.
 
 Sets the fallback logger for all queries (if no schema, table or query level logger is set, this will be used).
@@ -19,18 +24,18 @@ Executes an arbitrary sql string;
 await schema.run('CREATE schema myschema');
 ```
 
-## async query(sql:string, params?:any[]):Promise<Record[]>
-## async query(sql:string, params?:Object):Promise<Record[]>
+### `async query(sql:string, params?:any[], options?:SqlQueryOptions):Promise<any[]>`
+### `async query(sql:string, params?:Object, options?:SqlQueryOptions):Promise<any[]>`
 <a name="query"></a>
 
-Executes an arbitrary sql string with parameters / named parameters;
-```js
+Executes an arbitrary sql string with parameters / named parameters. 
+```ts
 let res1 = await schema.query('SELECT MAX(point) from game1.scores WHERE name=$1 ', ['player1']);
 let res2 = await schema.query('SELECT MAX(point) from !:schema.scores WHERE name=:name ', {schema:'game1', name:'player1'});
 ```
 
-## async getOneField(sql:string, params?:any[]):Promise<any>
-## async getOneField(sql:string, params?:Object):Promise<any>
+### async getOneField(sql:string, params?:any[]):Promise<any>
+### async getOneField(sql:string, params?:Object):Promise<any>
 Note: inherited, uses schema level log if present (if not then the db level log).
 
 If there is only one record and one field that we are interested in. For the params usage see [query](#query).

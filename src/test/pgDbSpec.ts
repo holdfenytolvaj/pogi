@@ -86,7 +86,7 @@ describe("pgdb", () => {
     }));
 
     beforeEach(w(async() => {
-        await table.deleteAll();
+        await table.delete({});
     }));
 
     it("After adding parser should be able to parse complex type", w(async() => {
@@ -186,7 +186,7 @@ describe("pgdb", () => {
         await table.insert({name: 'B', membership:'gold'});
         await table.insert({name: 'C', membership:'bronze'});
 
-        let res1 = await table.getOneColumn("SELECT name || '_' || membership FROM " + table + " WHERE LENGTH(name)=1");
+        let res1 = await table.queryOneColumn("SELECT name || '_' || membership FROM " + table + " WHERE LENGTH(name)=1");
         expect(res1).toEqual(['A_gold', 'B_gold', 'C_bronze']);
     }));
 

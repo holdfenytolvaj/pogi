@@ -13,6 +13,10 @@ export interface QueryOptions {
     logger?: PgDbLogger;
 }
 
+export interface SqlQueryOptions {
+    logger?: PgDbLogger;
+}
+
 export class QueryAble {
     db;
     schema;
@@ -42,11 +46,11 @@ export class QueryAble {
      * e.g. query('select * from a.b where id=$1;',['the_stage_is_set']);
      * e.g. query('select * from :!schema.:!table where id=:id;',{schema:'a',table:'b', id:'the_stage_is_set'});
      */
-    public async query(sql: string, params?: any[]): Promise<any[]>
-    public async query(sql: string, params?: Object): Promise<any[]>
-    public async query(sql: string, params?: any): Promise<any[]> {
+    public async query(sql: string, params?: any[], options?:SqlQueryOptions): Promise<any[]>
+    public async query(sql: string, params?: Object, options?:SqlQueryOptions): Promise<any[]>
+    public async query(sql: string, params?: any, options?:SqlQueryOptions): Promise<any[]> {
         let connection = this.db.connection;
-
+        let logger = (options && options.logger || this.getLogger(false));
         try {
             if (params && !Array.isArray(params)) {
                 let p = pgUtils.processNamedParams(sql, params);
@@ -55,12 +59,12 @@ export class QueryAble {
             }
 
             if (connection) {
-                this.getLogger(false).log(sql, util.inspect(params, false, null), connection.processID);
+                logger.log(sql, util.inspect(params, false, null), connection.processID);
                 let res = await connection.query(sql, params);
                 return res.rows;
             } else {
                 connection = await this.db.pool.connect();
-                this.getLogger(false).log(sql, util.inspect(params, false, null), connection.processID);
+                logger.log(sql, util.inspect(params, false, null), connection.processID);
 
                 try {
                     let res = await connection.query(sql, params);
@@ -70,12 +74,12 @@ export class QueryAble {
                         connection.release();
                     } catch (e) {
                         connection = null;
-                        this.getLogger(true).error('connection error', e.message);
+                        logger.error('connection error', e.message);
                     }
                 }
             }
         } catch (e) {
-            this.getLogger(true).error(sql, util.inspect(params, false, null), connection ? connection.processID : null);
+            logger.error(sql, util.inspect(params, false, null), connection ? connection.processID : null);
             throw e;
         }
     }
@@ -122,10 +126,10 @@ export class QueryAble {
     }
 
     /** @return one record's one field */
-    public async getOneField(sql: string, params?: any[])
-    public async getOneField(sql: string, params?: Object)
-    public async getOneField(sql: string, params?: any) {
-        let res = await this.query(sql, params);
+    public async queryOneField(sql: string, params?: any[], options?:SqlQueryOptions): Promise<any>
+    public async queryOneField(sql: string, params?: Object, options?:SqlQueryOptions): Promise<any>
+    public async queryOneField(sql: string, params?: any, options?:SqlQueryOptions): Promise<any> {
+        let res = await this.query(sql, params, options);
         let fieldName = Object.keys(res[0])[0];
         if (res.length > 1) {
             throw Error('More then one field exists!');
@@ -134,10 +138,10 @@ export class QueryAble {
     }
 
     /** @return one column for the matching records */
-    public async getOneColumn(sql: string, params?: any[])
-    public async getOneColumn(sql: string, params?: Object)
-    public async getOneColumn(sql: string, params?: any) {
-        let res = await this.query(sql, params);
+    public async queryOneColumn(sql: string, params?: any[], options?:SqlQueryOptions): Promise<any[]>
+    public async queryOneColumn(sql: string, params?: Object, options?:SqlQueryOptions): Promise<any[]>
+    public async queryOneColumn(sql: string, params?: any, options?:SqlQueryOptions): Promise<any[]> {
+        let res = await this.query(sql, params, options);
         let fieldName = Object.keys(res[0])[0];
         return res.map(r=>r[fieldName]);
     }

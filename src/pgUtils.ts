@@ -1,6 +1,7 @@
 import {QueryOptions} from "./queryAble";
 var util = require('util');
 const NAMED_PARAMS_REGEXP = /(?:^|[^:]):(!?[a-zA-Z0-9_]+)/g;    // do not convert "::type cast"
+import {FieldType} from "./pgDb";
 
 export var pgUtils = {
     quoteField(f) {
@@ -85,5 +86,16 @@ export var pgUtils = {
             sql += util.format(' OFFSET %d', options.offset);
         }
         return sql;
+    },
+
+    /**
+     * NOTE-DATE: there are 2 approaches to keep tz (the time correctly):
+     *    1) use Date.toISOString() function, but then the $x placeholder should be TIMESTAMP WITH TIME ZONE $x
+     *    2) use Date, and then no need to change the placeholder $x
+     *    lets use 2)
+     */
+    transformInsertUpdateParams(param:any, fieldType:FieldType) {
+        return (param!=null && fieldType==FieldType.JSON) ? JSON.stringify(param) :
+            (param!=null && fieldType==FieldType.TIME && !(param instanceof Date)) ? new Date(param) : param;
     }
 };

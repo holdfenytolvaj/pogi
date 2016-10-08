@@ -85,7 +85,7 @@ export class PgDb extends QueryAble {
     connection;
     config:ConnectionOptions;
     public db;
-    public schemas:{[index:string]:PgSchema};
+    public schemas:{[name:string]:PgSchema};
     private defaultLogger;
     private customTypeOverrides = {};
 
@@ -272,7 +272,7 @@ export class PgDb extends QueryAble {
         if (schemaName) {
             let oid;
             try {
-                oid = await this.getOneField(GET_OID_FOR_COLUMN_TYPE_FOR_SCHEMA, {typeName, schemaName});
+                oid = await this.queryOneField(GET_OID_FOR_COLUMN_TYPE_FOR_SCHEMA, {typeName, schemaName});
             } catch (e) {
                 throw Error('Not existing type: ' + typeName);
             }
@@ -281,7 +281,7 @@ export class PgDb extends QueryAble {
         } else {
             let list;
             try {
-                list = await this.getOneColumn(GET_OID_FOR_COLUMN_TYPE, {typeName});
+                list = await this.queryOneColumn(GET_OID_FOR_COLUMN_TYPE, {typeName});
             } catch (e) {
                 throw Error('Not existing type: ' + typeName);
             }

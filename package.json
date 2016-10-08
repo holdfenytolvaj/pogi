@@ -3,9 +3,6 @@
   "version": "1.0.0",
   "description": "An easy db handler over pg.js (node-postgres)",
   "main": "lib/index.js",
-  "typescript": {
-    "definition": "src/index.ts"
-  },
   "types": "lib/index.d.ts",
   "scripts": {
     "build": "tsc -p src/tsconfig.json && babel lib/*.js -d ./",
