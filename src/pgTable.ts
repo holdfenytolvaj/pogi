@@ -62,6 +62,7 @@ export class PgTable extends QueryAble {
     public async insert<T>(records:T[], options?:InsertOption2 ): Promise<void>
     public async insert<T>(records:any, options?:InsertOption|InsertOption2 ): Promise<any> {
         var returnSingle = false;
+        options = options || {};
 
         if (!records) {
             throw new Error("insert should be called with data");
@@ -72,7 +73,7 @@ export class PgTable extends QueryAble {
             return [];  // just return empty arrays so bulk inserting variable-length lists is more friendly
         }
 
-        let delimitedColumnNames = _.map(_.keys(records[0]), (fieldName) => util.format('"%s"', fieldName));
+        let delimitedColumnNames = Object.keys(records[0]).map(pgUtils.quoteField);
         let sql = util.format("INSERT INTO %s (%s) VALUES\n", this.qualifiedName, delimitedColumnNames.join(", "));
         let parameters = [];
         let values = [];
@@ -84,15 +85,15 @@ export class PgTable extends QueryAble {
             });
         }
         sql += values.join(",\n");
-        if (!options || options.return) {
+        if (options.return == null || options.return == true) {
             if (Array.isArray(options.return)) {
-                sql += " RETURNING " + options.return.join(',');
+                sql += " RETURNING " + options.return.map(pgUtils.quoteField).join(',');
             } else {
                 sql += " RETURNING *";
             }
         }
         let result = await this.query(sql, parameters, {logger:options.logger});
-        if (options && !options.return) {
+        if (options.return === false) {
             return;
         }
         if (returnSingle) {
@@ -121,21 +122,21 @@ export class PgTable extends QueryAble {
     public async update(conditions:{[k:string]:any}, fields:{[k:string]:any}, options?:UpdateDeleteOptionDefault):Promise<number> {
         let {sql, parameters} = this.getUpdateQuery(conditions, fields);
         sql = "WITH __RESULT as ( " + sql + " RETURNING 1) SELECT SUM(1) FROM __RESULT";
-        let res = await this.query(sql, parameters, {logger:options.logger});
+        let res = await this.query(sql, parameters, options);
         return res[0].sum;
     };
 
     public async updateAndGet(conditions:{[k:string]:any}, fields:{[k:string]:any}, options?:UpdateDeleteOption):Promise<any[]> {
         let {sql, parameters} = this.getUpdateQuery(conditions, fields);
-        sql += " RETURNING " + options && options.return ? options.return.map(pgUtils.quoteField).join(',') : '*';
-        return this.query(sql, parameters, {logger:options.logger});
+        sql += " RETURNING " + (options && options.return ? options.return.map(pgUtils.quoteField).join(',') : '*');
+        return this.query(sql, parameters, options);
     };
 
 
     public async delete(conditions:{[k:string]:any}, options?:UpdateDeleteOptionDefault):Promise<number> {
         let {sql, parameters} = this.getDeleteQuery(conditions);
         sql = "WITH __RESULT as ( " + sql + " RETURNING 1) SELECT SUM(1) FROM __RESULT";
-        let res = await this.query(sql, parameters, {logger:options.logger});
+        let res = await this.query(sql, parameters, options);
         return res[0].sum;
     }
 
@@ -171,19 +172,19 @@ export class PgTable extends QueryAble {
     public async find(conditions:{[k:string]:any}, options?:QueryOptions):Promise<any[]> {
         let where = _.isEmpty(conditions) ? {where: " ", params: null} : generateWhere(conditions, this.fieldTypes, this.qualifiedName);
         let sql = `SELECT ${pgUtils.processQueryFields(options)} FROM ${this.qualifiedName} ${where.where} ${pgUtils.processQueryOptions(options)}`;
-        return this.query(sql, where.params, {logger:options.logger});
+        return this.query(sql, where.params, options);
     }
 
     public async findWhere(where:string, params:any[], options?:QueryOptions):Promise<any[]>
     public async findWhere(where:string, params:Object, options?:QueryOptions):Promise<any[]>
     public async findWhere(where:string, params:any, options?:QueryOptions):Promise<any[]> {
         let sql = `SELECT ${pgUtils.processQueryFields(options)} FROM ${this.qualifiedName} WHERE ${where} ${pgUtils.processQueryOptions(options)}`;
-        return this.query(sql, params, {logger:options.logger});
+        return this.query(sql, params, options);
     }
 
     public async findAll(options?:QueryOptions):Promise<any[]> {
         let sql = `SELECT ${pgUtils.processQueryFields(options)} FROM ${this.qualifiedName} ${pgUtils.processQueryOptions(options)}`;
-        return this.query(sql, null, {logger:options.logger});
+        return this.query(sql, null, options);
     }
 
     public async findOne(conditions, options?:QueryOptions):Promise<any> {
@@ -250,6 +251,6 @@ export class PgTable extends QueryAble {
             parsedWhere = generateWhere(conditions, this.fieldTypes, this.qualifiedName);
             sql += parsedWhere.where;
         }
-        return {sql, parameters:parsedWhere.params||[]}
+        return {sql, parameters: parsedWhere && parsedWhere.params||[]}
     }
 }

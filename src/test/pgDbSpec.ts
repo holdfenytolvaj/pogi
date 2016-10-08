@@ -221,6 +221,13 @@ describe("pgdb", () => {
         expect(res).toEqual(2);
     }));
 
+    it("Test insert with switched fields",  w(async() => {
+        await table.insert([{name: 'A', membership:'gold'},{membership:'gold', name: 'B'}]);
+
+        let res = await pgdb.query("SELECT count(*) FROM :!schema.:!table WHERE membership = :membership" , {schema:schema, table:'users', membership:'gold'});
+        expect(res[0].count).toEqual(2);
+    }));
+
     it("Test named parameters ",  w(async() => {
         await table.insert({name: 'A', membership:'gold'});
         await table.insert({name: 'B', membership:'gold'});
@@ -342,4 +349,7 @@ describe("pgdb", () => {
         stream.on('data',()=>{streamSize++});
         expect(size).toEqual(streamSize);
     }));
+
+
+
 });

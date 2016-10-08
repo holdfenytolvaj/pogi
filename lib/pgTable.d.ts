@@ -2,7 +2,7 @@ import { QueryAble, QueryOptions } from "./queryAble";
 import { PgDb, FieldType, PgDbLogger } from "./pgDb";
 import { PgSchema } from "./pgSchema";
 export interface InsertOption {
-    'return'?: string[] | boolean;
+    'return'?: string[] | true;
     logger?: PgDbLogger;
 }
 export interface InsertOption2 {
@@ -50,8 +50,9 @@ export declare class PgTable extends QueryAble {
      *
      */
     insert<T>(records: T, options?: InsertOption): Promise<T>;
+    insert<T>(records: T, options?: InsertOption2): Promise<void>;
     insert<T>(records: T[], options?: InsertOption): Promise<T[]>;
-    insert<T>(records: T[], options?: InsertOption2): Promise<T[]>;
+    insert<T>(records: T[], options?: InsertOption2): Promise<void>;
     updateOne(conditions: {
         [k: string]: any;
     }, fields: {
