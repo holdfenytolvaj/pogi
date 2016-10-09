@@ -5,13 +5,16 @@ var util = require('util');
 function w(func) {
     return function (done) {
         return (async() => {
-            await func();
+            try {
+                await func();
+            } catch(e) {
+                console.log('------------------------------');
+                console.error(e.message, e.stack);
+                console.log('------------------------------');
+                expect('Exception: ' + e.message).toEqual(false);
+            }
             return done();
-        })().catch(e=>{
-            console.error(e.message, e.stack);
-            expect(false).toBeTruthy();
-            done();
-        })
+        })();
     }
 }
 

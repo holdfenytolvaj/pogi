@@ -1,4 +1,4 @@
-import {QueryOptions} from "./queryAble";
+import {QueryOptions, ResultFieldType} from "./queryAble";
 var util = require('util');
 const NAMED_PARAMS_REGEXP = /(?:^|[^:]):(!?[a-zA-Z0-9_]+)/g;    // do not convert "::type cast"
 import {FieldType} from "./pgDb";
@@ -107,5 +107,13 @@ export var pgUtils = {
     transformInsertUpdateParams(param:any, fieldType:FieldType) {
         return (param!=null && fieldType==FieldType.JSON) ? JSON.stringify(param) :
             (param!=null && fieldType==FieldType.TIME && !(param instanceof Date)) ? new Date(param) : param;
+    },
+
+    convertTypes(res:any[], fields:ResultFieldType[], pgdbTypeParsers:{[oid:number]:(string)=>any}) {
+        for (let field of fields) {
+            if (pgdbTypeParsers[field.dataTypeID]) {
+                res.forEach(e=>e[field.name] = e[field.name]==null ? null : pgdbTypeParsers[field.dataTypeID](e[field.name]));
+            }
+        }
     }
 };

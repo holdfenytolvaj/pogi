@@ -3,7 +3,7 @@
 ## pgdb 
 **pgdb** is an easy to use postgreDB handler for javascript, built on top of [pg.js](https://github.com/brianc/node-postgres) 
 (and inherited few things from [MassiveJS](https://github.com/robconery/massive-js)). Supporting connection pooling, transaction, 
-typescript, async-await, custom logger, executable sql files and built with a lot of sensible default.
+typescript, async-await, assignable logger, stream, executable sql files and built with a lot of sensible default.
 
 It is not a full-featured ORM, it is rather aligned with KISS. 
 Therefore no initial definitions needed. It rather runs some initial queries
@@ -27,10 +27,10 @@ let userWithId = await table.insert(user);
 ```
 
 ## Why we need +1?
-Since wanted to keep things simple, ORMs were out of consideration. pg.js on the other 
-hand was too basic, still required a lot of boiler place. MassiveJs looked promising, but
-there again too much restriction applied (no pool, no ts, no transaction, not mixing of 
-standard fields and json, etc).
+Since wanted to keep things simple (and fully use postgre), ORMs were out of consideration. pg.js on the other 
+hand was too basic, still required a lot of boiler plate code. MassiveJs looked promising, but
+there again too much restriction applied (no pool, no ts, no transaction, no mixing of 
+standard fields and json (not safely at least), etc).
 
 ## Known pitfalls
 ### postgre data types vs javascript types - general

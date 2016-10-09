@@ -4,8 +4,6 @@ var util = require('util');
 var readline = require('readline');
 var fs = require('fs');
 var moment = require('moment');
-// var pgEscape = require('pg-escape'); FIXME check
-// typed-pg FIXME check
 
 import {PgTable} from "./pgTable";
 import {PgSchema} from "./pgSchema";
@@ -39,7 +37,8 @@ const LIST_SPECIAL_TYPE_FIELDS =
     JOIN pg_class b ON (a.attrelid = b.oid)
     JOIN pg_type t ON (a.atttypid = t.oid)
     JOIN pg_namespace c ON (b.relnamespace=c.oid) 
-    WHERE (a.atttypid in (114, 3802, 1082, 1083, 1114, 1184, 1266) or t.typcategory='A') and c.nspname not in ('pg_catalog','pg_constraint') and reltoastrelid>0;`
+    WHERE (a.atttypid in (114, 3802, 1082, 1083, 1114, 1184, 1266) or t.typcategory='A') 
+    AND c.nspname not in ('pg_catalog','pg_constraint') and reltoastrelid>0;`
 
 
 export enum FieldType {JSON, ARRAY, TIME}
@@ -87,14 +86,15 @@ export class PgDb extends QueryAble {
     public db;
     public schemas:{[name:string]:PgSchema};
     private defaultLogger;
-    private customTypeOverrides = {};
     [name:string]:any|PgSchema;
+    public pgdbTypeParsers = {};
 
-    private constructor(pgdb:{config?,schemas?,pool?} = {}) {
+    private constructor(pgdb:{config?,schemas?,pool?,pgdbTypeParsers?} = {}) {
         super();
         this.schemas = {};
         this.config = pgdb.config;
         this.pool = pgdb.pool;
+        this.pgdbTypeParsers = pgdb.pgdbTypeParsers || {};
         this.db = this;
         this.defaultLogger = {log:()=>{},error:()=>{}};
 
@@ -228,6 +228,7 @@ export class PgDb extends QueryAble {
         };
         var arraySplitToNum = val => val=="{}" ? [] : val.substring(1, val.length-1).split(',').map(Number);
         var arraySplitToNumWithValidation= val => val=="{}" ? [] : val.substring(1, val.length-1).split(',').map(numWithValidation);
+        var stringArrayToNumWithValidation= val => val.map(numWithValidation);
         var arraySplitToDate = val => val=="{}" ? [] : val.substring(1, val.length-1).split(',').map(d=>moment(d.substring(1, d.length-1)).toDate());
 
         for (let r of specialTypeFields.rows) {
@@ -247,7 +248,7 @@ export class PgDb extends QueryAble {
                     break;
                 case 1016: // bigInt[] int8[]
                 case 1022: // double[] float8[]
-                    pg.types.setTypeParser(r.typid, arraySplitToNumWithValidation);
+                    //pg.types.setTypeParser(r.typid, arraySplitToNumWithValidation);
                     break;
                 case 1115: // timestamp[]
                 case 1182: // date[]
@@ -261,35 +262,46 @@ export class PgDb extends QueryAble {
                     pg.types.setTypeParser(r.typid, arraySplit);
             }
         }
-        pg.types.setTypeParser(20, numWithValidation); //int8
-        pg.types.setTypeParser(701, numWithValidation); //float8
 
+        //has to set outside of pgjs as it doesnt support exceptions (stop everything immediately)
+        await this.setPgDbTypeParser('int8', numWithValidation); //int8 - 20
+        await this.setPgDbTypeParser('float8', numWithValidation); //float8 - 701
+        await this.setPgDbTypeParser('_int8', stringArrayToNumWithValidation);
+        await this.setPgDbTypeParser('_float8', stringArrayToNumWithValidation);
     }
 
     /**
      * if schemaName is null, it will be applied for all schemas
      */
     public async setTypeParser(typeName:string, parser:(string)=>any, schemaName?:string): Promise<void> {
-        if (schemaName) {
-            let oid;
-            try {
-                oid = await this.queryOneField(GET_OID_FOR_COLUMN_TYPE_FOR_SCHEMA, {typeName, schemaName});
-            } catch (e) {
-                throw Error('Not existing type: ' + typeName);
+        try {
+            if (schemaName) {
+                let oid = await this.queryOneField(GET_OID_FOR_COLUMN_TYPE_FOR_SCHEMA, {typeName, schemaName});
+                pg.types.setTypeParser(oid, parser);
+                delete this.pgdbTypeParsers[oid];
+            } else {
+                let list = await this.queryOneColumn(GET_OID_FOR_COLUMN_TYPE, {typeName});
+                list.forEach(oid => {
+                    pg.types.setTypeParser(oid, parser);
+                    delete this.pgdbTypeParsers[oid];
+                });
             }
-            this.customTypeOverrides[oid] = true;
-            pg.types.setTypeParser(oid, parser);
-        } else {
-            let list;
-            try {
-                list = await this.queryOneColumn(GET_OID_FOR_COLUMN_TYPE, {typeName});
-            } catch (e) {
-                throw Error('Not existing type: ' + typeName);
+        } catch (e) {
+            throw Error('Not existing type: ' + typeName);
+        }
+    }
+
+    public async setPgDbTypeParser(typeName:string, parser:(string)=>any, schemaName?:string): Promise<void> {
+        try {
+            if (schemaName) {
+                let oid = await this.queryOneField(GET_OID_FOR_COLUMN_TYPE_FOR_SCHEMA, {typeName, schemaName});
+                this.pgdbTypeParsers[oid] = parser;
+            } else {
+                let list = await this.queryOneColumn(GET_OID_FOR_COLUMN_TYPE, {typeName});
+                list.forEach(oid => this.pgdbTypeParsers[oid] = parser);
             }
-            list.forEach(oid => {
-                this.customTypeOverrides[oid] = true;
-                pg.types.setTypeParser(oid, parser)
-            });
+        } catch (e) {
+            throw Error('Not existing type: ' + typeName);
         }
     }
 

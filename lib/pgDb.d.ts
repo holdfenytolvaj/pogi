@@ -48,8 +48,8 @@ export declare class PgDb extends QueryAble {
         [name: string]: PgSchema;
     };
     private defaultLogger;
-    private customTypeOverrides;
     [name: string]: any | PgSchema;
+    pgdbTypeParsers: {};
     private constructor(pgdb?);
     /** If planned to used as a static singleton */
     static getInstance(config: ConnectionOptions): Promise<PgDb>;
@@ -63,6 +63,7 @@ export declare class PgDb extends QueryAble {
      * if schemaName is null, it will be applied for all schemas
      */
     setTypeParser(typeName: string, parser: (string) => any, schemaName?: string): Promise<void>;
+    setPgDbTypeParser(typeName: string, parser: (string) => any, schemaName?: string): Promise<void>;
     /**
      * @param connectionMode pool|one
      */

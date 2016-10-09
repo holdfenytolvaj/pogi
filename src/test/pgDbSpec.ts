@@ -5,13 +5,16 @@ var util = require('util');
 function w(func) {
     return function (done) {
         return (async() => {
-            await func();
+            try {
+                await func();
+            } catch(e) {
+                console.log('------------------------------');
+                console.error(e.message, e.stack);
+                console.log('------------------------------');
+                expect('Exception: ' + e.message).toEqual(false);
+            }
             return done();
-        })().catch(e=>{
-            console.error(e.message, e.stack);
-            expect(false).toBeTruthy();
-            done();
-        })
+        })();
     }
 }
 
@@ -88,6 +91,20 @@ describe("pgdb", () => {
     beforeEach(w(async() => {
         await table.delete({});
     }));
+
+    afterEach(w(async() => {
+        if (pgdb.db.pool.pool._inUseObjects.length!=0){
+            expect('Not all connection is released').toEqual(false);
+            for(let connection of pgdb.db.pool.pool._inUseObjects) {
+                await connection.query('ROLLBACK');
+                if (connection.release) {
+                    connection.release();
+                }
+            }
+        }
+    }));
+
+
 
     it("After adding parser should be able to parse complex type", w(async() => {
         await pgdb.setTypeParser('permissionForResourceType', (val) => parseComplexType(val));
@@ -249,18 +266,33 @@ describe("pgdb", () => {
         expect(res.numberList).toEqual([1,2,3]);
     }));
 
-    xit("bigInt[]",  w(async() => {
+    it("bigInt[]",  w(async() => {
         await table.insert({name: 'A', bigNumberList: [1,2,3]});
         let res = await table.findOne({name:'A'});
         expect(res.bigNumberList).toEqual([1,2,3]);
 
-        await table.insert({name: 'B', bigNumberList: [1, Number.MAX_SAFE_INTEGER+10]}, false);
-        //try {
-        //    res = await table.findOne({name: 'B'});
-        //    expect(false).toBeTruthy();
-        //} catch (e) {
-        //    expect(/Number can't be represented in javascript/.test(e.message)).toBeTruthy();
-        //}
+        await table.insert({name: 'B', bigNumberList: [1, Number.MAX_SAFE_INTEGER+10]}, {return:false});
+        try {
+            res = await table.findOne({name: 'B'});
+            expect(false).toBeTruthy();
+        } catch (e) {
+            expect(/Number can't be represented in javascript/.test(e.message)).toBeTruthy();
+        }
+    }));
+
+    it("bigInt[] cursor callback",  w(async() => {
+        await table.insert({name: 'A', bigNumberList: [1,2,3]});
+        let res;
+        await table.queryWithOnCursorCallback(`SELECT * FROM ${table}`, [], (rec)=>{res = rec.bigNumberList;});
+        expect(res).toEqual([1,2,3]);
+
+        await table.insert({name: 'B', bigNumberList: [1, Number.MAX_SAFE_INTEGER+10]}, {return:false});
+        try {
+            await table.queryWithOnCursorCallback(`SELECT * FROM ${table}`, [], ()=>{});
+            expect(false).toBeTruthy();
+        } catch (e) {
+            expect(/Number can't be represented in javascript/.test(e.message)).toBeTruthy();
+        }
     }));
 
     it("timestamptz[]",  w(async() => {
@@ -309,11 +341,14 @@ describe("pgdb", () => {
         let res;
 
         let pgdbwt = await pgdb.transactionBegin();
-        await pgdbwt.schemas[schema]['users'].insert({name: 'B'});
+        let tablewt = pgdbwt.schemas[schema]['users'];
+        await tablewt.insert({name: 'B'});
 
-        res = await table.findAll();
-        expect(res.length).toEqual(1);
-        expect(res[0].name).toEqual('A');
+        res = await table.count();
+        expect(res).toEqual(1);
+
+        res = await tablewt.count();
+        expect(res).toEqual(2);
 
         await pgdbwt.transactionRollback();
 
@@ -324,14 +359,18 @@ describe("pgdb", () => {
 
     it("transaction - commit",  w(async() => {
         await table.insert({name: 'A'});
-        let res;
 
         let pgdbwt = await pgdb.transactionBegin();
-        await pgdbwt.schemas[schema]['users'].insert({name: 'B'});
+        let tablewt = <PgTable>pgdbwt.schemas[schema]['users'];
+        await tablewt.insert({name: 'B'});
 
+        let res;
         res = await table.findAll();
         expect(res.length).toEqual(1);
         expect(res[0].name).toEqual('A');
+
+        res = await tablewt.count();
+        expect(res).toEqual(2);
 
         await pgdbwt.transactionCommit();
 
@@ -341,16 +380,160 @@ describe("pgdb", () => {
         expect(res[1].name).toEqual('B');
     }));
 
+    it("transaction - error + rollback",  w(async() => {
+        let pgdbwt = await pgdb.transactionBegin();
+        let tablewt = pgdbwt[schema]['users'];
+        await tablewt.insert({name: 'A'});
 
-    it("stream - auto connection handling",  w(async() => {
-        await table.insert({name: 'A'});
+        try {
+            await tablewt.insert({name: 'C', bigNumberList: [1, 2, Number.MAX_SAFE_INTEGER + 100]});
+            expect(false).toBeTruthy();
+        } catch (e) {
+            expect(/Number can't be represented in javascript/.test(e.message)).toBeTruthy();
+            await pgdbwt.transactionRollback();
+        }
+        let res = await table.count();
+        expect(res).toEqual(0);
+
+    }));
+
+    it("cursor with callback",  w(async() => {
+        await table.insert({name: 'A', numberList:[1,2,3]});
         await table.insert({name: 'B'});
         var size = await table.count();
-        let stream = await table.queryAsStream(`SELECT * FROM ${table}`);
         let streamSize = 0;
-        stream.on('data',()=>streamSize++);
-        await new Promise((resolve) => stream.on('end', resolve));
+        await table.queryWithOnCursorCallback(`SELECT * FROM ${table}`, [], (r)=>{streamSize++});
         expect(size).toEqual(streamSize);
+    }));
+
+    it("stream - auto connection handling - normal",  w(async() => {
+        let counter = 0;
+        let stream = await table.queryAsStream(`SELECT * FROM generate_series(0, $1) num`, [1001]);
+        stream.on('data', (c: any)=> {
+            if (c.num != counter) {
+                expect(false).toBeTruthy();
+            }
+            counter++;
+        });
+        await new Promise(resolve=> {
+            stream.on('end', resolve);
+            stream.on('error', resolve);
+        });
+        expect(counter).toEqual(1001 + 1);
+    }));
+
+    it("stream - auto connection handling - early close",  w(async() => {
+        let counter = 0;
+        let stream = await table.queryAsStream(`SELECT * FROM generate_series(0,1001) num`);
+        stream.on('data', (c: any)=> {
+            if (counter == 10) {
+                stream.emit('error', 'e');
+                return;
+            }
+            counter++;
+        });
+        await new Promise(resolve=> {
+            stream.on('end', resolve);
+            stream.on('error', resolve);
+        });
+        expect(counter).toEqual(10);
+    }));
+
+    it("stream - auto connection handling - error",  w(async() => {
+        let counter = 0;
+        let stillSafe = Number.MAX_SAFE_INTEGER-5;
+        let wrongNum = Number.MAX_SAFE_INTEGER+100;
+        let stream = await table.queryAsStream(`SELECT * FROM generate_series(${stillSafe}, ${wrongNum}) num`);
+        stream.on('data',(c:any)=>{counter++;});
+        await new Promise(resolve=>{
+            stream.on('end', resolve);
+            stream.on('error', resolve);
+        });
+        expect(counter).toEqual(6);
+    }));
+
+    it("stream - with transactions handling - normal",  w(async() => {
+        let pgdbwt = await pgdb.transactionBegin();
+        let tablewt = pgdbwt[schema]['users'];
+        await tablewt.insert({name: 'A', numberList:[1,2,3]});
+        await tablewt.insert({name: 'B'});
+
+        let counter = 0;
+        let stream = await tablewt.queryAsStream(`SELECT * FROM ${tablewt}`);
+        stream.on('data',(c:any)=> counter++);
+        await new Promise(resolve=>{
+            stream.on('end', resolve);
+            stream.on('error', resolve);
+        });
+        expect(counter).toEqual(2);
+
+        counter = await tablewt.count();
+        expect(counter).toEqual(2);
+        await pgdbwt.transactionRollback();
+
+        counter = await table.count();
+        expect(counter).toEqual(0);
+    }));
+
+    it("stream - with transactions handling - early close",  w(async() => {
+        let pgdbwt = await pgdb.transactionBegin();
+        let tablewt = <PgTable>pgdbwt[schema]['users'];
+        await tablewt.insert({name: 'A', numberList:[1,2,3]});
+        await tablewt.insert({name: 'B'});
+        await tablewt.insert({name: 'C'});
+        await tablewt.insert({name: 'D'});
+
+        let counter = 0;
+        let stream = await tablewt.queryAsStream(`SELECT * FROM ${tablewt}`);
+        stream.on('data', (c: any)=> {
+            if (counter == 2) {
+                stream.emit('error', 'e');
+                return;
+            }
+            counter++;
+        });
+        await new Promise(resolve=> {
+            stream.on('end', resolve);
+            stream.on('error', resolve);
+        });
+        expect(counter).toEqual(2);
+
+        counter = await tablewt.count();
+        expect(counter).toEqual(4);
+        await pgdbwt.transactionRollback();
+
+        counter = await table.count();
+        expect(counter).toEqual(0);
+    }));
+
+    it("stream - with transactions handling - error",  w(async() => {
+        let pgdbwt = await pgdb.transactionBegin();
+        let tablewt = <PgTable>pgdbwt[schema]['users'];
+        await tablewt.insert({name: 'A', bigNumberList:[1,2,3]});
+        await tablewt.insert({name: 'B'});
+        await tablewt.insert({name: 'C', bigNumberList:[1,2, Number.MAX_SAFE_INTEGER+100]}, {return:false});
+        await tablewt.insert({name: 'D'});
+
+        let counter = 0;
+        let stream = await tablewt.queryAsStream(`SELECT * FROM ${tablewt}`);
+        try {
+            stream.on('data',(c:any)=>{counter++;});
+            await new Promise((resolve, reject)=> {
+                stream.on('end', resolve);
+                stream.on('error', reject);
+            });
+            expect(false).toBeTruthy();
+        } catch (e) {
+            expect(/Number can't be represented in javascript/.test(e.message)).toBeTruthy();
+        }
+        expect(counter).toEqual(2);
+
+        counter = await tablewt.count();
+        expect(counter).toEqual(4);
+        await pgdbwt.transactionRollback();
+
+        counter = await table.count();
+        expect(counter).toEqual(0);
     }));
 
     xit("truncate",  w(async() => {

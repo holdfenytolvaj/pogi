@@ -10,6 +10,7 @@ pages:
 - Transaction : transaction.md
 - Generate interface for Db : generatingInterfaceForTables.md
 - Mapping database types : mappingDatabaseTypes.md
+- Stream : streams.md
 - FAQ : faq.md
 - API :
   - PgDb: API/PgDb.md

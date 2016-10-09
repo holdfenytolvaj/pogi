@@ -21,10 +21,18 @@ By default all field returned as a string from postgre. Pg.js convert some of it
 
 ### Looks simple, but...
 pg.js doesn't handle well the exception during type conversion. 
-If exception is thrown the connection will be cut.
+If exception is thrown the connection will be cut. So you can add your converter
+to pgdb layer if exception is possible.
 
-### complex types and complex types arrays
-Please note, complex type cannot have to foreign key check at the moment postgre(9.6)
+```ts
+    await pgdb.setPgDbTypeParser('int8', numWithValidation); 
+```
+
+### complex types and complex type arrays
+Complex type looks promising instead of link tables, but unfortunately 
+they do not have to foreign key check at the moment postgre(9.6). 
+Also right now we didn't put much effor to it, rather use jsonb columns instead. 
+But it would be relative easy to add support for them to save and read as js objects.
 
 ####Example complex type:
 ```sql

@@ -3,6 +3,7 @@ var util = require('util');
 var QueryStream = require('pg-query-stream');
 import {Readable} from 'stream';
 import {pgUtils} from "./pgUtils";
+var through = require('through');
 
 export interface QueryOptions {
     limit?: number;
@@ -15,6 +16,27 @@ export interface QueryOptions {
 
 export interface SqlQueryOptions {
     logger?: PgDbLogger;
+}
+
+export interface ResultFieldType {
+    name: string,
+    tableID: number,
+    columnID: number,
+    dataTypeID: number,
+    dataTypeSize: number,
+    dataTypeModifier: number,
+    format: string
+}
+export interface ResultType {
+    command: 'SELECT'|'UPDATE'|'DELETE',
+    rowCount: number,
+    oid: number,
+    rows: any[],
+    fields: ResultFieldType[],
+    _parsers: Function[][],
+    RowCtor: Function[],
+    rowsAsArray: boolean,
+    _getTypeParser: Function[]
 }
 
 export class QueryAble {
@@ -61,6 +83,7 @@ export class QueryAble {
             if (connection) {
                 logger.log(sql, util.inspect(params, false, null), connection.processID);
                 let res = await connection.query(sql, params);
+                pgUtils.convertTypes(res.rows, res.fields, this.db.pgdbTypeParsers);
                 return res.rows;
             } else {
                 connection = await this.db.pool.connect();
@@ -68,6 +91,7 @@ export class QueryAble {
 
                 try {
                     let res = await connection.query(sql, params);
+                    pgUtils.convertTypes(res.rows, res.fields, this.db.pgdbTypeParsers);
                     return res.rows;
                 } finally {
                     try {
@@ -84,10 +108,85 @@ export class QueryAble {
         }
     }
 
+    public async queryWithOnCursorCallback(sql: string, params: any[],  callback:(any)=>void): Promise<void>
+    public async queryWithOnCursorCallback(sql: string, params: Object, callback:(any)=>void): Promise<void>
+    public async queryWithOnCursorCallback(sql: string, params: any,    callback:(any)=>void): Promise<void> {
+        let connection = this.db.connection;
+
+        try {
+            if (params && !Array.isArray(params)) {
+                let p = pgUtils.processNamedParams(sql, params);
+                sql = p.sql;
+                params = p.params;
+            }
+
+            try {
+                if (connection) {
+                    this.getLogger(false).log(sql, util.inspect(params, false, null), connection.processID);
+                    var query = new QueryStream(sql, params);
+                    var stream = connection.query(query);
+                    await new Promise((resolve, reject) => {
+                        stream.on('data', (res) => {
+                            try {
+                                pgUtils.convertTypes([res], stream._result.fields, this.db.pgdbTypeParsers);
+                                callback(res);
+                            } catch (e) {
+                                reject(e);
+                            }
+                        });
+
+                        stream.on('end', resolve);
+                        stream.on('error', reject);
+                    });
+
+                } else {
+                    connection = await this.db.pool.connect();
+                    this.getLogger(false).log(sql, util.inspect(params, false, null), connection.processID);
+                    var query = new QueryStream(sql, params);
+                    var stream = connection.query(query);
+                    await new Promise((resolve, reject) => {
+                        stream.on('data', (res) => {
+                            try {
+                                pgUtils.convertTypes([res], stream._result.fields, this.db.pgdbTypeParsers);
+                                callback(res);
+                            } catch (e) {
+                                reject(e);
+                            }
+                        });
+
+                        stream.on('end', resolve);
+                        stream.on('error', reject);
+                    });
+                }
+            } finally {
+                try {
+                    connection.release();
+                } catch (e) {
+                    this.getLogger(true).error('connection error', e.message);
+                }
+            }
+        } catch (e) {
+            this.getLogger(true).error(sql, util.inspect(params, false, null), connection ? connection.processID : null);
+            throw e;
+        }
+    }
+
     public async queryAsStream(sql: string, params?: any[]): Promise<Readable>
     public async queryAsStream(sql: string, params?: Object): Promise<Readable>
     public async queryAsStream(sql: string, params?: any): Promise<Readable> {
         let connection = this.db.connection;
+
+
+        let pgStream;
+        let pgdb = this.db;
+        let convertTypeFilter = through(function(data) {
+            try {
+                pgUtils.convertTypes([data], pgStream._result.fields, pgdb.pgdbTypeParsers);
+                this.emit('data', data);
+            } catch (err) {
+                this.emit('error', err);
+            }
+        });
 
         try {
             if (params && !Array.isArray(params)) {
@@ -99,27 +198,30 @@ export class QueryAble {
             if (connection) {
                 this.getLogger(false).log(sql, util.inspect(params, false, null), connection.processID);
                 var query = new QueryStream(sql, params);
-                var stream = connection.query(query);
-                return stream;
+                pgStream = connection.query(query);
+                return pgStream.pipe(convertTypeFilter);
             } else {
                 connection = await this.db.pool.connect();
                 this.getLogger(false).log(sql, util.inspect(params, false, null), connection.processID);
-
-                try {
-                    var query = new QueryStream(sql, params);
-                    var stream = connection.query(query);
-                    stream.on('end', ()=>{
-                        connection.release();
-                    });
-                    stream.on('error', ()=>{
-                        connection.release();
-                    });
-
-                    return stream;
-                }  catch (e) {
-                    this.getLogger(true).error('connection error', e.message);
-                    try{connection.release();} catch(e) {}
-                }
+                var query = new QueryStream(sql, params);
+                pgStream = connection.query(query);
+                pgStream.on('end',()=> {
+                    connection.release();
+                    connection = null;
+                });
+                pgStream.on('error',()=> {
+                    connection.release();
+                    connection = null;
+                });
+                convertTypeFilter.on('close',()=> {
+                    if (connection) connection.release();
+                    connection = null;
+                });
+                convertTypeFilter.on('error',()=> {
+                    if (connection) connection.release();
+                    connection = null;
+                });
+                return pgStream.pipe(convertTypeFilter);
             }
         } catch (e) {
             this.getLogger(true).error(sql, util.inspect(params, false, null), connection ? connection.processID : null);

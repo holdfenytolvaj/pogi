@@ -14,6 +14,26 @@ export interface QueryOptions {
 export interface SqlQueryOptions {
     logger?: PgDbLogger;
 }
+export interface ResultFieldType {
+    name: string;
+    tableID: number;
+    columnID: number;
+    dataTypeID: number;
+    dataTypeSize: number;
+    dataTypeModifier: number;
+    format: string;
+}
+export interface ResultType {
+    command: 'SELECT' | 'UPDATE' | 'DELETE';
+    rowCount: number;
+    oid: number;
+    rows: any[];
+    fields: ResultFieldType[];
+    _parsers: Function[][];
+    RowCtor: Function[];
+    rowsAsArray: boolean;
+    _getTypeParser: Function[];
+}
 export declare class QueryAble {
     db: any;
     schema: any;
@@ -33,6 +53,8 @@ export declare class QueryAble {
      */
     query(sql: string, params?: any[], options?: SqlQueryOptions): Promise<any[]>;
     query(sql: string, params?: Object, options?: SqlQueryOptions): Promise<any[]>;
+    queryWithOnCursorCallback(sql: string, params: any[], callback: (any) => void): Promise<void>;
+    queryWithOnCursorCallback(sql: string, params: Object, callback: (any) => void): Promise<void>;
     queryAsStream(sql: string, params?: any[]): Promise<Readable>;
     queryAsStream(sql: string, params?: Object): Promise<Readable>;
     /** @return one record's one field */

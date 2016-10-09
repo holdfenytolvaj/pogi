@@ -8,17 +8,18 @@
 it is somewhere in between around the golden middle ground.
 
 ##Some of the features:
-- typescript support (async-await!)
+- typescript support (async-await!) (also can generate the structure for the db)
 - transaction
 - pools
 - sql file execution
 - BYOL - bring your own logger :) (db/schema/table/query level)
-- encourage mixing jsonb and relational columns (arrays, complex types, enums etc) to get the power!
+- encourage mixing jsonb and relational columns (arrays, complex types, enums etc) to get the full power!
 - named parameters
+- stream
 
 so all the basics that you would expect in 2016.
 
-##Documentation
+##Documentation (includes why+1?)
 [here](http://pgdb.readthedocs.io/en/latest/)
 
 ##Some example to get the taste

@@ -24,7 +24,8 @@
     "lodash": "~3.10.1",
     "moment": "^2.15.1",
     "pg": "^6.0.3",
-    "pg-query-stream": "^1.0.0"
+    "pg-query-stream": "^1.0.0",
+    "through": "~2.3.8"
   },
   "devDependencies": {
     "@types/jasmine": "~2.5.35",
