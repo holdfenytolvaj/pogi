@@ -29,8 +29,8 @@ let userWithId = await table.insert(user);
 ## Why we need +1?
 Since wanted to keep things simple (and fully use postgre), ORMs were out of consideration. pg.js on the other 
 hand was too basic, still required a lot of boiler plate code. MassiveJs looked promising, but
-there again too much restriction applied (no pool, no ts, no transaction, no mixing of 
-standard fields and json (not safely at least), etc).
+there again too much restriction applied (no pool, no logger, no typescript, no transaction, no mixing of 
+relational and jsonb columns (not safely at least), etc).
 
 ## Known pitfalls
 ### postgre data types vs javascript types - general
@@ -44,8 +44,6 @@ and this is why it is not converted by default by pg.js, but its rarely reached,
 thus it is safe to convert by default, and just throw an exception when it is above that number (9007199254740991); 
 
 ### postgre data types vs javascript types - date
-TODO (write more) 
-
 e.g. when you write your own queries, do not do this:
 ```js
 let date = new Date().toISOString();
@@ -91,4 +89,4 @@ in name collision:
 ```js
     await pgdb.query(`select u1.id, u2.id from ${table} u1 left join ${table} u2 ON true `);
 ```
-not a big issue, but keep in mind. In case this happens an exception will be thrown.
+not a big issue, just needs aliases, but keep in mind. In case this happens an exception will be thrown.
