@@ -73,3 +73,22 @@ Pattern matching:
 | {'id --> a':3| "id"-->'a' = 3
 | {'id --> 3':3| "id"-->3 = 3 //if the field is a number, the quote wont apply as it can refer index ... 
 | {"id --> '3'":3| "id"-->'3' = 3 //... so you have to apply that manually
+
+
+## OR - AND
+condition-expressions can be joined together e.g.:
+
+| Condition                | SQL                      
+| -------------            |:-------------- 
+| {id:1, name:'a'}         | id=1 AND name='a'
+| {or:[{id:1},{name:'a'}]} | id=1 OR  name='a'
+| {and:[or:[{id:1},{'port >':'1024'}],or:[{host:'localhost', os:'linux'},{host:'127.0.0.1'}]]} | (.. OR ..) AND ((.. AND ..) OR ..)
+
+
+
+
+
+
+
+
+
