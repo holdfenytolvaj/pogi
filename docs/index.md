@@ -84,3 +84,11 @@ the object, it calls the object's constructor it can cause some issues
 ### Connectivity(?)
 See [pg-ka-fix](https://github.com/numminorihsf/pg-ka-fix). Haven't met with the issue,
 but need to investigate, leave it here as a possible issue. 
+
+### Field name collision
+Result fields do not keep their table alias references, so the following query will result
+in name collision:
+```js
+    await pgdb.query(`select u1.id, u2.id from ${table} u1 left join ${table} u2 ON true `);
+```
+not a big issue, but keep in mind. In case this happens an exception will be thrown.

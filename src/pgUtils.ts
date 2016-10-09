@@ -109,6 +109,19 @@ export var pgUtils = {
             (param!=null && fieldType==FieldType.TIME && !(param instanceof Date)) ? new Date(param) : param;
     },
 
+    postProcessResult(res:any[], fields:ResultFieldType[], pgdbTypeParsers:{[oid:number]:(string)=>any}) {
+        if (res) {
+            if (res[0]) {
+                let numberOfFields = 0;
+                for (let f in res[0]){numberOfFields++;}
+                if (numberOfFields!=fields.length) {
+                    throw Error("Name collision for the query, two or more fields have the same name.");
+                }
+            }
+            pgUtils.convertTypes(res, fields, pgdbTypeParsers);
+        }
+    },
+
     convertTypes(res:any[], fields:ResultFieldType[], pgdbTypeParsers:{[oid:number]:(string)=>any}) {
         for (let field of fields) {
             if (pgdbTypeParsers[field.dataTypeID]) {

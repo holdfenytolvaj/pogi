@@ -99,7 +99,7 @@ export declare class PgTable extends QueryAble {
     findAll(options?: QueryOptions): Promise<any[]>;
     findOne(conditions: any, options?: QueryOptions): Promise<any>;
     findFirst(conditions: any, options?: QueryOptions): Promise<any>;
-    count(conditions?: any): Promise<number>;
+    count(conditions?: {}): Promise<number>;
     findOneFieldOnly(conditions: any, field: string, options?: QueryOptions): Promise<any>;
     protected getUpdateQuery(conditions: {
         [k: string]: any;

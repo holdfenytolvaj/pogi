@@ -221,7 +221,8 @@ export class PgTable extends QueryAble {
         return res[0];
     }
 
-    public async count(conditions?):Promise<number> {
+
+    public async count(conditions?:{}):Promise<number> {
         var where = _.isEmpty(conditions) ? {where: " ", params: null} : generateWhere(conditions, this.fieldTypes, this.qualifiedName);
         var sql = `SELECT COUNT(*) c FROM ${this.qualifiedName} ${where.where}`;
         return (await this.queryOneField(sql, where.params));

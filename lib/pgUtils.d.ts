@@ -9,6 +9,9 @@ export declare var pgUtils: {
     };
     processQueryOptions(options: QueryOptions): string;
     transformInsertUpdateParams(param: any, fieldType: FieldType): any;
+    postProcessResult(res: any[], fields: ResultFieldType[], pgdbTypeParsers: {
+        [oid: number]: (string: any) => any;
+    }): void;
     convertTypes(res: any[], fields: ResultFieldType[], pgdbTypeParsers: {
         [oid: number]: (string: any) => any;
     }): void;

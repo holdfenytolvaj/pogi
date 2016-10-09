@@ -9,13 +9,13 @@ it is somewhere in between around the golden middle ground.
 
 ##Some of the features:
 - typescript support (async-await!) (also can generate the structure for the db)
-- transaction
-- pools
+- transaction support
+- connection pooling
 - sql file execution
 - BYOL - bring your own logger :) (db/schema/table/query level)
 - encourage mixing jsonb and relational columns (arrays, complex types, enums etc) to get the full power!
-- named parameters
-- stream
+- named parameters for queries
+- stream support
 
 so all the basics that you would expect in 2016.
 
@@ -35,7 +35,22 @@ let c2 = await table.count({active:true});
 c1[0].c == c2; //true
 
 await table.insert({name:'simply', permissions:['p','e','r'], props:{email:'f@e.ct'}});
-let l = await table.find({'i ~':'ke.*', 'a @>':{'d':{'r':'e'}}, 'm @>':['!']}); 
+let rows;
+
+//use the same operators as in postgre
+rows = await table.find({'i ~':'ke.*', 'a @>':{'d':{'r':'e'}}, 'm @>':['!']});
+
+//will be transformed to "select * from test.users where id in (1,2,3)"
+rows = await table.find({id:[1,2,3]});
+
+//easy fallback 
+rows = await table.where('"happyWife"="happyLife" and name=:name', {name:'me'});
+
+//convenient functions
+let power = await pgdb.queryOneField('SELECT MAX(power) FROM magical.dbhandlers');
+power; //>9000
+
+//much more!
 
 ```
 

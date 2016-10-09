@@ -104,6 +104,15 @@ describe("pgdb", () => {
         }
     }));
 
+    it("Exception on name collision",  w(async() => {
+        await table.insert({name: 'A'});
+        try {
+            await pgdb.query(`select u1.id, u2.id from ${table} u1 left join ${table} u2 ON true `);
+            expect(false).toBeTruthy();
+        } catch (e) {
+            expect(/Name collision for the query, two or more fields have the same name./.test(e.message)).toBeTruthy();
+        }
+    }));
 
 
     it("After adding parser should be able to parse complex type", w(async() => {
@@ -273,7 +282,7 @@ describe("pgdb", () => {
 
         await table.insert({name: 'B', bigNumberList: [1, Number.MAX_SAFE_INTEGER+10]}, {return:false});
         try {
-            res = await table.findOne({name: 'B'});
+            await table.findOne({name: 'B'});
             expect(false).toBeTruthy();
         } catch (e) {
             expect(/Number can't be represented in javascript/.test(e.message)).toBeTruthy();
