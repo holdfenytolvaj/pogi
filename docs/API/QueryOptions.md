@@ -14,7 +14,7 @@ interface QueryOptions {
 where orderBy/groupBy/fields can be either an array (in that case will get quotation if needed) 
 or a free text string with all the possibilities.
 
-logger can be specified for this query only. Please note, that at the moment, only one logger is used.
+logger can be specified for the current query only.
 
 ```js
 await pgdb.find({medal:['g','s','b']}, {orderBy:'sum(*)', groupBy:['country'], fields:'sum(*) as numberOfMedals, country'});

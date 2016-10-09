@@ -424,17 +424,18 @@ describe("pgdb", () => {
 
     it("stream - auto connection handling - early close",  w(async() => {
         let counter = 0;
-        let stream = await table.queryAsStream(`SELECT * FROM generate_series(0,1001) num`);
-        stream.on('data', (c: any)=> {
-            if (counter == 10) {
-                stream.emit('error', 'e');
-                return;
-            }
-            counter++;
-        });
-        await new Promise(resolve=> {
+        let stream = await table.queryAsStream(`SELECT * FROM generate_series(0,1002) num`);
+        await new Promise((resolve, reject)=> {
             stream.on('end', resolve);
-            stream.on('error', resolve);
+            stream.on('error', reject);
+            stream.on('data', (c: any)=> {
+                if (counter == 10) {
+                    stream.emit('close', 'e');
+                    return resolve();
+                }
+                counter++;
+            });
+
         });
         expect(counter).toEqual(10);
     }));
@@ -485,16 +486,16 @@ describe("pgdb", () => {
 
         let counter = 0;
         let stream = await tablewt.queryAsStream(`SELECT * FROM ${tablewt}`);
-        stream.on('data', (c: any)=> {
-            if (counter == 2) {
-                stream.emit('error', 'e');
-                return;
-            }
-            counter++;
-        });
-        await new Promise(resolve=> {
+        await new Promise((resolve, reject)=> {
             stream.on('end', resolve);
-            stream.on('error', resolve);
+            stream.on('error', reject);
+            stream.on('data', (c: any)=> {
+                if (counter == 2) {
+                    stream.emit('close', 'e');
+                    return resolve();
+                }
+                counter++;
+            });
         });
         expect(counter).toEqual(2);
 

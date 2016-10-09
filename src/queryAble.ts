@@ -171,10 +171,11 @@ export class QueryAble {
         }
     }
 
-    public async queryAsStream(sql: string, params?: any[]): Promise<Readable>
-    public async queryAsStream(sql: string, params?: Object): Promise<Readable>
-    public async queryAsStream(sql: string, params?: any): Promise<Readable> {
+    public async queryAsStream(sql: string, params?: any[],  options?:SqlQueryOptions): Promise<Readable>
+    public async queryAsStream(sql: string, params?: Object, options?:SqlQueryOptions): Promise<Readable>
+    public async queryAsStream(sql: string, params?: any,    options?:SqlQueryOptions): Promise<Readable> {
         let connection = this.db.connection;
+        let logger = (options && options.logger || this.getLogger(false));
 
 
         let pgStream;
@@ -196,35 +197,43 @@ export class QueryAble {
             }
 
             if (connection) {
-                this.getLogger(false).log(sql, util.inspect(params, false, null), connection.processID);
+                logger.log(sql, util.inspect(params, false, null), connection.processID);
                 var query = new QueryStream(sql, params);
                 pgStream = connection.query(query);
+                convertTypeFilter.on('error', (e)=> {
+                    logger.error(e);
+                    logger.error(sql, util.inspect(params, false, null), connection ? connection.processID : null);
+                });
                 return pgStream.pipe(convertTypeFilter);
             } else {
                 connection = await this.db.pool.connect();
-                this.getLogger(false).log(sql, util.inspect(params, false, null), connection.processID);
+                logger.log(sql, util.inspect(params, false, null), connection.processID);
                 var query = new QueryStream(sql, params);
                 pgStream = connection.query(query);
                 pgStream.on('end',()=> {
                     connection.release();
                     connection = null;
                 });
-                pgStream.on('error',()=> {
+                pgStream.on('error',(e)=> {
                     connection.release();
                     connection = null;
+                    logger.error(e);
+                    logger.error(sql, util.inspect(params, false, null), connection ? connection.processID : null);
                 });
                 convertTypeFilter.on('close',()=> {
                     if (connection) connection.release();
                     connection = null;
                 });
-                convertTypeFilter.on('error',()=> {
+                convertTypeFilter.on('error',(e)=> {
                     if (connection) connection.release();
                     connection = null;
+                    logger.error(e);
+                    logger.error(sql, util.inspect(params, false, null), connection ? connection.processID : null);
                 });
                 return pgStream.pipe(convertTypeFilter);
             }
         } catch (e) {
-            this.getLogger(true).error(sql, util.inspect(params, false, null), connection ? connection.processID : null);
+            logger.error(sql, util.inspect(params, false, null), connection ? connection.processID : null);
             throw e;
         }
     }

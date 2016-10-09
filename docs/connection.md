@@ -1,6 +1,6 @@
-#Connection
+##Connection
 
-## Connection with connectionString
+### Connection with connectionString
 
 ``` js
 let pgdb = await PgDb.connect({connectionString:'postgres://username@hostname/database', logger:console});
@@ -8,7 +8,7 @@ let pgdb = await PgDb.connect({connectionString:'postgres://username@hostname/da
 
 where username/hostname/database are all optional see below, if provided through the environment variables.
 
-## Connection with Options Object
+### Connection with Options Object
 ``` js
 let pgdb = await PgDb.connect({
         host: 'localhost',
@@ -47,7 +47,7 @@ export interface ConnectionOptions {
 }
 ```
 
-## Static singleton
+### Static singleton
 If there is no reference kept to the object there is a static function to get the same object everywhere, 
 (so no need to keep reconnecting). Not necessarily recommended.
 

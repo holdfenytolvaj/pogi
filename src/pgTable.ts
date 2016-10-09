@@ -32,9 +32,9 @@ export interface TruncateOptions{
 }
 
 export class PgTable extends QueryAble {
-    qualifiedName:string;
-    db:PgDb;
-    public fieldTypes:{[index:string]:FieldType};
+    public qualifiedName:string;
+    public db:PgDb;
+    fieldTypes:{[index:string]:FieldType}; //written directly
 
     constructor(public schema:PgSchema, protected desc:{name:string, pk:string, schema:string}, fieldTypes={}) {
         super();

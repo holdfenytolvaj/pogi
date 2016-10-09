@@ -2,7 +2,7 @@
 > What is your dream?
 
 **pgdb** is a wrapper over [pg.js](https://github.com/brianc/node-postgres) to make life easier.
-- it is not an overenginered ORM with new syntax to learn, 
+- it is not an over engineered ORM with new syntax to learn and with less functionality, 
 - it is not a simple prepared statements executor with a lot of boilerplate for queries 
 
 it is somewhere in between around the golden middle ground.

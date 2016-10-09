@@ -55,8 +55,8 @@ export declare class QueryAble {
     query(sql: string, params?: Object, options?: SqlQueryOptions): Promise<any[]>;
     queryWithOnCursorCallback(sql: string, params: any[], callback: (any) => void): Promise<void>;
     queryWithOnCursorCallback(sql: string, params: Object, callback: (any) => void): Promise<void>;
-    queryAsStream(sql: string, params?: any[]): Promise<Readable>;
-    queryAsStream(sql: string, params?: Object): Promise<Readable>;
+    queryAsStream(sql: string, params?: any[], options?: SqlQueryOptions): Promise<Readable>;
+    queryAsStream(sql: string, params?: Object, options?: SqlQueryOptions): Promise<Readable>;
     /** @return one record's one field */
     queryOneField(sql: string, params?: any[], options?: SqlQueryOptions): Promise<any>;
     queryOneField(sql: string, params?: Object, options?: SqlQueryOptions): Promise<any>;

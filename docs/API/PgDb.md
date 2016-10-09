@@ -56,21 +56,29 @@ let userList = await schema.getOneColumn('SELECT name FROM test1.users');
 console.dir(userList); //['Admin', 'User1', 'User2']
 ```
 
+### queryAsStream(sql:string, params?:any[], options?:SqlQueryOptions):Promise&lt;any[]&gt;
+### queryAsStream(sql:string, params?:Object, options?:SqlQueryOptions):Promise&lt;any[]&gt;
+see [streams](../../streams) section 
+
+
 ### static connect(config:ConnectionOptions):Promise&lt;PgDb&gt;
-see the "connection" section
+see [connection](../../connection) section
 
 ### reload()
 Rerun the queries to load the schemas, tables and special types.
 Need to be called after truncate(!), alter table, create schema etc.
 
 ### setTypeParser(typeName:string, parser:(string)=&gt;any, schemaName?:string): Promise&lt;void&gt;
-see the "mapping database types to js types" section
+see the [mapping database types to js types](../../mappingDatabaseTypes) section
  
+### setPgTypeParser(typeName:string, parser:(string)=&gt;any, schemaName?:string): Promise&lt;void&gt;
+see the [mapping database types to js types](../../mappingDatabaseTypes) section
+
 ### transactionBegin():Promise&lt;PgDb&gt;
 Start a transaction and return with the connection. 
 (Only this connection has the transaction, can be committed or rolled back.)
 
-for example see the "transaction" section. 
+for example see the [transaction](../../transaction) section. 
  
 ### transactionCommit():Promise&lt;PgDb&gt;
 If the connection had transaction it commits it, otherwise do nothing.
@@ -92,7 +100,7 @@ for (let schemaName of ['test1', 'test2']) {
 }
 ```
 
-where the sql file is
+where the sql file is (`__SCHEMA__` will be replaced to the `schemaName` see above)
 ```sql
 UPDATE __SCHEMA__.webapp set lang='TS' where lang='JS';
 ```

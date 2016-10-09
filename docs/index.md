@@ -8,7 +8,7 @@ typescript, async-await, assignable logger, stream, executable sql files and bui
 It is not a full-featured ORM, it is rather aligned with KISS. 
 Therefore no initial definitions needed. It rather runs some initial queries
 to look up the schemas and tablenames and some special column types at startup.
-So makes a seemless integration with js objects and removes boiler plate but keeps 
+So makes a seamless integration with js objects and removes boiler plate but keeps 
 the power of custom queries.
 
 ```js
@@ -34,7 +34,7 @@ standard fields and json (not safely at least), etc).
 
 ## Known pitfalls
 ### postgre data types vs javascript types - general
-pg.js is a powerfull library but left many decision to the user, e.g. converting types. 
+pg.js is a powerful library but left many decision to the user, e.g. converting types. 
 By default it doesn't convert arrays or integers, dates are also tricky. We've added some basic 
 types, but rarely used types (e.g. date-ranges, custom complex types) still need to be converted.
 
@@ -55,7 +55,7 @@ this equals to (or something similar depending on your timezone):
 ```sql
 select * from users where created>'1999-12-31T18:00:00.000Z';
 ```
-it will have some sideeffect as postgre will compare them as a string, so you need to enforce the conversion:
+it will have some side effect as postgre will compare them as a string, so you need to enforce the conversion:
 ```js
 await pgdb.query(`SELECT * FROM users where created>'${date}'::timestamptz`);
 //or 

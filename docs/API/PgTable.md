@@ -5,6 +5,8 @@ import {PgDb, PgSchema, PgTable} from "pgdb/lib/index";
 let pgdb:PgDb     = PgDb.connect(..);
 let table:PgTable = pgdb.schemas['test1']['users'];  
 ```
+##Properties
+### db:PgDb
 
 ##Functions
 ### toString()
@@ -65,7 +67,7 @@ for (let player of playerList) {
 
 playerList = await table.find({id:[1,2,3]}, {fields:['id', 'name'], limit:3});
 ```
-for more options for conditions and queryOptions see those sections.
+for more options for [conditions](../condition/) and [queryOptions](../QueryOptions/) see those sections.
 
 ### findWhere(where:string, params, options?:QueryOptions):Promise&lt;Record[]&gt;
 ### findWhere(where:string, params, options?:QueryOptions):Promise&lt;Record[]&gt;

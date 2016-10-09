@@ -60,3 +60,8 @@ If there is only one column that we are interested in. For the params usage see 
 let userList = await schema.getOneColumn('SELECT name FROM test1.users');
 console.dir(userList); //['Admin', 'User1', 'User2']
 ```
+
+### queryAsStream(sql:string, params?:any[], options?:SqlQueryOptions):Promise&lt;any[]&gt;
+### queryAsStream(sql:string, params?:Object, options?:SqlQueryOptions):Promise&lt;any[]&gt;
+see [streams](../../streams)
+

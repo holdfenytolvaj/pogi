@@ -3,8 +3,10 @@
 ### Run an sql file for a single schema
 
 ```js
+
     let pgdb = await PgDb.connect(..);
     await pgdb.execute(__dirname + '/init.sql');
+    
 ```
 
 
@@ -16,14 +18,15 @@ imports ..
 let pgdb = await PgDb.connect(..);
 try {
     for (let schemaName of ['test1', 'test2']) {
-        await pgdb.execute(__dirname + '/db_upgrade/all.sql', (cmd)=>cmd.replace(/__SCHEMA__/g, '"' + schemaName + '"'));
+        await pgdb.execute(__dirname + '/db_upgrade/all.sql', 
+                           (cmd)=>cmd.replace(/__SCHEMA__/g, '"' + schemaName + '"'));
     }
 } catch (e) {
     //log
 }
 ```
 
-where the sql file is
+where the sql file is (note: `__SCHEMA__` will be replaced with the `schemaName` see above)
 ```sql
 
 DO $$
