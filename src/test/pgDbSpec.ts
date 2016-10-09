@@ -546,13 +546,27 @@ describe("pgdb", () => {
         expect(counter).toEqual(0);
     }));
 
-    xit("truncate",  w(async() => {
+    it("truncate",  w(async() => {
         await table.insert({name: 'A'});
         await table.insert({name: 'B'});
         await table.truncate();
 
         var size = await table.count();
         expect(size).toEqual(0);
+    }));
+
+    it("truncate - cascade",  w(async() => {
+        var groups = pgdb.schemas[schema]['groups'];
+        var g = await groups.insert({name:'G'});
+        await table.insert({name: 'A', mainGroup: g.id});
+        await table.insert({name: 'B', mainGroup: g.id});
+        await groups.truncate({cascade:true, restartIdentity: true});
+
+        var size = await table.count();
+        expect(size).toEqual(0);
+
+        var g2 = await groups.insert({name:'G'});
+        expect(g.id).toEqual(g2.id);
     }));
 
     it("orderBy",  w(async() => {

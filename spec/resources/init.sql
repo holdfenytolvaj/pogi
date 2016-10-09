@@ -1,5 +1,6 @@
 -- drop tables
 DROP TABLE IF EXISTS "users";
+DROP TABLE IF EXISTS "groups";
 -- drop sequences
 DROP SEQUENCE IF EXISTS "users_id_seq";
 -- drop types
@@ -14,6 +15,11 @@ CREATE TYPE "permissionType" AS ENUM ('read', 'write', 'admin');
 CREATE TYPE "permissionForResourceType" AS (
     "permission"    "permissionType",
     "resource"      "text"
+);
+
+CREATE TABLE IF NOT EXISTS "groups" (
+	"id" SERIAL PRIMARY KEY,
+	"name" varchar UNIQUE NOT NULL
 );
 
 CREATE SEQUENCE "users_id_seq";
@@ -32,7 +38,7 @@ CREATE TABLE IF NOT EXISTS "users" (
 
 	"jsonList" jsonb,
 	"jsonObject" jsonb,
-
+    "mainGroup" integer REFERENCES groups(id),
 	"permission" "permissionForResourceType",
 	"permissionList" "permissionForResourceType"[],
 	"updated" timestamp with time zone,
