@@ -100,9 +100,13 @@ export class PgDb extends QueryAble {
 
         for (let schemaName in pgdb.schemas) {
             let schema = new PgSchema(this, schemaName);
-            this.schemas[schemaName] = this[schemaName] = schema;
+            this.schemas[schemaName] = schema;
+            if (!(schemaName in this))
+                this[schemaName] = schema;
             for (let tableName in pgdb.schemas[schemaName].tables) {
-                schema.tables[tableName] = schema[tableName] = new PgTable(schema, pgdb.schemas[schemaName][tableName].desc, pgdb.schemas[schemaName][tableName].fieldTypes);
+                schema.tables[tableName] = new PgTable(schema, pgdb.schemas[schemaName][tableName].desc, pgdb.schemas[schemaName][tableName].fieldTypes);
+                if (!(tableName in schema))
+                    schema[tableName] = schema.tables[tableName];
             }
         }
     }
