@@ -21,7 +21,7 @@ function w(func) {
 describe("pgdb", () => {
     var pgdb:PgDb;
     var schema = 'pgdb_test';
-    var table:PgTable;
+    var table:PgTable<any>;
 
     beforeAll(w(async() => {
         jasmine.DEFAULT_TIMEOUT_INTERVAL = 800000;

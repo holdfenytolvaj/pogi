@@ -21,7 +21,7 @@ export interface TruncateOptions {
     cascade?: boolean;
     logger?: PgDbLogger;
 }
-export declare class PgTable extends QueryAble {
+export declare class PgTable<T> extends QueryAble {
     schema: PgSchema;
     protected desc: {
         name: string;
@@ -54,10 +54,10 @@ export declare class PgTable extends QueryAble {
      * res; // {id:1, name:'anonymous', created:'...'}
      *
      */
-    insert<T>(records: T, options?: InsertOption): Promise<T>;
-    insert<T>(records: T, options?: InsertOption2): Promise<void>;
-    insert<T>(records: T[], options?: InsertOption): Promise<T[]>;
-    insert<T>(records: T[], options?: InsertOption2): Promise<void>;
+    insert(records: T, options?: InsertOption): Promise<T>;
+    insert(records: T, options?: InsertOption2): Promise<void>;
+    insert(records: T[], options?: InsertOption): Promise<T[]>;
+    insert(records: T[], options?: InsertOption2): Promise<void>;
     updateOne(conditions: {
         [k: string]: any;
     }, fields: {
@@ -67,7 +67,7 @@ export declare class PgTable extends QueryAble {
         [k: string]: any;
     }, fields: {
         [k: string]: any;
-    }, options?: UpdateDeleteOption): Promise<any>;
+    }, options?: UpdateDeleteOption): Promise<T>;
     update(conditions: {
         [k: string]: any;
     }, fields: {
@@ -77,7 +77,7 @@ export declare class PgTable extends QueryAble {
         [k: string]: any;
     }, fields: {
         [k: string]: any;
-    }, options?: UpdateDeleteOption): Promise<any[]>;
+    }, options?: UpdateDeleteOption): Promise<T[]>;
     delete(conditions: {
         [k: string]: any;
     }, options?: UpdateDeleteOptionDefault): Promise<number>;
@@ -93,12 +93,12 @@ export declare class PgTable extends QueryAble {
     truncate(options?: TruncateOptions): Promise<void>;
     find(conditions: {
         [k: string]: any;
-    }, options?: QueryOptions): Promise<any[]>;
-    findWhere(where: string, params: any[], options?: QueryOptions): Promise<any[]>;
-    findWhere(where: string, params: Object, options?: QueryOptions): Promise<any[]>;
-    findAll(options?: QueryOptions): Promise<any[]>;
-    findOne(conditions: any, options?: QueryOptions): Promise<any>;
-    findFirst(conditions: any, options?: QueryOptions): Promise<any>;
+    }, options?: QueryOptions): Promise<T[]>;
+    findWhere(where: string, params: any[], options?: QueryOptions): Promise<T[]>;
+    findWhere(where: string, params: Object, options?: QueryOptions): Promise<T[]>;
+    findAll(options?: QueryOptions): Promise<T[]>;
+    findOne(conditions: any, options?: QueryOptions): Promise<T>;
+    findFirst(conditions: any, options?: QueryOptions): Promise<T>;
     count(conditions?: {}): Promise<number>;
     findOneFieldOnly(conditions: any, field: string, options?: QueryOptions): Promise<any>;
     protected getUpdateQuery(conditions: {

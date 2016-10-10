@@ -3,7 +3,7 @@ For all the examples below
 import {PgDb, PgSchema, PgTable} from "pgdb/lib/index";
 
 let pgdb:PgDb     = PgDb.connect(..);
-let table:PgTable = pgdb.schemas['test1']['users'];  
+let table:PgTable<User> = pgdb.schemas.test1.users;  
 ```
 ##Properties
 ### db:PgDb
@@ -57,7 +57,7 @@ let userList = await table.getOneColumn(`SELECT name FROM ${table}`);
 console.dir(userList); //['Admin', 'User1', 'User2']
 ```
 
-### find(conditions:{[k:string]:any}, options?:QueryOptions):Promise&lt;Record[]&gt;
+### find(conditions:{[k:string]:any}, options?:QueryOptions):Promise&lt;T[]&gt;
 Executes a select-where query.
 ```js
 let playerList = await table.find({id:[1,2,3]});
@@ -69,8 +69,8 @@ playerList = await table.find({id:[1,2,3]}, {fields:['id', 'name'], limit:3});
 ```
 for more options for [conditions](../condition/) and [queryOptions](../QueryOptions/) see those sections.
 
-### findWhere(where:string, params, options?:QueryOptions):Promise&lt;Record[]&gt;
-### findWhere(where:string, params, options?:QueryOptions):Promise&lt;Record[]&gt;
+### findWhere(where:string, params, options?:QueryOptions):Promise&lt;T[]&gt;
+### findWhere(where:string, params, options?:QueryOptions):Promise&lt;T[]&gt;
 Executes a select-where query with free text where etc. 
 ```js
 let res;
@@ -78,13 +78,13 @@ res = await table.where("permissions @&gt; {'admin'} AND name!=username AND id=$
 res = await table.where("permissions @&gt; {'admin'} AND name!=username AND id=:id LIMIT 2", {id:1});
 ```
 
-### findAll(options?:QueryOptions):Promise&lt;Record[]&gt;
+### findAll(options?:QueryOptions):Promise&lt;T[]&gt;
 Returns everything from the table. Same as table.find({})
 ```js
 let res = await table.findAll();
 ```
 
-### findOne(conditions, options?:QueryOptions):Promise&lt;any&gt;
+### findOne(conditions, options?:QueryOptions):Promise&lt;T&gt;
 Most system get this wrong, as they use it as "_findFirst_" instead of using as "_findOnly_". 
 While 99% of the time the programmer means the latter, by default they use the formal.
 That is mostly just hiding bugs instead of revealing issues as soon as possible. 
@@ -97,7 +97,7 @@ let res1 = await table.findOne({id:1});
 let res2 = await table.findOne({'name like': 'A%'}); //most probably throws an exception
 ```
 
-### findFirst(conditions, options?:QueryOptions):Promise&lt;Record&gt;
+### findFirst(conditions, options?:QueryOptions):Promise&lt;T&gt;
 Same as await table.find(condition, {limit:1})
 ```js
 let somebody = await table.findFirst({'score &gt;':9000});
@@ -118,8 +118,8 @@ let nameOfUser = await table.findOneFieldOnly({id:1}, 'name');
 console.log(nameOfUser); //most probably 'Admin'
 ```
 
-### insert(records:{}, options:InsertOption): Promise&lt;any&gt;
-### insert(records:{}[], options:InsertOption): Promise&lt;any[]&gt;
+### insert(records:T, options:InsertOption): Promise&lt;T&gt;
+### insert(records:T[], options:InsertOption): Promise&lt;T[]&gt;
 You can insert one or multiple records, by default the new record(s) will be returned. This can be prevented if not needed;
 ```js
 let user = await table.insert({username:'anonymous'}); //returns the whole record
@@ -145,7 +145,7 @@ await table.updateOne({id:1},{password:null});
 await table.updateOne({notUniqId:1},{password:null}); //throws exception if more then 1 rec has been updated;
 ```
 
-### updateAndGet(conditions:{[k:string]:any}, fields:{[k:string]:any}, options?:UpdateDeleteOption):Promise&lt;any[]&gt;
+### updateAndGet(conditions:{[k:string]:any}, fields:{[k:string]:any}, options?:UpdateDeleteOption):Promise&lt;T[]&gt;
 Run an update query on the table
 ```js
 let playerList = await table.updateAndGet({'score &gt;': '9000'}, {achivement:"It's Over 9000!"}); 
@@ -154,7 +154,7 @@ let playerList = await table.updateAndGet({'score &gt;': '9000'}, {achivement:"I
 let playerIdList = await table.updateAndGet({'score &gt;': '9000'}, {achivement:"It's Over 9000!"}, {return:['id']});
 ```
 
-### updateAndGetOne(conditions:{[k:string]:any}, fields:{[k:string]:any}, options?:UpdateDeleteOption): Promise&lt;any&gt;
+### updateAndGetOne(conditions:{[k:string]:any}, fields:{[k:string]:any}, options?:UpdateDeleteOption): Promise&lt;T&gt;
 Run an update query and returns with the updated record, 
 throws exception if more then one record has been updated. (Handy if you roll back on exception)
 ```js
@@ -179,7 +179,7 @@ let numberOfDeleted = await table.deleteOne({id:[1,2,3]}); //throws exception if
 console.log(numberOfDeleted); //0 or 1
 ```
 
-### deleteAndGet(conditions:{[k:string]:any}, options?:UpdateDeleteOption):Promise&lt;any[]&gt;
+### deleteAndGet(conditions:{[k:string]:any}, options?:UpdateDeleteOption):Promise&lt;T[]&gt;
 Executes a delete-where query and returns with the deleted records;
 ```js
 let playersDeleted = await table.deleteAndGet({id:[1,2,3]});
@@ -188,7 +188,7 @@ for (let player of playersDeleted) {
 }
 ```
 
-### deleteAndGetOne(conditions:{[k:string]:any}, options?:UpdateDeleteOption):Promise&lt;any[]&gt;
+### deleteAndGetOne(conditions:{[k:string]:any}, options?:UpdateDeleteOption):Promise&lt;T[]&gt;
 Executes a delete-where query, but throws exception if more then one record is deleted;
 Returns with the deleted record if any.
 ```js
@@ -197,12 +197,6 @@ console.log(player.id); //Either 1, 2, 3 or null if no record is deleted
 
 ```
 
-### deleteAll(options?:UpdateDeleteOptionDefault):Promise&lt;number&gt;
-Executes a "DELETE FROM schema.table" query (Note: not truncate .. yet).
-
-```js
-await table.deleteAll();
-```
 
 
 

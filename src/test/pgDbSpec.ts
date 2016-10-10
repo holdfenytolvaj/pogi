@@ -64,7 +64,7 @@ function parseComplexType(str) {
 describe("pgdb", () => {
     var pgdb:PgDb;
     var schema = 'pgdb_test';
-    var table:PgTable;
+    var table:PgTable<any>;
 
     beforeAll(w(async() => {
         jasmine.DEFAULT_TIMEOUT_INTERVAL = 800000;
@@ -370,7 +370,7 @@ describe("pgdb", () => {
         await table.insert({name: 'A'});
 
         let pgdbwt = await pgdb.transactionBegin();
-        let tablewt = <PgTable>pgdbwt.schemas[schema]['users'];
+        let tablewt = <PgTable<any>>pgdbwt.schemas[schema]['users'];
         await tablewt.insert({name: 'B'});
 
         let res;
@@ -487,7 +487,7 @@ describe("pgdb", () => {
 
     it("stream - with transactions handling - early close",  w(async() => {
         let pgdbwt = await pgdb.transactionBegin();
-        let tablewt = <PgTable>pgdbwt[schema]['users'];
+        let tablewt = <PgTable<any>>pgdbwt[schema]['users'];
         await tablewt.insert({name: 'A', numberList:[1,2,3]});
         await tablewt.insert({name: 'B'});
         await tablewt.insert({name: 'C'});
@@ -518,7 +518,7 @@ describe("pgdb", () => {
 
     it("stream - with transactions handling - error",  w(async() => {
         let pgdbwt = await pgdb.transactionBegin();
-        let tablewt = <PgTable>pgdbwt[schema]['users'];
+        let tablewt = <PgTable<any>>pgdbwt[schema]['users'];
         await tablewt.insert({name: 'A', bigNumberList:[1,2,3]});
         await tablewt.insert({name: 'B'});
         await tablewt.insert({name: 'C', bigNumberList:[1,2, Number.MAX_SAFE_INTEGER+100]}, {return:false});

@@ -6,8 +6,8 @@ export declare class PgSchema extends QueryAble {
     schemaName: string;
     schema: PgSchema;
     tables: {
-        [name: string]: PgTable;
+        [name: string]: PgTable<any>;
     };
-    [name: string]: any | PgTable;
+    [name: string]: any | PgTable<any>;
     constructor(db: PgDb, schemaName: string);
 }
