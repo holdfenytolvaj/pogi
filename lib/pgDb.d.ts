@@ -1,4 +1,5 @@
 import { QueryAble } from "./queryAble";
+import { PgTable } from "./pgTable";
 import { PgSchema } from "./pgSchema";
 export declare enum FieldType {
     JSON = 0,
@@ -46,6 +47,12 @@ export declare class PgDb extends QueryAble {
     db: any;
     schemas: {
         [name: string]: PgSchema;
+    };
+    tables: {
+        [name: string]: PgTable<any>;
+    };
+    fn: {
+        [name: string]: (...any) => any;
     };
     private defaultLogger;
     [name: string]: any | PgSchema;

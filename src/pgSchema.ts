@@ -5,6 +5,7 @@ import {PgTable} from "./pgTable";
 export class PgSchema extends QueryAble {
     schema:PgSchema;
     tables:{[name:string]:PgTable<any>} = {};
+    fn: {[name:string]:(...any)=>any} = {};
     [name:string]:any|PgTable<any>;
 
     constructor(public db:PgDb, public schemaName:string) {

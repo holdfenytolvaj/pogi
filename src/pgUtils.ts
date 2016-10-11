@@ -1,4 +1,4 @@
-import {QueryOptions, ResultFieldType} from "./queryAble";
+import {QueryOptions, ResultFieldType, QueryAble} from "./queryAble";
 var util = require('util');
 const NAMED_PARAMS_REGEXP = /(?:^|[^:]):(!?[a-zA-Z0-9_]+)/g;    // do not convert "::type cast"
 import {FieldType} from "./pgDb";
@@ -6,7 +6,7 @@ const ASC_DESC_REGEXP = /^([^" (]+)( asc| desc)?$/;
 
 export var pgUtils = {
     quoteField(f) {
-        return f.indexOf('"') == -1 && f.indexOf('(') == -1? '"' + f + '"' : f;
+        return f.indexOf('"') == -1 && f.indexOf('(') == -1 ? '"' + f + '"' : f;
     },
 
     processQueryFields(options: QueryOptions): string {
@@ -79,9 +79,9 @@ export var pgUtils = {
             }
             else if (Array.isArray(options.orderBy)) {
                 let orderBy = options.orderBy.map(v =>
-                    v[0]=='+' ? pgUtils.quoteField(v.substr(1,v.length-1)) + ' asc' :
-                    v[0]=='-' ? pgUtils.quoteField(v.substr(1,v.length-1)) + ' desc' :
-                    v.replace(ASC_DESC_REGEXP, '"$1"$2'));
+                    v[0] == '+' ? pgUtils.quoteField(v.substr(1, v.length - 1)) + ' asc' :
+                        v[0] == '-' ? pgUtils.quoteField(v.substr(1, v.length - 1)) + ' desc' :
+                            v.replace(ASC_DESC_REGEXP, '"$1"$2'));
                 sql += ' ORDER BY ' + orderBy.join(',');
             } else {
                 let orderBy = [];
@@ -104,17 +104,19 @@ export var pgUtils = {
      *    2) use Date, and then no need to change the placeholder $x
      *    lets use 2)
      */
-    transformInsertUpdateParams(param:any, fieldType:FieldType) {
-        return (param!=null && fieldType==FieldType.JSON) ? JSON.stringify(param) :
-            (param!=null && fieldType==FieldType.TIME && !(param instanceof Date)) ? new Date(param) : param;
+    transformInsertUpdateParams(param: any, fieldType: FieldType) {
+        return (param != null && fieldType == FieldType.JSON) ? JSON.stringify(param) :
+            (param != null && fieldType == FieldType.TIME && !(param instanceof Date)) ? new Date(param) : param;
     },
 
-    postProcessResult(res:any[], fields:ResultFieldType[], pgdbTypeParsers:{[oid:number]:(string)=>any}) {
+    postProcessResult(res: any[], fields: ResultFieldType[], pgdbTypeParsers: {[oid: number]: (string)=>any}) {
         if (res) {
             if (res[0]) {
                 let numberOfFields = 0;
-                for (let f in res[0]){numberOfFields++;}
-                if (numberOfFields!=fields.length) {
+                for (let f in res[0]) {
+                    numberOfFields++;
+                }
+                if (numberOfFields != fields.length) {
                     throw Error("Name collision for the query, two or more fields have the same name.");
                 }
             }
@@ -122,10 +124,38 @@ export var pgUtils = {
         }
     },
 
-    convertTypes(res:any[], fields:ResultFieldType[], pgdbTypeParsers:{[oid:number]:(string)=>any}) {
+    convertTypes(res: any[], fields: ResultFieldType[], pgdbTypeParsers: {[oid: number]: (string)=>any}) {
         for (let field of fields) {
             if (pgdbTypeParsers[field.dataTypeID]) {
-                res.forEach(e=>e[field.name] = e[field.name]==null ? null : pgdbTypeParsers[field.dataTypeID](e[field.name]));
+                res.forEach(e=>e[field.name] = e[field.name] == null ? null : pgdbTypeParsers[field.dataTypeID](e[field.name]));
+            }
+        }
+    },
+
+    createFunctionCaller(q: QueryAble, fn: {schema: string,name: string, return_single_row: boolean,return_single_value: boolean }) {
+        return async(...args) => {
+            var placeHolders = [];
+            var params = [];
+            args.forEach((arg)=> {
+                placeHolders.push('$' + (placeHolders.length + 1));
+                params.push(arg);
+            });
+            let res = await q.query(`SELECT "${fn.schema}"."${fn.name}"(${placeHolders.join(',')})`, params);
+
+            if (fn.return_single_value) {
+                var keys = Object.keys(res[0]);
+                if (keys.length != 1){
+                    throw Error(`Return type error. schema: ${fn.schema} fn: ${fn.name} expected return type: single value, current value:`+JSON.stringify(res))
+                }
+                res = res.map((r)=> r[keys[0]]);
+            }
+            if (fn.return_single_row) {
+                if (res.length != 1){
+                    throw Error(`Return type error. schema: ${fn.schema} fn: ${fn.name} expected return type: single value, current value:`+JSON.stringify(res))
+                }
+                return res[0];
+            } else {
+                return res;
             }
         }
     }

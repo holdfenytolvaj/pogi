@@ -1,4 +1,4 @@
-import { QueryOptions, ResultFieldType } from "./queryAble";
+import { QueryOptions, ResultFieldType, QueryAble } from "./queryAble";
 import { FieldType } from "./pgDb";
 export declare var pgUtils: {
     quoteField(f: any): any;
@@ -15,4 +15,10 @@ export declare var pgUtils: {
     convertTypes(res: any[], fields: ResultFieldType[], pgdbTypeParsers: {
         [oid: number]: (string: any) => any;
     }): void;
+    createFunctionCaller(q: QueryAble, fn: {
+        schema: string;
+        name: string;
+        return_single_row: boolean;
+        return_single_value: boolean;
+    }): (...args: any[]) => Promise<any>;
 };
