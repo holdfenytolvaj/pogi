@@ -477,6 +477,7 @@ export class PgDb extends QueryAble {
             }).catch((e)=> {
             this.getLogger(true).error(e);
         });
+        return promise;
     }
 }
 
