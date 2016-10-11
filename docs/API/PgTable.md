@@ -8,25 +8,25 @@ let pgdb:PgDb     = PgDb.connect(..);
 let table:PgTable<User> = pgdb.schemas.test1.users;  
 
 ```
-##Properties
+#Properties
 ### <span style="color:purple">db:</span><span style="color:orange">PgDb</span>
 
-##Functions
-###`toString`
-><span style="color:purple"><span style="color:black">toString</span>()</span>
+#Functions
+##`toString`
+<span style="color:purple"><span style="color:black">toString</span>()</span>
 
 returns the fully qualified name of the table
 
-###`setLogger`
-><span style="color:purple"><span style="color:black">setLogger</span>(logger:<span style="color:orange">PgDbLogger</span>) </span>
+##`setLogger`
+<span style="color:purple"><span style="color:black">setLogger</span>(logger:<span style="color:orange">PgDbLogger</span>) </span>
 
 Note: inherited.
 
 Sets the logger per table (not used if the query has logger specified).
 
-##Functions - async
-###`run`
-><span style="color:purple"><span style="color:black">run</span>(sql:<span style="color:orange">string</span>):Promise&lt;<span style="color:orange">any[]</span>&gt;</span>
+#Functions - async
+##`run`
+<span style="color:purple"><span style="color:black">run</span>(sql:<span style="color:orange">string</span>):Promise&lt;<span style="color:orange">any[]</span>&gt;</span>
 
 Note: inherited, uses table level log if present (if not then schema, then db).
 
@@ -37,8 +37,8 @@ await table.run('CREATE schema myschema');
 
 ```
 
-###`query`
-><span style="color:purple"><span style="color:black">query</span>(sql:<span style="color:orange">string</span>, params?:<span style="color:orange">any[]|{}</span>, options?:<span style="color:orange">SqlQueryOptions</span>):Promise&lt;<span style="color:orange">any[]</span>&gt;</span>
+##`query`
+<span style="color:purple"><span style="color:black">query</span>(sql:<span style="color:orange">string</span>, params?:<span style="color:orange">any[]|{}</span>, options?:<span style="color:orange">SqlQueryOptions</span>):Promise&lt;<span style="color:orange">any[]</span>&gt;</span>
 
 <a name="query"></a>
 Note: inherited, uses table level log if present (if not then schema, then db).
@@ -50,8 +50,8 @@ let res1 = await table.query('SELECT MAX(point) from game1.scores WHERE name=$1 
 let res2 = await table.query('SELECT MAX(point) from !:schema.scores WHERE name=:name ', {schema:'game1', name:'player1'});
 
 ```
-
-### queryOneField
+---
+## queryOneField
 <span style="color:purple"><span style="color:black">queryOneField</span>(sql:<span style="color:orange">string</span>, params?:<span style="color:orange">any[]|{}</span>, options?:<span style="color:orange">SqlQueryOptions</span>):Promise&lt;<span style="color:orange">any</span>&gt;</span>
 
 Note: inherited, uses table level log if present (if not then schema, then db).
@@ -63,8 +63,8 @@ let winner = await table.getOneField(`SELECT 'The winner is ' || name FROM ${tab
 console.log(winner); //The winner is Admin
 
 ```
-
-### queryOneColumn
+---
+## queryOneColumn
 <span style="color:purple"><span style="color:black">queryOneColumn</span>(sql:<span style="color:orange">string</span>, params?:<span style="color:orange">any[]|{}</span>, options?:<span style="color:orange">SqlQueryOptions</span>):Promise&lt;<span style="color:orange">any[]</span>&gt;</span>
 
 Note: inherited, uses table level log if present (if not then schema, then db).
@@ -76,11 +76,13 @@ let userList = await table.getOneColumn(`SELECT name FROM ${table}`);
 console.dir(userList); //['Admin', 'User1', 'User2']
 
 ```
-### queryAsStream
+---
+## queryAsStream
 <span style="color:purple"><span style="color:black">queryAsStream</span>(sql:<span style="color:orange">string</span>, params?:<span style="color:orange">any[]|{}</span>, options?:<span style="color:orange">SqlQueryOptions</span>):Promise&lt;<span style="color:orange">any[]</span>&gt;</span>
 
 see [streams](/streams)
 
+---
 ### find
 <span style="color:purple"><span style="color:black">find</span>(conditions:<span style="color:orange">{}</span>, options?:<span style="color:orange">QueryOptions</span>):Promise&lt;<span style="color:orange">T[]</span>&gt;</span>
 
@@ -99,6 +101,7 @@ playerList = await table.find({id:[1,2,3]}, {fields:['id', 'name'], limit:3});
 ```
 for more options for [conditions](condition) and [queryOptions](QueryOptions) see those sections.
 
+---
 ### findWhere
 <span style="color:purple"><span style="color:black">findWhere</span>(where:<span style="color:orange">string</span>,params:<span style="color:orange">any[]|{}</span>,options?:<span style="color:orange">QueryOptions</span>):Promise&lt;<span style="color:orange">ReadableStream</span>&gt;</span>
 
