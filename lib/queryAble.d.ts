@@ -1,6 +1,4 @@
-/// <reference types="node" />
 import { PgDbLogger } from "./pgDb";
-import { Readable } from 'stream';
 export interface QueryOptions {
     limit?: number;
     offset?: number;
@@ -10,7 +8,6 @@ export interface QueryOptions {
     groupBy?: string | string[];
     fields?: string | string[];
     logger?: PgDbLogger;
-    stream: never;
 }
 export interface SqlQueryOptions {
     logger?: PgDbLogger;
@@ -52,16 +49,14 @@ export declare class QueryAble {
      * e.g. query('select * from a.b where id=$1;',['the_stage_is_set']);
      * e.g. query('select * from :!schema.:!table where id=:id;',{schema:'a',table:'b', id:'the_stage_is_set'});
      */
-    query(sql: string, params?: any[], options?: SqlQueryOptions): Promise<any[]>;
-    query(sql: string, params?: Object, options?: SqlQueryOptions): Promise<any[]>;
-    queryWithOnCursorCallback(sql: string, params: any[], callback: (any) => void): Promise<void>;
-    queryWithOnCursorCallback(sql: string, params: Object, callback: (any) => void): Promise<void>;
-    queryAsStream(sql: string, params?: any[], options?: SqlQueryOptions): Promise<Readable>;
-    queryAsStream(sql: string, params?: Object, options?: SqlQueryOptions): Promise<Readable>;
+    query(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<any[]>;
+    /**
+     * If the callback function return true, the connection will be closed.
+     */
+    queryWithOnCursorCallback(sql: string, params: any[] | {}, options: SqlQueryOptions, callback: (any) => any): Promise<void>;
+    queryAsStream(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<any>;
     /** @return one record's one field */
-    queryOneField(sql: string, params?: any[], options?: SqlQueryOptions): Promise<any>;
-    queryOneField(sql: string, params?: Object, options?: SqlQueryOptions): Promise<any>;
+    queryOneField(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<any>;
     /** @return one column for the matching records */
-    queryOneColumn(sql: string, params?: any[], options?: SqlQueryOptions): Promise<any[]>;
-    queryOneColumn(sql: string, params?: Object, options?: SqlQueryOptions): Promise<any[]>;
+    queryOneColumn(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<any[]>;
 }

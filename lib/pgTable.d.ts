@@ -2,19 +2,16 @@ import { QueryAble, QueryOptions } from "./queryAble";
 import { PgDb, FieldType, PgDbLogger } from "./pgDb";
 import { PgSchema } from "./pgSchema";
 export interface InsertOption {
-    'return'?: string[] | true;
     logger?: PgDbLogger;
 }
-export interface InsertOption2 {
-    'return': false;
-    logger?: PgDbLogger;
+export interface Return {
+    return?: string[] | '*';
 }
 export interface UpdateDeleteOption {
-    return?: string[];
     logger?: PgDbLogger;
 }
-export interface UpdateDeleteOptionDefault {
-    logger?: PgDbLogger;
+export interface Stream {
+    stream: true;
 }
 export interface TruncateOptions {
     restartIdentity?: boolean;
@@ -54,53 +51,60 @@ export declare class PgTable<T> extends QueryAble {
      * res; // {id:1, name:'anonymous', created:'...'}
      *
      */
-    insert(records: T, options?: InsertOption): Promise<T>;
-    insert(records: T, options?: InsertOption2): Promise<void>;
-    insert(records: T[], options?: InsertOption): Promise<T[]>;
-    insert(records: T[], options?: InsertOption2): Promise<void>;
+    insert(records: T[], options?: InsertOption): Promise<number>;
+    insert(records: T, options?: InsertOption): Promise<number>;
+    insertAndGet(records: T[], options?: InsertOption & Return): Promise<T[]>;
+    insertAndGet(records: T, options?: InsertOption & Return): Promise<T>;
     updateOne(conditions: {
         [k: string]: any;
     }, fields: {
         [k: string]: any;
-    }, options?: UpdateDeleteOptionDefault): Promise<number>;
+    }, options?: UpdateDeleteOption): Promise<number>;
     updateAndGetOne(conditions: {
         [k: string]: any;
     }, fields: {
         [k: string]: any;
-    }, options?: UpdateDeleteOption): Promise<T>;
+    }, options?: UpdateDeleteOption & Return): Promise<T>;
     update(conditions: {
         [k: string]: any;
     }, fields: {
         [k: string]: any;
-    }, options?: UpdateDeleteOptionDefault): Promise<number>;
+    }, options?: UpdateDeleteOption): Promise<number>;
     updateAndGet(conditions: {
         [k: string]: any;
     }, fields: {
         [k: string]: any;
-    }, options?: UpdateDeleteOption): Promise<T[]>;
+    }, options?: UpdateDeleteOption & Return): Promise<T[]>;
     delete(conditions: {
         [k: string]: any;
-    }, options?: UpdateDeleteOptionDefault): Promise<number>;
+    }, options?: UpdateDeleteOption): Promise<number>;
     deleteOne(conditions: {
         [k: string]: any;
-    }, options?: UpdateDeleteOptionDefault): Promise<number>;
+    }, options?: UpdateDeleteOption): Promise<number>;
     deleteAndGet(conditions: {
         [k: string]: any;
-    }, options?: UpdateDeleteOption): Promise<any[]>;
+    }, options?: UpdateDeleteOption & Return): Promise<any[]>;
     deleteAndGetOne(conditions: {
         [k: string]: any;
-    }, options?: UpdateDeleteOption): Promise<any>;
+    }, options?: UpdateDeleteOption & Return): Promise<any>;
     truncate(options?: TruncateOptions): Promise<void>;
     find(conditions: {
         [k: string]: any;
     }, options?: QueryOptions): Promise<T[]>;
-    findWhere(where: string, params: any[], options?: QueryOptions): Promise<T[]>;
-    findWhere(where: string, params: Object, options?: QueryOptions): Promise<T[]>;
+    find(conditions: {
+        [k: string]: any;
+    }, options?: QueryOptions & Stream): Promise<{
+        on: any;
+    }>;
+    findWhere(where: string, params: any[] | {}, options?: QueryOptions): Promise<T[]>;
+    findWhere(where: string, params: any[] | {}, options?: QueryOptions & Stream): Promise<any>;
     findAll(options?: QueryOptions): Promise<T[]>;
+    findAll(options?: QueryOptions & Stream): Promise<any>;
     findOne(conditions: any, options?: QueryOptions): Promise<T>;
     findFirst(conditions: any, options?: QueryOptions): Promise<T>;
     count(conditions?: {}): Promise<number>;
     findOneFieldOnly(conditions: any, field: string, options?: QueryOptions): Promise<any>;
+    private getInsertQuery(records);
     protected getUpdateQuery(conditions: {
         [k: string]: any;
     }, fields: {

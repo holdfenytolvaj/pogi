@@ -1,7 +1,6 @@
 import {PgDbLogger} from "./pgDb";
 var util = require('util');
 var QueryStream = require('pg-query-stream');
-import {ReadableStream} from 'node';
 import {pgUtils} from "./pgUtils";
 var through = require('through');
 
@@ -113,7 +112,7 @@ export class QueryAble {
     /**
      * If the callback function return true, the connection will be closed.
      */
-    async queryWithOnCursorCallback(sql: string, params: any[]|{}, options:SqlQueryOptions, callback:(any)=>boolean): Promise<void> {
+    async queryWithOnCursorCallback(sql: string, params: any[]|{}, options:SqlQueryOptions, callback:(any)=>any): Promise<void> {
         let connection = this.db.connection;
 
         try {
@@ -178,7 +177,7 @@ export class QueryAble {
         }
     }
 
-    async queryAsStream(sql: string, params?: any[]|{},  options?:SqlQueryOptions): Promise<ReadableStream> {
+    async queryAsStream(sql: string, params?: any[]|{},  options?:SqlQueryOptions): Promise<any> { //Readable
         let connection = this.db.connection;
         let logger = (options && options.logger || this.getLogger(false));
 

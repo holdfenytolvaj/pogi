@@ -71,10 +71,8 @@ export declare class PgDb extends QueryAble {
      */
     setTypeParser(typeName: string, parser: (string) => any, schemaName?: string): Promise<void>;
     setPgDbTypeParser(typeName: string, parser: (string) => any, schemaName?: string): Promise<void>;
-    /**
-     * @param connectionMode pool|one
-     */
-    private setConnectionMode(connectionMode);
+    dedicatedConnectionBegin(): Promise<PgDb>;
+    dedicatedConnectionEnd(): Promise<PgDb>;
     transactionBegin(): Promise<PgDb>;
     transactionCommit(): Promise<PgDb>;
     transactionRollback(): Promise<PgDb>;

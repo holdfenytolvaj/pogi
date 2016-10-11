@@ -292,12 +292,12 @@ describe("pgdb", () => {
     it("bigInt[] cursor callback",  w(async() => {
         await table.insert({name: 'A', bigNumberList: [1,2,3]});
         let res;
-        await table.queryWithOnCursorCallback(`SELECT * FROM ${table}`, [], (rec)=>{res = rec.bigNumberList;});
+        await table.queryWithOnCursorCallback(`SELECT * FROM ${table}`, null, null, (rec)=>{res = rec.bigNumberList;});
         expect(res).toEqual([1,2,3]);
 
         await table.insert({name: 'B', bigNumberList: [1, Number.MAX_SAFE_INTEGER+10]});
         try {
-            await table.queryWithOnCursorCallback(`SELECT * FROM ${table}`, [], ()=>{});
+            await table.queryWithOnCursorCallback(`SELECT * FROM ${table}`, null, null, ()=>{});
             expect(false).toBeTruthy();
         } catch (e) {
             expect(/Number can't be represented in javascript/.test(e.message)).toBeTruthy();
@@ -411,7 +411,7 @@ describe("pgdb", () => {
         await table.insert({name: 'B'});
         var size = await table.count();
         let streamSize = 0;
-        await table.queryWithOnCursorCallback(`SELECT * FROM ${table}`, [], (r)=>{streamSize++});
+        await table.queryWithOnCursorCallback(`SELECT * FROM ${table}`, null, null, (r)=>{streamSize++; return true});
         expect(size).toEqual(streamSize);
     }));
 
