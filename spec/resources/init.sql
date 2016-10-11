@@ -6,8 +6,9 @@ DROP SEQUENCE IF EXISTS "users_id_seq";
 -- drop types
 DROP TYPE IF EXISTS "membershipType";
 DROP TYPE IF EXISTS "categoryType";
-DROP TYPE IF EXISTS "permissionType";
 DROP TYPE IF EXISTS "permissionForResourceType";
+DROP TYPE IF EXISTS "permissionType";
+
 
 CREATE TYPE "membershipType" AS ENUM ('bronze', 'silver', 'gold');
 CREATE TYPE "categoryType" AS ENUM ('sport', 'food', 'tech', 'music');

@@ -403,10 +403,10 @@ export class PgDb extends QueryAble {
                 terminal: false
             }).on('line', (line) => {
                 try {
-                    console.log('Line: ' + line);
+                    //console.log('Line: ' + line);
                     line = line.replace(/--.*$/, '');   // remove comments
                     while (m = SQL_PARSER_REGEXP.exec(line)) {
-                        console.log('inQuotedString', inQuotedString, 'token:', m[0]);
+                        //console.log('inQuotedString', inQuotedString, 'token:', m[0]);
                         if (m[0] == '""' || m[0] == "''") {
                             tmp += m[0];
                         } else if (m[0][0] == '$' || m[0] == '"' || m[0] == "'") {
@@ -417,7 +417,7 @@ export class PgDb extends QueryAble {
                             }
                             tmp += m[0];
                         } else if (!inQuotedString && m[0] == ';') {
-                            console.log('push ' + tmp);
+                            //console.log('push ' + tmp);
                             commands.push(tmp);
                             if (!consumer) {
                                 consumer = consume(commands).then(()=> {
