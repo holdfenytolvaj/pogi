@@ -12,16 +12,19 @@ let table:PgTable<User> = pgdb.schemas.test1.users;
 ### <span class="def">db:</span><span class="type">PgDb</span>
 
 ##Functions
-###<span class="def"><span class="func">toString</span>()</span>
+###`toString`
+<span class="def"><span class="func">toString</span>()</span>
 returns the fully qualified name of the table
 
-###<span class="def"><span class="func">setLogger</span>(logger:<span class="type">PgDbLogger</span>) </span>
+###`setLogger`
+<span class="def"><span class="func">setLogger</span>(logger:<span class="type">PgDbLogger</span>) </span>
 Note: inherited.
 
 Sets the logger per table (not used if the query has logger specified).
 
 ##Functions - async
-### <span class="def"><span class="func">run</span>(sql:<span class="type">string</span>):Promise&lt;<span class="type">any[]</span>&gt;
+###`run`
+<span class="def"><span class="func">run</span>(sql:<span class="type">string</span>):Promise&lt;<span class="type">any[]</span>&gt;
 Note: inherited, uses table level log if present (if not then schema, then db).
 
 Executes an arbitrary sql string;
@@ -31,7 +34,8 @@ await table.run('CREATE schema myschema');
 
 ```
 
-### <span class="def"><span class="func">query</span>(sql:<span class="type">string</span>, params?:<span class="type">any[]|{}</span>, options?:<span class="type">SqlQueryOptions</span>):Promise&lt;<span class="type">any[]</span>&gt;
+###`query`
+<span class="def"><span class="func">query</span>(sql:<span class="type">string</span>, params?:<span class="type">any[]|{}</span>, options?:<span class="type">SqlQueryOptions</span>):Promise&lt;<span class="type">any[]</span>&gt;
 <a name="query"></a>
 Note: inherited, uses table level log if present (if not then schema, then db).
 
@@ -43,7 +47,8 @@ let res2 = await table.query('SELECT MAX(point) from !:schema.scores WHERE name=
 
 ```
 
-### <span class="def"><span class="func">queryOneField</span>(sql:<span class="type">string</span>, params?:<span class="type">any[]|{}</span>, options?:<span class="type">SqlQueryOptions</span>):Promise&lt;<span class="type">any</span>&gt;
+### queryOneField
+<span class="def"><span class="func">queryOneField</span>(sql:<span class="type">string</span>, params?:<span class="type">any[]|{}</span>, options?:<span class="type">SqlQueryOptions</span>):Promise&lt;<span class="type">any</span>&gt;
 Note: inherited, uses table level log if present (if not then schema, then db).
 
 If there is only one record and one field that we are interested in. For the params usage see [query](#query).
@@ -54,7 +59,8 @@ console.log(winner); //The winner is Admin
 
 ```
 
-### <span class="def"><span class="func">queryOneColumn</span>(sql:<span class="type">string</span>, params?:<span class="type">any[]|{}</span>, options?:<span class="type">SqlQueryOptions</span>):Promise&lt;<span class="type"><span class="type">any[]</span>&gt;
+### queryOneColumn
+<span class="def"><span class="func">queryOneColumn</span>(sql:<span class="type">string</span>, params?:<span class="type">any[]|{}</span>, options?:<span class="type">SqlQueryOptions</span>):Promise&lt;<span class="type"><span class="type">any[]</span>&gt;
 Note: inherited, uses table level log if present (if not then schema, then db).
 
 If there is only one column that we are interested in. For the params usage see [query](#query).
@@ -65,7 +71,7 @@ console.dir(userList); //['Admin', 'User1', 'User2']
 
 ```
 ### queryAsStream
-**<span class="def"><span class="func">queryAsStream</span>(sql:<span class="type">string</span>, params?:<span class="type">any[]|{}</span>, options?:<span class="type">SqlQueryOptions</span>):Promise&lt;<span class="type">any[]</span>&gt;**
+<span class="def"><span class="func">queryAsStream</span>(sql:<span class="type">string</span>, params?:<span class="type">any[]|{}</span>, options?:<span class="type">SqlQueryOptions</span>):Promise&lt;<span class="type">any[]</span>&gt;
 see [streams](/streams)
 
 ### find
