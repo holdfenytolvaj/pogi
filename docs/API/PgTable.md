@@ -1,9 +1,12 @@
 For all the examples below 
+
 ```js
+
 import {PgDb, PgSchema, PgTable} from "pgdb/lib/index";
 
 let pgdb:PgDb     = PgDb.connect(..);
 let table:PgTable<User> = pgdb.schemas.test1.users;  
+
 ```
 ##Properties
 ### <span class="def">db:</span><span class="type">PgDb</span>
@@ -23,7 +26,9 @@ Note: inherited, uses table level log if present (if not then schema, then db).
 
 Executes an arbitrary sql string;
 ```js
+
 await table.run('CREATE schema myschema');
+
 ```
 
 ### <span class="def"><span class="func">query</span>(sql:<span class="type">string</span>, params?:<span class="type">any[]|{}</span>, options?:<span class="type">SqlQueryOptions</span>):Promise&lt;<span class="type">any[]</span>&gt;
@@ -32,8 +37,10 @@ Note: inherited, uses table level log if present (if not then schema, then db).
 
 Executes an arbitrary sql string with parameters / named parameters;
 ```js
+
 let res1 = await table.query('SELECT MAX(point) from game1.scores WHERE name=$1 ', ['player1']);
 let res2 = await table.query('SELECT MAX(point) from !:schema.scores WHERE name=:name ', {schema:'game1', name:'player1'});
+
 ```
 
 ### <span class="def"><span class="func">queryOneField</span>(sql:<span class="type">string</span>, params?:<span class="type">any[]|{}</span>, options?:<span class="type">SqlQueryOptions</span>):Promise&lt;<span class="type">any</span>&gt;
@@ -41,8 +48,10 @@ Note: inherited, uses table level log if present (if not then schema, then db).
 
 If there is only one record and one field that we are interested in. For the params usage see [query](#query).
 ```js
+
 let winner = await table.getOneField(`SELECT 'The winner is ' || name FROM ${table} LIMIT 1`);
 console.log(winner); //The winner is Admin
+
 ```
 
 ### <span class="def"><span class="func">queryOneColumn</span>(sql:<span class="type">string</span>, params?:<span class="type">any[]|{}</span>, options?:<span class="type">SqlQueryOptions</span>):Promise&lt;<span class="type"><span class="type">any[]</span>&gt;
@@ -50,39 +59,46 @@ Note: inherited, uses table level log if present (if not then schema, then db).
 
 If there is only one column that we are interested in. For the params usage see [query](#query).
 ```js
+
 let userList = await table.getOneColumn(`SELECT name FROM ${table}`);
 console.dir(userList); //['Admin', 'User1', 'User2']
+
 ```
-### <span class="def"><span class="func">queryAsStream</span>(sql:<span class="type">string</span>, params?:<span class="type">any[]|{}</span>, options?:<span class="type">SqlQueryOptions</span>):Promise&lt;<span class="type">any[]</span>&gt;
-see [streams](../../streams)
+### queryAsStream
+**<span class="def"><span class="func">queryAsStream</span>(sql:<span class="type">string</span>, params?:<span class="type">any[]|{}</span>, options?:<span class="type">SqlQueryOptions</span>):Promise&lt;<span class="type">any[]</span>&gt;**
+see [streams](/streams)
 
 ### find
 ```js
+
 find(conditions:{[k:string]:any}, options?:QueryOptions):Promise&lt;T[]&gt;
 find(conditions:{[k:string]:any}, options?:QueryOptions & Stream):Promise&lt;T[]&gt;
+
 ```
 Executes a select-where query.
 ```js
+
 let playerList = await table.find({id:[1,2,3]});
 for (let player of playerList) {
     console.log(player.id); //1..2..3
 }
 
 playerList = await table.find({id:[1,2,3]}, {fields:['id', 'name'], limit:3});
+
 ```
 for more options for [conditions](../condition/) and [queryOptions](../QueryOptions/) see those sections.
 
 ### findWhere
-```ts
-findWhere(where:string, 
-          params:any[]|{}, 
-          options?:QueryOptions & Stream):Promise<ReadableStream>
-```
+findWhere(where:string,params:any[]|{},options?:QueryOptions & Stream):Promise<ReadableStream>
 Executes a select-where query with free text where etc. 
 ```js
+
 let res;
+
 res = await table.where("permissions @&gt; {'admin'} AND name!=username AND id=$1  LIMIT 2", [1]);
+
 res = await table.where("permissions @&gt; {'admin'} AND name!=username AND id=:id LIMIT 2", {id:1});
+
 ```
 
 ### findAll(options?:QueryOptions):Promise&lt;T[]&gt;
