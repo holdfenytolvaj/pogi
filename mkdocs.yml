@@ -18,3 +18,5 @@ pages:
   - PgTable: API/PgTable.md
   - Condition : API/condition.md
   - Query options : API/QueryOptions.md
+extra_css:
+- css/docs.css
