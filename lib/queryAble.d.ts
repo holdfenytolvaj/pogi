@@ -10,6 +10,7 @@ export interface QueryOptions {
     groupBy?: string | string[];
     fields?: string | string[];
     logger?: PgDbLogger;
+    stream: never;
 }
 export interface SqlQueryOptions {
     logger?: PgDbLogger;

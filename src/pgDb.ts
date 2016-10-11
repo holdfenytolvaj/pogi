@@ -8,7 +8,7 @@ var moment = require('moment');
 import {PgTable} from "./pgTable";
 import {PgSchema} from "./pgSchema";
 const CONNECTION_URL_REGEXP = /^postgres:\/\/(?:([^:]+)(?::([^@]*))?@)?([^\/:]+)?(?::([^\/]+))?\/(.*)$/;
-const SQL_PARSER_REGEXP = /''|'|""|"|;|\$[^$]*\$|([^;'"$]+)/g;
+const SQL_PARSER_REGEXP = /''|'|""|"|;|(?:\s|^)\$[^$]*\$(?:\s|$)|([^;'"]+)/g;
 
 const LIST_SCHEMAS_TABLES = "SELECT table_schema as schema, table_name as name FROM information_schema.tables WHERE table_schema NOT IN ('pg_catalog', 'information_schema')";
 const GET_OID_FOR_COLUMN_TYPE_FOR_SCHEMA = "SELECT t.oid FROM pg_catalog.pg_type t, pg_namespace n WHERE typname=:typeName and n.oid=t.typnamespace and n.nspname=:schemaName;";
@@ -382,10 +382,10 @@ export class PgDb extends QueryAble {
                 terminal: false
             }).on('line', (line) => {
                 try {
-                    // console.log('Line: ' + line);
+                    console.log('Line: ' + line);
                     line = line.replace(/--.*$/, '');   // remove comments
                     while (m = SQL_PARSER_REGEXP.exec(line)) {
-                        //console.log('inQuotedString', inQuotedString, 'token:', m[0]);
+                        console.log('inQuotedString', inQuotedString, 'token:', m[0]);
                         if (m[0] == '""' || m[0] == "''") {
                             tmp += m[0];
                         } else if (m[0][0] == '$' || m[0] == '"' || m[0] == "'") {
@@ -396,6 +396,7 @@ export class PgDb extends QueryAble {
                             }
                             tmp += m[0];
                         } else if (!inQuotedString && m[0] == ';') {
+                            console.log('push ' + tmp);
                             commands.push(tmp);
                             if (!consumer) {
                                 consumer = consume(commands).then(()=> {

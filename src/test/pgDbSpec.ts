@@ -280,7 +280,7 @@ describe("pgdb", () => {
         let res = await table.findOne({name:'A'});
         expect(res.bigNumberList).toEqual([1,2,3]);
 
-        await table.insert({name: 'B', bigNumberList: [1, Number.MAX_SAFE_INTEGER+10]}, {return:false});
+        await table.insert({name: 'B', bigNumberList: [1, Number.MAX_SAFE_INTEGER+10]});
         try {
             await table.findOne({name: 'B'});
             expect(false).toBeTruthy();
@@ -295,7 +295,7 @@ describe("pgdb", () => {
         await table.queryWithOnCursorCallback(`SELECT * FROM ${table}`, [], (rec)=>{res = rec.bigNumberList;});
         expect(res).toEqual([1,2,3]);
 
-        await table.insert({name: 'B', bigNumberList: [1, Number.MAX_SAFE_INTEGER+10]}, {return:false});
+        await table.insert({name: 'B', bigNumberList: [1, Number.MAX_SAFE_INTEGER+10]});
         try {
             await table.queryWithOnCursorCallback(`SELECT * FROM ${table}`, [], ()=>{});
             expect(false).toBeTruthy();
@@ -521,7 +521,7 @@ describe("pgdb", () => {
         let tablewt = <PgTable<any>>pgdbwt[schema]['users'];
         await tablewt.insert({name: 'A', bigNumberList:[1,2,3]});
         await tablewt.insert({name: 'B'});
-        await tablewt.insert({name: 'C', bigNumberList:[1,2, Number.MAX_SAFE_INTEGER+100]}, {return:false});
+        await tablewt.insert({name: 'C', bigNumberList:[1,2, Number.MAX_SAFE_INTEGER+100]});
         await tablewt.insert({name: 'D'});
 
         let counter = 0;
@@ -556,8 +556,8 @@ describe("pgdb", () => {
     }));
 
     it("truncate - cascade",  w(async() => {
-        var groups = pgdb.schemas[schema]['groups'];
-        var g = await groups.insert({name:'G'});
+        var groups = <PgTable<any>>pgdb.schemas[schema]['groups'];
+        var g = await groups.insertAndGet({name:'G'});
         await table.insert({name: 'A', mainGroup: g.id});
         await table.insert({name: 'B', mainGroup: g.id});
         await groups.truncate({cascade:true, restartIdentity: true});
@@ -565,7 +565,7 @@ describe("pgdb", () => {
         var size = await table.count();
         expect(size).toEqual(0);
 
-        var g2 = await groups.insert({name:'G'});
+        var g2 = await groups.insertAndGet({name:'G'}, {return:['id']});
         expect(g.id).toEqual(g2.id);
     }));
 

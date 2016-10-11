@@ -1,7 +1,7 @@
 import {PgDbLogger} from "./pgDb";
 var util = require('util');
 var QueryStream = require('pg-query-stream');
-import {Readable} from 'stream';
+import {ReadableStream} from 'node';
 import {pgUtils} from "./pgUtils";
 var through = require('through');
 
@@ -12,6 +12,7 @@ export interface QueryOptions {
     groupBy?: string|string[];//free text or column list
     fields?: string|string[];//free text or column list
     logger?: PgDbLogger;
+
 }
 
 export interface SqlQueryOptions {
@@ -68,9 +69,7 @@ export class QueryAble {
      * e.g. query('select * from a.b where id=$1;',['the_stage_is_set']);
      * e.g. query('select * from :!schema.:!table where id=:id;',{schema:'a',table:'b', id:'the_stage_is_set'});
      */
-    public async query(sql: string, params?: any[], options?:SqlQueryOptions): Promise<any[]>
-    public async query(sql: string, params?: Object, options?:SqlQueryOptions): Promise<any[]>
-    public async query(sql: string, params?: any, options?:SqlQueryOptions): Promise<any[]> {
+    public async query(sql: string, params?: any[]|{}, options?:SqlQueryOptions): Promise<any[]> {
         let connection = this.db.connection;
         let logger = (options && options.logger || this.getLogger(false));
         try {
@@ -108,9 +107,10 @@ export class QueryAble {
         }
     }
 
-    public async queryWithOnCursorCallback(sql: string, params: any[],  callback:(any)=>void): Promise<void>
-    public async queryWithOnCursorCallback(sql: string, params: Object, callback:(any)=>void): Promise<void>
-    public async queryWithOnCursorCallback(sql: string, params: any,    callback:(any)=>void): Promise<void> {
+    /**
+     * If the callback function return true, the connection will be closed.
+     */
+    public async queryWithOnCursorCallback(sql: string, params: any[]|{}, options:SqlQueryOptions, callback:(any)=>boolean): Promise<void> {
         let connection = this.db.connection;
 
         try {
@@ -129,7 +129,9 @@ export class QueryAble {
                         stream.on('data', (res) => {
                             try {
                                 pgUtils.postProcessResult([res], stream._result.fields, this.db.pgdbTypeParsers);
-                                callback(res);
+                                if (callback(res)) {
+                                    stream.emit('close');
+                                }
                             } catch (e) {
                                 reject(e);
                             }
@@ -148,7 +150,9 @@ export class QueryAble {
                         stream.on('data', (res) => {
                             try {
                                 pgUtils.postProcessResult([res], stream._result.fields, this.db.pgdbTypeParsers);
-                                callback(res);
+                                if (callback(res)) {
+                                    stream.emit('close');
+                                }
                             } catch (e) {
                                 reject(e);
                             }
@@ -171,9 +175,7 @@ export class QueryAble {
         }
     }
 
-    public async queryAsStream(sql: string, params?: any[],  options?:SqlQueryOptions): Promise<Readable>
-    public async queryAsStream(sql: string, params?: Object, options?:SqlQueryOptions): Promise<Readable>
-    public async queryAsStream(sql: string, params?: any,    options?:SqlQueryOptions): Promise<Readable> {
+    public async queryAsStream(sql: string, params?: any[]|{},  options?:SqlQueryOptions): Promise<ReadableStream> {
         let connection = this.db.connection;
         let logger = (options && options.logger || this.getLogger(false));
 
@@ -239,9 +241,7 @@ export class QueryAble {
     }
 
     /** @return one record's one field */
-    public async queryOneField(sql: string, params?: any[], options?:SqlQueryOptions): Promise<any>
-    public async queryOneField(sql: string, params?: Object, options?:SqlQueryOptions): Promise<any>
-    public async queryOneField(sql: string, params?: any, options?:SqlQueryOptions): Promise<any> {
+    public async queryOneField(sql: string, params?: any[]|{}, options?:SqlQueryOptions): Promise<any> {
         let res = await this.query(sql, params, options);
         let fieldName = Object.keys(res[0])[0];
         if (res.length > 1) {
@@ -251,9 +251,7 @@ export class QueryAble {
     }
 
     /** @return one column for the matching records */
-    public async queryOneColumn(sql: string, params?: any[], options?:SqlQueryOptions): Promise<any[]>
-    public async queryOneColumn(sql: string, params?: Object, options?:SqlQueryOptions): Promise<any[]>
-    public async queryOneColumn(sql: string, params?: any, options?:SqlQueryOptions): Promise<any[]> {
+    public async queryOneColumn(sql: string, params?: any[]|{}, options?:SqlQueryOptions): Promise<any[]> {
         let res = await this.query(sql, params, options);
         let fieldName = Object.keys(res[0])[0];
         return res.map(r=>r[fieldName]);
