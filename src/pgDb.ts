@@ -7,12 +7,26 @@ var moment = require('moment');
 
 import {PgTable} from "./pgTable";
 import {PgSchema} from "./pgSchema";
+import * as PgConverters from "./pgConverters";
+import {pgUtils} from "./pgUtils";
 const CONNECTION_URL_REGEXP = /^postgres:\/\/(?:([^:]+)(?::([^@]*))?@)?([^\/:]+)?(?::([^\/]+))?\/(.*)$/;
 const SQL_PARSER_REGEXP = /''|'|""|"|;|\$[^$]*\$|([^;'"$]+)/g;
 
 const LIST_SCHEMAS_TABLES = "SELECT table_schema as schema, table_name as name FROM information_schema.tables WHERE table_schema NOT IN ('pg_catalog', 'information_schema')";
 const GET_OID_FOR_COLUMN_TYPE_FOR_SCHEMA = "SELECT t.oid FROM pg_catalog.pg_type t, pg_namespace n WHERE typname=:typeName and n.oid=t.typnamespace and n.nspname=:schemaName;";
 const GET_OID_FOR_COLUMN_TYPE = "SELECT t.oid FROM pg_catalog.pg_type t WHERE typname=:typeName";
+const GET_SCHEMAS_PROCEDURES = `select
+    n.nspname as "schema",
+    p.proname as "name",
+    (not p.proretset) as "return_single_row",
+    (t.typtype in ('b', 'd', 'e', 'r')) as "return_single_value"
+from pg_proc p
+     inner join pg_namespace n on (p.pronamespace = n.oid)
+     inner join pg_type t on (p.prorettype = t.oid)
+     left outer join pg_trigger tr on (tr.tgfoid = p.oid)
+where n.nspname not in ('pg_catalog','information_schema')
+  and tr.oid is null;`;
+const GET_CURRENT_SCHEMAS = "SELECT current_schemas(false)";
 //const LIST_ARRAY_TYPE_FIELDS = 'SELECT a.atttypid as oid FROM pg_attribute a WHERE a.attndims>0 AND a.atttypid>200000';
 //const LIST_ARRAY_TYPE_FIELDS = 'SELECT a.atttypid as type_oid FROM pg_attribute a WHERE a.tttypid in (1005,1007,1016,1021,1022) OR (a.attndims>0 AND a.atttypid>200000)';
 
@@ -38,8 +52,7 @@ const LIST_SPECIAL_TYPE_FIELDS =
     JOIN pg_type t ON (a.atttypid = t.oid)
     JOIN pg_namespace c ON (b.relnamespace=c.oid) 
     WHERE (a.atttypid in (114, 3802, 1082, 1083, 1114, 1184, 1266) or t.typcategory='A') 
-    AND c.nspname not in ('pg_catalog','pg_constraint') and reltoastrelid>0;`
-
+    AND c.nspname not in ('pg_catalog','pg_constraint') and reltoastrelid>0`;
 
 export enum FieldType {JSON, ARRAY, TIME}
 
@@ -77,17 +90,18 @@ export interface PgDbLogger {
     error: Function;
 }
 
-
 export class PgDb extends QueryAble {
     protected static instances:{[index:string]:Promise<PgDb>};
     pool;
     connection;
     config:ConnectionOptions;
-    public db;
-    public schemas:{[name:string]:PgSchema};
+    db;
+    schemas: {[name: string]: PgSchema};
+    tables: {[name: string]: PgTable<any>} = {};
+    fn: {[name: string]: (...any)=>any} = {};
     private defaultLogger;
     [name:string]:any|PgSchema;
-    public pgdbTypeParsers = {};
+    pgdbTypeParsers = {};
 
     private constructor(pgdb:{config?,schemas?,pool?,pgdbTypeParsers?} = {}) {
         super();
@@ -96,7 +110,11 @@ export class PgDb extends QueryAble {
         this.pool = pgdb.pool;
         this.pgdbTypeParsers = pgdb.pgdbTypeParsers || {};
         this.db = this;
-        this.defaultLogger = {log:()=>{},error:()=>{}};
+        this.defaultLogger = {
+            log: ()=> {
+            }, error: ()=> {
+            }
+        };
 
         for (let schemaName in pgdb.schemas) {
             let schema = new PgSchema(this, schemaName);
@@ -123,11 +141,7 @@ export class PgDb extends QueryAble {
                 config.database = res[5];
             }
         }
-        var connectionString =
-            config.password ?
-            util.format('postgres://%s:%s@%s:%s/%s', config.user, config.password, config.host, config.port, config.database) :
-            util.format('postgres://%s@%s:%s/%s', config.user, config.host, config.port, config.database);
-
+        var connectionString = `postgres://${config.user}@${config.host}:${config.port}/${config.database}`; // without password!
         if (!PgDb.instances) {
             PgDb.instances = {};
         }
@@ -140,7 +154,7 @@ export class PgDb extends QueryAble {
         }
     }
 
-    public async close() {
+    async close() {
         for(let cs in PgDb.instances) {
             let db = await PgDb.instances[cs];
             if (db.pool == this.pool) {
@@ -180,19 +194,49 @@ export class PgDb extends QueryAble {
         return this;
     }
 
-    public async reload() {
+    async reload() {
         await this.initSchemasAndTables();
         await this.initFieldTypes();
     }
 
     private async initSchemasAndTables() {
-        let schemas_and_tables = await this.pool.query(LIST_SCHEMAS_TABLES);
+        let schemasAndTables = await this.pool.query(LIST_SCHEMAS_TABLES);
+        let functions = await this.pool.query(GET_SCHEMAS_PROCEDURES);
+        let defaultSchemas = PgConverters.arraySplit(await this.queryOneField(GET_CURRENT_SCHEMAS));
+        let oldSchemaNames = Object.keys(this.schemas);
+        for (let sc of oldSchemaNames) {
+            if (this[sc] === this.schemas[sc])
+                delete this[sc];
+        }
         this.schemas = {};
-        for (let r of schemas_and_tables.rows) {
-            this.schemas[r.schema] = this.schemas[r.schema] || new PgSchema(this, r.schema);
-            this[r.schema] = this[r.schema] || this.schemas[r.schema]; //lets not overwrite anything
-            this.schemas[r.schema].tables[r.name] = new PgTable<any>(this.schemas[r.schema], r);
-            this.schemas[r.schema][r.name] = this.schemas[r.schema][r.name] || this.schemas[r.schema].tables[r.name]; //lets not overwrite anything
+        for (let r of schemasAndTables.rows) {
+            let schema = this.schemas[r.schema] = this.schemas[r.schema] || new PgSchema(this, r.schema);
+            if (!(r.schema in this))
+                this[r.schema] = schema;
+            schema.tables[r.name] = new PgTable(schema, r);
+            if (!(r.name in schema))
+                schema[r.name] = schema.tables[r.name];
+        }
+
+        for (let r of functions.rows) {
+            let schema = this.schemas[r.schema] = this.schemas[r.schema] || new PgSchema(this, r.schema);
+            if (!(r.schema in this))
+                this[r.schema] = schema;
+            schema.fn[r.name] = pgUtils.createFunctionCaller(schema, r);
+        }
+
+        // this.getLogger(true).log('defaultSchemas: ' + defaultSchemas);
+        this.tables = {};
+        this.fn = {};
+        for (let sc of defaultSchemas) {
+            let schema = this.schemas[sc];
+            // this.getLogger(true).log('copy schame to default', sc, schema && Object.keys(schema.tables), schema && Object.keys(schema.fn));
+            if (!schema)
+                continue;
+            for (let table in schema.tables)
+                this.tables[table] = this.tables[table] || schema.tables[table];
+            for (let fn in schema.fn)
+                this.fn[fn] = this.fn[fn] || schema.fn[fn];
         }
     }
 
@@ -208,33 +252,6 @@ export class PgDb extends QueryAble {
                         FieldType.ARRAY;
         }
 
-        //--- add parsing for array types --------------------------------
-        var arraySplit = (str) => {
-            if (str == "{}") return [];
-            str = str.substring(1, str.length-1); //cut off {}
-            let e = /"((?:[^"]|\\")*)"(?:,|$)|([^,]*)(?:,|$)/g; //has to be mutable because of exec
-            let valList = [];
-            let parsingResult;
-            do {
-                parsingResult = e.exec(str);
-                let valStr = (parsingResult[1]=='NULL'||parsingResult[2]=='NULL') ? null :
-                         (parsingResult[1]==''||parsingResult[2]=='') ? '' : parsingResult[1] || parsingResult[2] ;
-                valList.push(valStr ? valStr.replace(/\\"/g,'"') : valStr);
-            } while (parsingResult[0].substring(parsingResult[0].length-1,parsingResult[0].length)==',');
-            return valList;
-        };
-        var numWithValidation = val => {
-            let v = +val;
-            if (v > Number.MAX_SAFE_INTEGER || v < Number.MIN_SAFE_INTEGER) {
-                throw Error("Number can't be represented in javascript precisely: " + val);
-            }
-            return v;
-        };
-        var arraySplitToNum = val => val=="{}" ? [] : val.substring(1, val.length-1).split(',').map(Number);
-        var arraySplitToNumWithValidation= val => val=="{}" ? [] : val.substring(1, val.length-1).split(',').map(numWithValidation);
-        var stringArrayToNumWithValidation= val => val.map(numWithValidation);
-        var arraySplitToDate = val => val=="{}" ? [] : val.substring(1, val.length-1).split(',').map(d=>moment(d.substring(1, d.length-1)).toDate());
-
         for (let r of specialTypeFields.rows) {
             switch (r.typid) {
                 case 114:  // json
@@ -248,7 +265,7 @@ export class PgDb extends QueryAble {
                 case 1005: // smallInt[] int2[]
                 case 1007: // integer[]  int4[]
                 case 1021: // real[] float4[]
-                    pg.types.setTypeParser(r.typid, arraySplitToNum);
+                    pg.types.setTypeParser(r.typid, PgConverters.arraySplitToNum);
                     break;
                 case 1016: // bigInt[] int8[]
                 case 1022: // double[] float8[]
@@ -259,25 +276,25 @@ export class PgDb extends QueryAble {
                 case 1183: // time[]
                 case 1185: // timestamptz[]
                 case 1270: // timetz[]
-                    pg.types.setTypeParser(r.typid, arraySplitToDate);
+                    pg.types.setTypeParser(r.typid, PgConverters.arraySplitToDate);
                     break;
                 default :
                     //best guess otherwise user need to specify
-                    pg.types.setTypeParser(r.typid, arraySplit);
+                    pg.types.setTypeParser(r.typid, PgConverters.arraySplit);
             }
         }
 
         //has to set outside of pgjs as it doesnt support exceptions (stop everything immediately)
-        await this.setPgDbTypeParser('int8', numWithValidation); //int8 - 20
-        await this.setPgDbTypeParser('float8', numWithValidation); //float8 - 701
-        await this.setPgDbTypeParser('_int8', stringArrayToNumWithValidation);
-        await this.setPgDbTypeParser('_float8', stringArrayToNumWithValidation);
+        await this.setPgDbTypeParser('int8', PgConverters.numWithValidation); //int8 - 20
+        await this.setPgDbTypeParser('float8', PgConverters.numWithValidation); //float8 - 701
+        await this.setPgDbTypeParser('_int8', PgConverters.stringArrayToNumWithValidation);
+        await this.setPgDbTypeParser('_float8', PgConverters.stringArrayToNumWithValidation);
     }
 
     /**
      * if schemaName is null, it will be applied for all schemas
      */
-    public async setTypeParser(typeName:string, parser:(string)=>any, schemaName?:string): Promise<void> {
+    async setTypeParser(typeName: string, parser: (string)=>any, schemaName?: string): Promise<void> {
         try {
             if (schemaName) {
                 let oid = await this.queryOneField(GET_OID_FOR_COLUMN_TYPE_FOR_SCHEMA, {typeName, schemaName});
@@ -295,7 +312,7 @@ export class PgDb extends QueryAble {
         }
     }
 
-    public async setPgDbTypeParser(typeName:string, parser:(string)=>any, schemaName?:string): Promise<void> {
+    async setPgDbTypeParser(typeName: string, parser: (string)=>any, schemaName?: string): Promise<void> {
         try {
             if (schemaName) {
                 let oid = await this.queryOneField(GET_OID_FOR_COLUMN_TYPE_FOR_SCHEMA, {typeName, schemaName});
@@ -321,30 +338,30 @@ export class PgDb extends QueryAble {
         }
     }
 
-    public async transactionBegin():Promise<PgDb> {
+    async transactionBegin(): Promise<PgDb> {
         let pgDb = new PgDb(this);
         await pgDb.setConnectionMode('one');
         await pgDb.query('BEGIN');
         return pgDb;
     }
 
-    public async transactionCommit():Promise<PgDb> {
+    async transactionCommit(): Promise<PgDb> {
         await this.query('COMMIT');
         await this.setConnectionMode('pool');
         return this;
     }
 
-    public async transactionRollback():Promise<PgDb> {
+    async transactionRollback(): Promise<PgDb> {
         await this.query('ROLLBACK');
         await this.setConnectionMode('pool');
         return this;
     }
 
-    public isTransactionActive():boolean {
+    isTransactionActive(): boolean {
         return this.connection!=null;
     }
 
-    public async execute(fileName, transformer?:(string)=>string):Promise<void> {
+    async execute(fileName, transformer?: (string)=>string): Promise<void> {
         var consume = (commands) => {
             commands = commands.slice();
             //this.getLogger(true).log('consumer start', commands.length);
@@ -449,7 +466,6 @@ export class PgDb extends QueryAble {
     }
 
 }
-
 
 
 export default PgDb;

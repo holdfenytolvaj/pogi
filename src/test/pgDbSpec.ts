@@ -591,4 +591,19 @@ describe("pgdb", () => {
         expect(res.map(v=>v.name)).toEqual(['A2','A','B2','B','C2','C']);
     }));
 
+    it("stored proc", w(async()=>{
+        await table.insert({name: 'A', membership:'gold'});
+        await table.insert({name: 'B', membership:'gold'});
+        expect(pgdb.fn['list_gold_users']).toBeDefined();
+        expect(pgdb.fn['increment']).toBeDefined();
+        var s = await pgdb.run('select current_schema');
+        console.log(s);
+        let res = await pgdb.fn['list_gold_users']();
+        console.log(res);
+        expect(res).toEqual(['A','B']);
+
+        res = await pgdb.fn['increment'](3);
+        console.log(res);
+        expect(res).toEqual(4);
+    }));
 });

@@ -55,3 +55,16 @@ END;
 $$ language 'plpgsql';
 
 CREATE TRIGGER "update_users_updated" BEFORE INSERT ON "users" FOR EACH ROW EXECUTE PROCEDURE __SCHEMA__.update_updated_column();
+
+CREATE OR REPLACE FUNCTION list_gold_users()
+RETURNS SETOF varchar AS $$
+    SELECT name FROM users WHERE membership = 'gold';
+$$ LANGUAGE SQL;
+
+CREATE OR REPLACE FUNCTION increment(i INT)
+RETURNS INT AS $$
+BEGIN
+  RETURN i + 1;
+END;
+$$ LANGUAGE plpgsql;
+

@@ -26,6 +26,7 @@ Extended:
 | {'id =*':'gamma'}| LOWER("id") = LOWER('gamma')
 
 Pattern matching:
+[PostgreSQL Documentation](https://www.postgresql.org/docs/9.6/static/functions-matching.html)
 
 | Condition        | SQL                      
 | -------------    |:-------------- 
@@ -47,6 +48,7 @@ Pattern matching:
 | {'id is not distinct from': '^a'}| "id" IS NOT DISTINCT FROM '^a'
 
 ##Array type 
+[PostgreSQL Documentation](https://www.postgresql.org/docs/current/static/functions-array.html)
 
 | Condition          | SQL                      
 | -------------      |:-------------- 
@@ -60,6 +62,7 @@ Pattern matching:
 
 
 ##Jsonb type
+[PostgreSQL Documentation](https://www.postgresql.org/docs/current/static/functions-json.html)
 
 | Condition         | SQL                      
 | -------------     |:-------------- 

@@ -32,8 +32,8 @@ export interface TruncateOptions{
 }
 
 export class PgTable<T> extends QueryAble {
-    public qualifiedName:string;
-    public db:PgDb;
+    qualifiedName:string;
+    db:PgDb;
     fieldTypes:{[index:string]:FieldType}; //written directly
 
     constructor(public schema:PgSchema, protected desc:{name:string, pk:string, schema:string}, fieldTypes={}) {
@@ -43,7 +43,7 @@ export class PgTable<T> extends QueryAble {
         this.fieldTypes = fieldTypes;
     }
 
-    public toString() {
+    toString() {
         return this.qualifiedName;
     }
 
@@ -62,11 +62,11 @@ export class PgTable<T> extends QueryAble {
      * res; // {id:1, name:'anonymous', created:'...'}
      *
      */
-    public async insert(records:T,   options?:InsertOption  ): Promise<T>
-    public async insert(records:T,   options?:InsertOption2 ): Promise<void>
-    public async insert(records:T[], options?:InsertOption  ): Promise<T[]>
-    public async insert(records:T[], options?:InsertOption2 ): Promise<void>
-    public async insert(records:any, options?:InsertOption|InsertOption2 ): Promise<any> {
+    async insert(records:T,   options?:InsertOption  ): Promise<T>
+    async insert(records:T,   options?:InsertOption2 ): Promise<void>
+    async insert(records:T[], options?:InsertOption  ): Promise<T[]>
+    async insert(records:T[], options?:InsertOption2 ): Promise<void>
+    async insert(records:any, options?:InsertOption|InsertOption2 ): Promise<any> {
         var returnSingle = false;
         options = options || {};
 
@@ -111,7 +111,7 @@ export class PgTable<T> extends QueryAble {
         }
     };
 
-    public async updateOne(conditions:{[k:string]:any}, fields:{[k:string]:any}, options?:UpdateDeleteOptionDefault): Promise<number> {
+    async updateOne(conditions:{[k:string]:any}, fields:{[k:string]:any}, options?:UpdateDeleteOptionDefault): Promise<number> {
         let affected = await this.update(conditions, fields, options);
         if (affected > 1) {
             throw new Error('More then one record has been updated!');
@@ -119,7 +119,7 @@ export class PgTable<T> extends QueryAble {
         return affected;
     }
 
-    public async updateAndGetOne(conditions:{[k:string]:any}, fields:{[k:string]:any}, options?:UpdateDeleteOption): Promise<T> {
+    async updateAndGetOne(conditions:{[k:string]:any}, fields:{[k:string]:any}, options?:UpdateDeleteOption): Promise<T> {
         let result = await this.updateAndGet(conditions, fields, options);
         if (result.length > 1) {
             throw new Error('More then one record has been updated!');
@@ -127,28 +127,28 @@ export class PgTable<T> extends QueryAble {
         return result[0];
     }
 
-    public async update(conditions:{[k:string]:any}, fields:{[k:string]:any}, options?:UpdateDeleteOptionDefault):Promise<number> {
+    async update(conditions:{[k:string]:any}, fields:{[k:string]:any}, options?:UpdateDeleteOptionDefault):Promise<number> {
         let {sql, parameters} = this.getUpdateQuery(conditions, fields);
         sql = "WITH __RESULT as ( " + sql + " RETURNING 1) SELECT SUM(1) FROM __RESULT";
         let res = await this.query(sql, parameters, options);
         return res[0].sum;
     };
 
-    public async updateAndGet(conditions:{[k:string]:any}, fields:{[k:string]:any}, options?:UpdateDeleteOption):Promise<T[]> {
+    async updateAndGet(conditions:{[k:string]:any}, fields:{[k:string]:any}, options?:UpdateDeleteOption):Promise<T[]> {
         let {sql, parameters} = this.getUpdateQuery(conditions, fields);
         sql += " RETURNING " + (options && options.return ? options.return.map(pgUtils.quoteField).join(',') : '*');
         return this.query(sql, parameters, options);
     };
 
 
-    public async delete(conditions:{[k:string]:any}, options?:UpdateDeleteOptionDefault):Promise<number> {
+    async delete(conditions:{[k:string]:any}, options?:UpdateDeleteOptionDefault):Promise<number> {
         let {sql, parameters} = this.getDeleteQuery(conditions);
         sql = "WITH __RESULT as ( " + sql + " RETURNING 1) SELECT SUM(1) FROM __RESULT";
         let res = await this.query(sql, parameters, options);
         return res[0].sum;
     }
 
-    public async deleteOne(conditions:{[k:string]:any}, options?:UpdateDeleteOptionDefault):Promise<number> {
+    async deleteOne(conditions:{[k:string]:any}, options?:UpdateDeleteOptionDefault):Promise<number> {
         let affected = await this.delete(conditions, options);
         if (affected > 1) {
             throw new Error('More then one record has been deleted!');
@@ -156,13 +156,13 @@ export class PgTable<T> extends QueryAble {
         return affected;
     }
 
-    public async deleteAndGet(conditions:{[k:string]:any}, options?:UpdateDeleteOption): Promise<any[]> {
+    async deleteAndGet(conditions:{[k:string]:any}, options?:UpdateDeleteOption): Promise<any[]> {
         let {sql, parameters} = this.getDeleteQuery(conditions);
         sql += " RETURNING " + options && options.return ? options.return.map(pgUtils.quoteField).join(',') : '*';
         return this.query(sql, parameters);
     }
 
-    public async deleteAndGetOne(conditions:{[k:string]:any}, options?:UpdateDeleteOption): Promise<any> {
+    async deleteAndGetOne(conditions:{[k:string]:any}, options?:UpdateDeleteOption): Promise<any> {
         let result = await this.deleteAndGet(conditions, options);
         if (result.length > 1) {
             throw new Error('More then one record has been deleted!');
@@ -170,14 +170,14 @@ export class PgTable<T> extends QueryAble {
         return result[0];
     }
 
-    // public async deleteAll(options?:UpdateDeleteOptionDefault):Promise<number> {
+    // async deleteAll(options?:UpdateDeleteOptionDefault):Promise<number> {
     //     let sql = util.format("DELETE FROM %s ", this.qualifiedName);
     //     sql = "WITH __RESULT as ( " + sql + " RETURNING 1) SELECT SUM(1) FROM __RESULT";
     //     let res = await this.query(sql, {logger:options.logger});
     //     return res[0].sum;
     // }
 
-    public async truncate(options?:TruncateOptions):Promise<void> {
+    async truncate(options?:TruncateOptions):Promise<void> {
         let sql = `TRUNCATE ${this.qualifiedName}`;
         if (options && options.restartIdentity){
             sql += ' RESTART IDENTITY';
@@ -188,25 +188,25 @@ export class PgTable<T> extends QueryAble {
         await this.query(sql, null, options);
     }
 
-    public async find(conditions:{[k:string]:any}, options?:QueryOptions):Promise<T[]> {
+    async find(conditions:{[k:string]:any}, options?:QueryOptions):Promise<T[]> {
         let where = _.isEmpty(conditions) ? {where: " ", params: null} : generateWhere(conditions, this.fieldTypes, this.qualifiedName);
         let sql = `SELECT ${pgUtils.processQueryFields(options)} FROM ${this.qualifiedName} ${where.where} ${pgUtils.processQueryOptions(options)}`;
         return this.query(sql, where.params, options);
     }
 
-    public async findWhere(where:string, params:any[], options?:QueryOptions):Promise<T[]>
-    public async findWhere(where:string, params:Object, options?:QueryOptions):Promise<T[]>
-    public async findWhere(where:string, params:any, options?:QueryOptions):Promise<T[]> {
+    async findWhere(where:string, params:any[], options?:QueryOptions):Promise<T[]>
+    async findWhere(where:string, params:Object, options?:QueryOptions):Promise<T[]>
+    async findWhere(where:string, params:any, options?:QueryOptions):Promise<T[]> {
         let sql = `SELECT ${pgUtils.processQueryFields(options)} FROM ${this.qualifiedName} WHERE ${where} ${pgUtils.processQueryOptions(options)}`;
         return this.query(sql, params, options);
     }
 
-    public async findAll(options?:QueryOptions):Promise<T[]> {
+    async findAll(options?:QueryOptions):Promise<T[]> {
         let sql = `SELECT ${pgUtils.processQueryFields(options)} FROM ${this.qualifiedName} ${pgUtils.processQueryOptions(options)}`;
         return this.query(sql, null, options);
     }
 
-    public async findOne(conditions, options?:QueryOptions):Promise<T> {
+    async findOne(conditions, options?:QueryOptions):Promise<T> {
         let res = await this.find(conditions, options);
         if (res.length > 1) {
             throw new Error('More then one rows exists');
@@ -214,7 +214,7 @@ export class PgTable<T> extends QueryAble {
         return res[0];
     }
 
-    public async findFirst(conditions, options?:QueryOptions):Promise<T> {
+    async findFirst(conditions, options?:QueryOptions):Promise<T> {
         options = options || {};
         options.limit = 1;
         let res = await this.find(conditions, options);
@@ -222,13 +222,13 @@ export class PgTable<T> extends QueryAble {
     }
 
 
-    public async count(conditions?:{}):Promise<number> {
+    async count(conditions?:{}):Promise<number> {
         var where = _.isEmpty(conditions) ? {where: " ", params: null} : generateWhere(conditions, this.fieldTypes, this.qualifiedName);
         var sql = `SELECT COUNT(*) c FROM ${this.qualifiedName} ${where.where}`;
         return (await this.queryOneField(sql, where.params));
     }
 
-    public async findOneFieldOnly(conditions, field:string, options?:QueryOptions):Promise<any> {
+    async findOneFieldOnly(conditions, field:string, options?:QueryOptions):Promise<any> {
         options = options || {};
         options.fields = [field];
         let res = await this.findOne(conditions, options);
