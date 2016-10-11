@@ -36,7 +36,7 @@ const GET_CURRENT_SCHEMAS = "SELECT current_schemas(false)";
  JOIN pg_class b ON (a.attrelid = b.relfilenode)
  JOIN pg_namespace c ON (b.relnamespace=c.oid)
  WHERE a.attndims>0 AND a.atttypid>200000;
-*/
+ */
 
 /*
  SELECT * FROM pg_catalog.pg_type t where t.typname like '%tz';
@@ -57,26 +57,26 @@ const LIST_SPECIAL_TYPE_FIELDS =
 export enum FieldType {JSON, ARRAY, TIME}
 
 export interface ConnectionOptions {
-    host?:string;
-    user?:string; //can be specified through PGUSER env variable (defaults USER env var)
-    database?:string; //can be specified through PGDATABASE env variable (defaults USER env var)
-    password?:string; //can be specified through PGPASSWORD env variable
-    port?:number; //can be specified through PGPORT env variable
-    poolSize?:number;
-    rows?:number;
-    binary?:boolean;
-    poolIdleTimeout?:number;
-    reapIntervalMillis?:number;
-    poolLog?:boolean;
-    client_encoding?:string;
-    ssl?:boolean| any; //| TlsOptions;
-    application_name?:string;
-    fallback_application_name?:string;
-    parseInputDatesAsUTC?:boolean;
-    connectionString?:string;
-    idleTimeoutMillis?:number; // how long a client is allowed to remain idle before being closed
+    host?: string;
+    user?: string; //can be specified through PGUSER env variable (defaults USER env var)
+    database?: string; //can be specified through PGDATABASE env variable (defaults USER env var)
+    password?: string; //can be specified through PGPASSWORD env variable
+    port?: number; //can be specified through PGPORT env variable
+    poolSize?: number;
+    rows?: number;
+    binary?: boolean;
+    poolIdleTimeout?: number;
+    reapIntervalMillis?: number;
+    poolLog?: boolean;
+    client_encoding?: string;
+    ssl?: boolean| any; //| TlsOptions;
+    application_name?: string;
+    fallback_application_name?: string;
+    parseInputDatesAsUTC?: boolean;
+    connectionString?: string;
+    idleTimeoutMillis?: number; // how long a client is allowed to remain idle before being closed
 
-    logger?:PgDbLogger;
+    logger?: PgDbLogger;
 }
 
 /**
@@ -91,19 +91,19 @@ export interface PgDbLogger {
 }
 
 export class PgDb extends QueryAble {
-    protected static instances:{[index:string]:Promise<PgDb>};
+    protected static instances: {[index: string]: Promise<PgDb>};
     pool;
     connection;
-    config:ConnectionOptions;
+    config: ConnectionOptions;
     db;
     schemas: {[name: string]: PgSchema};
     tables: {[name: string]: PgTable<any>} = {};
     fn: {[name: string]: (...any)=>any} = {};
     private defaultLogger;
-    [name:string]:any|PgSchema;
+    [name: string]: any|PgSchema;
     pgdbTypeParsers = {};
 
-    private constructor(pgdb:{config?,schemas?,pool?,pgdbTypeParsers?} = {}) {
+    private constructor(pgdb: {config?,schemas?,pool?,pgdbTypeParsers?} = {}) {
         super();
         this.schemas = {};
         this.config = pgdb.config;
@@ -130,7 +130,7 @@ export class PgDb extends QueryAble {
     }
 
     /** If planned to used as a static singleton */
-    static async getInstance(config:ConnectionOptions):Promise<PgDb> {
+    static async getInstance(config: ConnectionOptions): Promise<PgDb> {
         if (config.connectionString) {
             var res = CONNECTION_URL_REGEXP.exec(config.connectionString);
             if (res) {
@@ -155,7 +155,7 @@ export class PgDb extends QueryAble {
     }
 
     async close() {
-        for(let cs in PgDb.instances) {
+        for (let cs in PgDb.instances) {
             let db = await PgDb.instances[cs];
             if (db.pool == this.pool) {
                 delete PgDb.instances[cs];
@@ -164,7 +164,7 @@ export class PgDb extends QueryAble {
         await this.pool.end();
     }
 
-    static async connect(config:ConnectionOptions):Promise<PgDb> {
+    static async connect(config: ConnectionOptions): Promise<PgDb> {
         if (config.connectionString) {
             var res = CONNECTION_URL_REGEXP.exec(config.connectionString);
             if (res) {
@@ -179,7 +179,7 @@ export class PgDb extends QueryAble {
         return pgdb.init();
     }
 
-    private async init():Promise<PgDb> {
+    private async init(): Promise<PgDb> {
         this.pool = new pg.Pool(Object.create(this.config, {logger: {value: undefined}}));
         this.setLogger(this.config.logger);
 
@@ -242,13 +242,13 @@ export class PgDb extends QueryAble {
 
     private async initFieldTypes() {
         //--- init field types -------------------------------------------
-        let specialTypeFields:{rows:{schema_name:string,table_name:string,column_name:string,typid:number}[]}
-                        = await this.pool.query(LIST_SPECIAL_TYPE_FIELDS);
+        let specialTypeFields: {rows: {schema_name: string,table_name: string,column_name: string,typid: number}[]}
+            = await this.pool.query(LIST_SPECIAL_TYPE_FIELDS);
 
         for (let r of specialTypeFields.rows) {
             this.schemas[r.schema_name][r.table_name].fieldTypes[r.column_name] =
-                ([3802, 114].indexOf(r.typid)>-1) ? FieldType.JSON :
-                ([1082, 1083, 1114, 1184, 1266].indexOf(r.typid)>-1) ? FieldType.TIME:
+                ([3802, 114].indexOf(r.typid) > -1) ? FieldType.JSON :
+                    ([1082, 1083, 1114, 1184, 1266].indexOf(r.typid) > -1) ? FieldType.TIME :
                         FieldType.ARRAY;
         }
 
@@ -326,42 +326,46 @@ export class PgDb extends QueryAble {
         }
     }
 
-    /**
-     * @param connectionMode pool|one
-     */
-    private async setConnectionMode(connectionMode:'pool'|'one') {
-        if (connectionMode == 'one' && !this.connection) {
+    async dedicatedConnectionBegin(): Promise<PgDb> {
+        if (this.connection) {
+            return this;
+        } else {
+            let pgDb = new PgDb(this);
             this.connection = await this.pool.connect();
-        } else if (connectionMode == 'pool' && this.connection) {
-            this.connection.release();
-            this.connection = null;
+            return pgDb;
         }
     }
 
+    async dedicatedConnectionEnd(): Promise<PgDb> {
+        if (this.connection) {
+            this.connection.release();
+            this.connection = null;
+        }
+        return this;
+    }
+
     async transactionBegin(): Promise<PgDb> {
-        let pgDb = new PgDb(this);
-        await pgDb.setConnectionMode('one');
+        let pgDb = await this.dedicatedConnectionBegin();
         await pgDb.query('BEGIN');
         return pgDb;
     }
 
     async transactionCommit(): Promise<PgDb> {
         await this.query('COMMIT');
-        await this.setConnectionMode('pool');
-        return this;
+        return this.dedicatedConnectionEnd();
     }
 
     async transactionRollback(): Promise<PgDb> {
         await this.query('ROLLBACK');
-        await this.setConnectionMode('pool');
-        return this;
+        return this.dedicatedConnectionEnd();
     }
 
     isTransactionActive(): boolean {
-        return this.connection!=null;
+        return this.connection != null;
     }
 
     async execute(fileName, transformer?: (string)=>string): Promise<void> {
+        var pgdb = await this.dedicatedConnectionBegin();
         var consume = (commands) => {
             commands = commands.slice();
             //this.getLogger(true).log('consumer start', commands.length);
@@ -372,12 +376,12 @@ export class PgDb extends QueryAble {
                     if (commands.length == i) {
                         resolve();
                     } else {
-                        let command =commands[i++];
+                        let command = commands[i++];
                         if (transformer) {
                             command = transformer(command);
                         }
                         // this.getLogger(true).log('run', commands[i]);
-                        this.query(command)
+                        pgdb.query(command)
                             .then(()=>runCommand(), reject)
                             .catch(reject);
                     }
@@ -389,7 +393,7 @@ export class PgDb extends QueryAble {
             });
         };
 
-        return new Promise<void>((resolve, reject)=> {
+        var promise = new Promise<void>((resolve, reject)=> {
             var commands = [];
             var tmp = '', m;
             var consumer;
@@ -431,7 +435,7 @@ export class PgDb extends QueryAble {
                     if (tmp && line) {
                         tmp += '\n';
                     }
-                } catch(e) {
+                } catch (e) {
                     reject();
                 }
             }).on('close', ()=> {
@@ -462,9 +466,17 @@ export class PgDb extends QueryAble {
                     });
                 }
             });
-        })
+        });
+        promise
+            .catch(()=> {
+            })
+            .then(()=> {
+                // finally
+                return pgdb.dedicatedConnectionEnd();
+            }).catch((e)=> {
+            this.getLogger(true).error(e);
+        });
     }
-
 }
 
 
