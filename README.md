@@ -58,3 +58,7 @@ power; //>9000
 What is? It's just usually not written (definitely not in the front page), but see more in the [docs](http://pgdb.readthedocs.io/en/latest/).
 I wish more project would be honest about it to save a lot of hours for others. If you find more,
 don't hesitate to tell us!
+
+
+##Developed at
+[www.labcup.net](http://www.labcup.net/)
