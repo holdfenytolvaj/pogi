@@ -38,6 +38,12 @@ export interface ResultType {
     _getTypeParser: Function[]
 }
 
+var defaultLogger = {
+    log: ()=> {
+    }, error: ()=> {
+    }
+};
+
 export class QueryAble {
     db;
     schema;
@@ -50,8 +56,8 @@ export class QueryAble {
         this.logger = logger;
     }
 
-    protected getLogger(useConsoleAsDefault) {
-        return this.logger || this.schema && this.schema.logger || this.db.logger || (useConsoleAsDefault ? console : this.db.defaultLogger);
+    getLogger(useConsoleAsDefault = false) {
+        return this.logger || this.schema && this.schema.logger || this.db.logger || (useConsoleAsDefault ? console : defaultLogger);
     }
 
     async run(sql: string): Promise<any[]> {
@@ -78,13 +84,13 @@ export class QueryAble {
             }
 
             if (connection) {
-                logger.log(sql, util.inspect(params, false, null), connection.processID);
+                logger.log('reused connection', sql, util.inspect(params, false, null), connection.processID);
                 let res = await connection.query(sql, params);
                 pgUtils.postProcessResult(res.rows, res.fields, this.db.pgdbTypeParsers);
                 return res.rows;
             } else {
                 connection = await this.db.pool.connect();
-                logger.log(sql, util.inspect(params, false, null), connection.processID);
+                logger.log('new connection', sql, util.inspect(params, false, null), connection.processID);
 
                 try {
                     let res = await connection.query(sql, params);
@@ -93,11 +99,12 @@ export class QueryAble {
                     pgUtils.postProcessResult(res.rows, res.fields, this.db.pgdbTypeParsers);
                     return res.rows;
                 } catch(e){
+                    console.log('connection error1',e);
                     try {
                         if (connection)
                             connection.release();
                     } catch (e) {
-                        logger.error('connection error', e.message);
+                        logger.error('connection error2', e.message);
                     }
                     connection = null;
                     throw e;

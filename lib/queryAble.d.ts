@@ -38,7 +38,7 @@ export declare class QueryAble {
     protected logger: PgDbLogger;
     constructor();
     setLogger(logger: PgDbLogger): void;
-    protected getLogger(useConsoleAsDefault: any): any;
+    getLogger(useConsoleAsDefault?: boolean): any;
     run(sql: string): Promise<any[]>;
     /**
      * Params can be

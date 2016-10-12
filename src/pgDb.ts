@@ -10,7 +10,8 @@ import {PgSchema} from "./pgSchema";
 import * as PgConverters from "./pgConverters";
 import {pgUtils} from "./pgUtils";
 const CONNECTION_URL_REGEXP = /^postgres:\/\/(?:([^:]+)(?::([^@]*))?@)?([^\/:]+)?(?::([^\/]+))?\/(.*)$/;
-const SQL_PARSER_REGEXP = /''|'|""|"|;|(?:\s|^)\$[^$]*\$(?:\s|$)|([^;'"]+)/g;
+const SQL_TOKENIZER_REGEXP = /''|'|""|"|;|\$|([^;'"$]+)/g;
+const SQL_$_ESCAPE_REGEXP = /\$[^$]*\$/g;
 
 const LIST_SCHEMAS_TABLES = "SELECT table_schema as schema, table_name as name FROM information_schema.tables WHERE table_schema NOT IN ('pg_catalog', 'information_schema')";
 const GET_OID_FOR_COLUMN_TYPE_FOR_SCHEMA = "SELECT t.oid FROM pg_catalog.pg_type t, pg_namespace n WHERE typname=:typeName and n.oid=t.typnamespace and n.nspname=:schemaName;";
@@ -99,22 +100,20 @@ export class PgDb extends QueryAble {
     schemas: {[name: string]: PgSchema};
     tables: {[name: string]: PgTable<any>} = {};
     fn: {[name: string]: (...any)=>any} = {};
-    private defaultLogger;
     [name: string]: any|PgSchema;
     pgdbTypeParsers = {};
 
-    private constructor(pgdb: {config?,schemas?,pool?,pgdbTypeParsers?} = {}) {
+    private constructor(pgdb: {config?,schemas?,pool?,pgdbTypeParsers?,getLogger?:()=>any} = {}) {
         super();
         this.schemas = {};
         this.config = pgdb.config;
         this.pool = pgdb.pool;
         this.pgdbTypeParsers = pgdb.pgdbTypeParsers || {};
         this.db = this;
-        this.defaultLogger = {
-            log: ()=> {
-            }, error: ()=> {
-            }
-        };
+        if (pgdb.getLogger) {
+            this.setLogger(pgdb.getLogger());
+        }
+
 
         for (let schemaName in pgdb.schemas) {
             let schema = new PgSchema(this, schemaName);
@@ -181,7 +180,8 @@ export class PgDb extends QueryAble {
 
     private async init(): Promise<PgDb> {
         this.pool = new pg.Pool(Object.create(this.config, {logger: {value: undefined}}));
-        this.setLogger(this.config.logger);
+        if (this.config.logger)
+            this.setLogger(this.config.logger);
 
         this.pool.on('error', (e, client) => {
             // if a client is idle in the pool
@@ -405,17 +405,30 @@ export class PgDb extends QueryAble {
                 try {
                     //console.log('Line: ' + line);
                     line = line.replace(/--.*$/, '');   // remove comments
-                    while (m = SQL_PARSER_REGEXP.exec(line)) {
-                        //console.log('inQuotedString', inQuotedString, 'token:', m[0]);
-                        if (m[0] == '""' || m[0] == "''") {
-                            tmp += m[0];
-                        } else if (m[0][0] == '$' || m[0] == '"' || m[0] == "'") {
+                    while (m = SQL_TOKENIZER_REGEXP.exec(line)) {
+                        if (m[0] == '"' || m[0] == "'") {
                             if (!inQuotedString) {
                                 inQuotedString = m[0];
                             } else if (inQuotedString == m[0]) {
                                 inQuotedString = null;
                             }
                             tmp += m[0];
+                        } else if (m[0] == '$' && (!inQuotedString || inQuotedString[0] == '$')) {
+                            if (!inQuotedString) {
+                                let s = line.slice(SQL_TOKENIZER_REGEXP.lastIndex - 1);
+                                let token = s.match(SQL_$_ESCAPE_REGEXP);
+                                if (!token) {
+                                    throw Error('Invalid sql in line: ' + line);
+                                }
+                                inQuotedString = token[0];
+                                SQL_TOKENIZER_REGEXP.lastIndex += inQuotedString.length - 1;
+                                tmp += inQuotedString;
+                            } else {
+                                tmp += m[0];
+                                if (tmp.endsWith(inQuotedString)) {
+                                    inQuotedString = null;
+                                }
+                            }
                         } else if (!inQuotedString && m[0] == ';') {
                             //console.log('push ' + tmp);
                             commands.push(tmp);
@@ -437,10 +450,14 @@ export class PgDb extends QueryAble {
                         tmp += '\n';
                     }
                 } catch (e) {
-                    reject();
+                    reject(e);
                 }
             }).on('close', ()=> {
+                if (inQuotedString){
+                    reject(Error('Invalid SQL, unterminated string'));
+                }
                 if (tmp.length) {
+                    //console.log('tmp left:', tmp);
                     commands.push(tmp);
                 }
                 // console.log('commmands length: ', commands.length);
@@ -468,16 +485,17 @@ export class PgDb extends QueryAble {
                 }
             });
         });
-        promise
+        return promise
             .catch(()=> {
             })
             .then(()=> {
                 // finally
                 return pgdb.dedicatedConnectionEnd();
             }).catch((e)=> {
-            this.getLogger(true).error(e);
-        });
-        return promise;
+                this.getLogger(true).error(e);
+            }).then(()=>{
+                // console.log('connection released');
+            });
     }
 }
 

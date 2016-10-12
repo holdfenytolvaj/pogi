@@ -79,11 +79,10 @@ describe("pgdb", () => {
          * etc...
          */
         pgdb = await PgDb.connect({connectionString: "postgres://"});
-        /*await pgdb.run('DROP SCHEMA IF EXISTS "' + schema + '" CASCADE ');
+        await pgdb.run('DROP SCHEMA IF EXISTS "' + schema + '" CASCADE ');
         await pgdb.run('CREATE SCHEMA IF NOT EXISTS "' + schema + '"');
         await pgdb.execute('spec/resources/init.sql', (cmd)=>cmd.replace(/__SCHEMA__/g, '"' + schema + '"'));
         await pgdb.reload();
-        */
 
         pgdb.setLogger(console);
         table = pgdb.schemas[schema]['users'];
@@ -101,6 +100,7 @@ describe("pgdb", () => {
             for(let connection of pgdb.db.pool.pool._inUseObjects) {
                 await connection.query('ROLLBACK');
                 if (connection.release) {
+                    console.log('stucked connection:',connection.processID);
                     connection.release();
                 }
             }
