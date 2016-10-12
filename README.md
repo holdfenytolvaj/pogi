@@ -5,7 +5,7 @@
 - it is not an over engineered ORM with new syntax to learn and with less functionality, 
 - it is not a simple prepared statements executor with a lot of boilerplate for queries 
 
-it is somewhere in between around the golden middle ground.
+it is somewhere in between, around the _golden_ middle ground.
 
 ##Some of the features:
 - typescript support (async-await!) (also can generate the structure for the db)
@@ -20,7 +20,7 @@ it is somewhere in between around the golden middle ground.
 so all the basics that you would expect in 2016.
 
 ##Documentation (includes why+1?)
-[here](http://pgdb.readthedocs.io/en/latest/)
+[here](http://pogi.readthedocs.io/en/latest/)
 
 ##Some example to get the taste
 ```js
