@@ -8,8 +8,10 @@ let schema:PgSchema = pgdb.schemas['test1'];
 #Properties
 ## <span class="def">db:</span><span class="type">PgDb</span>
 ## <span class="def">tables:</span><span class="type">{[name:string]:PgTable}</span>
+## <span class="def">fn:</span><span class="type">{[name:string]:Function}</span>
 
 #Functions
+
 ##toString
 <span class="def"><span class="func">toString</span>()</span>
 
