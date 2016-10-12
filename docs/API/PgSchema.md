@@ -1,6 +1,6 @@
 For all the examples below 
 ```js
-import {PgDb, PgSchema} from "pgdb/lib/index";
+import {PgDb, PgSchema} from "pogi";
 
 let pgdb:PgDb     = PgDb.connect(..);
 let schema:PgSchema = pgdb.schemas['test1'];  

@@ -24,7 +24,7 @@ so all the basics that you would expect in 2016.
 
 ##Some example to get the taste
 ```js
-import {PgDb} from "pgdb";
+import {PgDb} from "pogi";
 
 let pgdb = await PgDb.connect({connectionString: "postgres://"});
 

@@ -2,7 +2,7 @@ For all the examples below
 
 ```js
 
-import {PgDb, PgSchema, PgTable} from "pgdb/lib/index";
+import {PgDb, PgSchema, PgTable} from "pogi";
 
 let pgdb:PgDb     = PgDb.connect(..);
 let table:PgTable<User> = pgdb.schemas.test1.users;  

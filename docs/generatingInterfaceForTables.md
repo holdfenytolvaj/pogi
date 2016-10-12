@@ -9,7 +9,7 @@ node --harmony pgdb/lib/bin/generateInterface > testDbInterface.ts
 ```
 It will generate something like:
 ```js 
-import {PgDb, PgSchema, PgTable} from "pgdb";
+import {PgDb, PgSchema, PgTable} from "pogi";
 
 export interface PgDbType extends PgDb {
     'pgdb_test': PgSchema_pgdb_test;

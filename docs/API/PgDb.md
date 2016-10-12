@@ -1,6 +1,6 @@
 For all the examples below 
 ```js
-import {PgDb} from "pgdb/lib";
+import {PgDb} from "pogi";
 
 let pgdb = PgDb.connect(..);
 ```

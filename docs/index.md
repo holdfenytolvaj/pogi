@@ -1,7 +1,7 @@
 ![Image](https://c3.staticflickr.com/6/5680/29544431994_954237c121_b.jpg) 
 
-## pgdb 
-**pgdb** is an easy to use postgreDB handler for javascript, built on top of [pg.js](https://github.com/brianc/node-postgres) 
+## pogi 
+**pogi** is an easy to use postgreDB handler for javascript, built on top of [pg.js](https://github.com/brianc/node-postgres) 
 (and inherited few things from [MassiveJS](https://github.com/robconery/massive-js)). Supporting connection pooling, transaction, 
 typescript, async-await, assignable logger, stream, executable sql files and built with a lot of sensible default.
 
@@ -12,7 +12,7 @@ So makes a seamless integration with js objects and removes boiler plate but kee
 the power of custom queries.
 
 ```js
-import {PgDb} from "pgdb";
+import {PgDb} from "pogi";
 
 let pgdb = await PgDb.connect({connectionString: "postgres://"});
 
