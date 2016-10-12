@@ -1,12 +1,12 @@
 .func{
     color:black;
-    font-weight: bold;
 }
 .type{
     color:chocolate;
 }
 .def{
     color:purple;
+    font-weight: bold;
 }
 
 
