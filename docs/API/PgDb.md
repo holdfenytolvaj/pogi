@@ -4,10 +4,13 @@ import {PgDb} from "pgdb/lib";
 
 let pgdb = PgDb.connect(..);
 ```
+Note: search path will be readed on connection and `tables` and `fn` properties will be populated by that. However these are not merged to pgdb while schemas will be.
 
 #Properties
 ## <span class="def">db:</span><span class="type">PgDb</span>
 ## <span class="def">schemas:</span><span class="type">{[name:string]:PgSchema}</span>
+## <span class="def">tables:</span><span class="type">{[name:string]:PgTable}</span>
+## <span class="def">fn:</span><span class="type">{[name:string]:Function}</span>
 
 #Functions
 ##setLogger

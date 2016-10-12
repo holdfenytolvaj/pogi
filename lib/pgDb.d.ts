@@ -54,7 +54,6 @@ export declare class PgDb extends QueryAble {
     fn: {
         [name: string]: (...any) => any;
     };
-    private defaultLogger;
     [name: string]: any | PgSchema;
     pgdbTypeParsers: {};
     private constructor(pgdb?);

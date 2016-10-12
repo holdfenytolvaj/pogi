@@ -26,7 +26,7 @@ try {
 }
 ```
 
-where the sql file is (note: `__SCHEMA__` will be replaced with the `schemaName` see above)
+for example the sql file is (note: `__SCHEMA__` will be replaced with the `schemaName` see above)
 ```sql
 
 DO $$

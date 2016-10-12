@@ -1,5 +1,6 @@
-
 SET search_path TO __SCHEMA__;
+DROP FUNCTION IF EXISTS list_gold_users();
+DROP FUNCTION IF EXISTS increment();
 
 -- drop tables
 DROP TABLE IF EXISTS "users";
@@ -11,7 +12,6 @@ DROP TYPE IF EXISTS "membershipType";
 DROP TYPE IF EXISTS "categoryType";
 DROP TYPE IF EXISTS "permissionForResourceType";
 DROP TYPE IF EXISTS "permissionType";
-
 
 CREATE TYPE "membershipType" AS ENUM ('bronze', 'silver', 'gold');
 CREATE TYPE "categoryType" AS ENUM ('sport', 'food', 'tech', 'music');
@@ -64,8 +64,6 @@ CREATE OR REPLACE FUNCTION list_gold_users()
 RETURNS SETOF varchar AS $$
     SELECT name FROM __SCHEMA__.users WHERE membership = 'gold';
 $$ LANGUAGE SQL;
-
-SET search_path TO public, __SCHEMA__;
 
 CREATE OR REPLACE FUNCTION increment(i INT)
 RETURNS INT AS $$
