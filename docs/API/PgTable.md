@@ -124,6 +124,10 @@ playerList = await table.find({id:[1,2,3]}, {fields:['id', 'name'], limit:3});
 ```
 for more options for [conditions](condition) and [queryOptions](QueryOptions) see those sections.
 
+If the option has `{stream:true}` parameter it returns a stream instead of an array. 
+See [streams](/streams) for example. 
+
+
 ---
 ## findWhere
 <span class="def"><span class="func">findWhere</span>(where:<span class="type">string</span>,params:<span class="type">any[]|{}</span>,options?:<span class="type">QueryOptions</span>):Promise&lt;<span class="type">ReadableStream</span>&gt;</span>
@@ -141,6 +145,10 @@ res = await table.where("permissions @&gt; {'admin'} AND name!=username AND id=:
 
 ```
 
+If the option has `{stream:true}` parameter it returns a stream instead of an array. 
+See [streams](/streams) for example. 
+
+
 ---
 ## findAll
 <span class="def"><span class="func">findAll</span>(options?:<span class="type">QueryOptions</span>):Promise&lt;<span class="type">T[]</span>&gt;</span>
@@ -151,6 +159,11 @@ Returns everything from the table. Same as table.find({})
 ```js
 let res = await table.findAll();
 ```
+
+If the option has `{stream:true}` parameter it returns a stream instead of an array. 
+See [streams](/streams) for example. 
+
+
 
 ---
 ## findOne
