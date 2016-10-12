@@ -4,12 +4,13 @@ site_url: http://pgdb.readthedocs.io
 theme: readthedocs
 pages:
 - Home : index.md
-- Logger : logger.md
 - Connection : connection.md
 - Executing SQL files : executingSqlFile.md
-- Transaction : transaction.md
+- Functions : functions.md
 - Generate interface for Db : generatingInterfaceForTables.md
+- Logger : logger.md
 - Mapping database types : mappingDatabaseTypes.md
+- Transaction : transaction.md
 - Stream : streams.md
 - FAQ : faq.md
 - Known pitfalls : pitfalls.md
