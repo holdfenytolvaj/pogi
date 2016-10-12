@@ -27,20 +27,9 @@ pgdb.setLogger(console);
 ```
 
 #Functions - async
-##run
-<span class="def"><span class="func">run</span>(sql:<span class="type">string</span>):Promise&lt;<span class="type">any[]</span>&gt;</span>
-
-Executes an arbitrary sql string.
-Note: inherited, uses schema level log if present (if not then the db level log).
-
-Executes an arbitrary sql string;
-```js
-await schema.run('CREATE schema myschema');
-```
-
----
 ##query
 <span class="def"><span class="func">query</span>(sql:<span class="type">string</span>, params?:<span class="type">any[]|{}</span>, options?:<span class="type">SqlQueryOptions</span>):Promise&lt;<span class="type">any[]</span>&gt;</span>
+
 <a name="query"></a>
 Note: inherited, uses schema level log if present (if not then the db level log).
 
@@ -79,4 +68,16 @@ console.dir(userList); //['Admin', 'User1', 'User2']
 <span class="def"><span class="func">queryAsStream</span>(sql:<span class="type">string</span>, params?:<span class="type">any[]|{}</span>, options?:<span class="type">SqlQueryOptions</span>):Promise&lt;<span class="type">any[]</span>&gt;</span>
 
 see [streams](/streams)
+
+---
+##run
+<span class="def"><span class="func">run</span>(sql:<span class="type">string</span>):Promise&lt;<span class="type">any[]</span>&gt;</span>
+
+Executes an arbitrary sql string.
+Note: inherited, uses schema level log if present (if not then the db level log).
+
+Executes an arbitrary sql string;
+```js
+await schema.run('CREATE schema myschema');
+```
 

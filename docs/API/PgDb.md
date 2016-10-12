@@ -27,12 +27,37 @@ pgdb.setLogger(console);
 Returns true if the active connection has transaction ongoing. (Does not detect timeouts.)
 
 #Functions - async
-##run
-<span class="def"><span class="func">run</span>(sql:<span class="type">string</span>):Promise&lt;<span class="type">any[]</span>&gt;</span>
-Executes an arbitrary sql string.
+## connect
+<span style="color:darkorange;">static</span> <span class="def"><span class="func">connect</span>(config:<span class="type">ConnectionOptions</span>):Promise&lt;<span class="type">PgDb</span>&gt;</span>
+
+see [connection](/connection) section
+
+
+---
+## dedicatedConnectionBegin
+<span class="def"><span class="func">dedicatedConnectionBegin</span>():Promise&lt;<span class="type">PgDb</span>&gt;</span>
+
+---
+## dedicatedConnectionEnd
+<span class="def"><span class="func">dedicatedConnectionEnd</span>():Promise&lt;<span class="type">PgDb</span>&gt;</span>
+
+---
+## execute
+<span class="def"><span class="func">execute</span>(fileName, transformer?:<span class="type">(string)=&gt;string)</span>):Promise&lt;<span class="type">void</span>&gt;</span>
+
+Executes an sql file, with a transformer function. For more details see "Executing sql files" section.
+
 ```js
-await schema.run('CREATE schema myschema');
+for (let schemaName of ['test1', 'test2']) {
+    await pgdb.execute(__dirname + '/db_upgrade/all.sql', (cmd)=&gt;cmd.replace(/__SCHEMA__/g, '"' + schemaName + '"'));
+}
 ```
+
+where the sql file is (`__SCHEMA__` will be replaced to the `schemaName` see above)
+```sql
+UPDATE __SCHEMA__.webapp set lang='TS' where lang='JS';
+```
+
 ---
 ##query
 <span class="def"><span class="func">query</span>(sql:<span class="type">string</span>, params?:<span class="type">any[]|{}</span>, options?:<span class="type">SqlQueryOptions</span>):Promise&lt;<span class="type">any[]</span>&gt;</span>
@@ -73,16 +98,18 @@ console.dir(userList); //['Admin', 'User1', 'User2']
 <span class="def"><span class="func">queryAsStream</span>(sql:<span class="type">string</span>, params?:<span class="type">any[]|{}</span>, options?:<span class="type">SqlQueryOptions</span>):Promise&lt;<span class="type">any[]</span>&gt;</span>
 
 ---
-## connect
-<span style="color:darkorange;">static</span> <span class="def"><span class="func">connect</span>(config:<span class="type">ConnectionOptions</span>):Promise&lt;<span class="type">PgDb</span>&gt;</span>
-
-see [connection](/connection) section
-
----
 ## reload
 <span class="def"><span class="func">reload</span>()</span>
 Rerun the queries to load the schemas, tables and special types.
 Need to be called after truncate(!), alter table, create schema etc.
+
+---
+##run
+<span class="def"><span class="func">run</span>(sql:<span class="type">string</span>):Promise&lt;<span class="type">any[]</span>&gt;</span>
+Executes an arbitrary sql string.
+```js
+await schema.run('CREATE schema myschema');
+```
 
 ---
 ## setTypeParser
@@ -96,8 +123,9 @@ see the [mapping database types to js types](/mappingDatabaseTypes) section
 
 see the [mapping database types to js types](/mappingDatabaseTypes) section
 
+
 ---
-## ransactionBegin 
+## transactionBegin 
 <span class="def"><span class="func">transactionBegin</span>():Promise&lt;<span class="type">PgDb</span>&gt;</span>
 
 Start a transaction and return with the connection. 
@@ -120,30 +148,3 @@ for example see the "transaction" section.
 If the connection had transaction it rolls back it, otherwise do nothing.
 Returns with PgDb instance (pool of connections) where no transaction is taking place.
 for example see the "transaction" section. 
-
----
-## dedicatedConnectionBegin
-<span class="def"><span class="func">dedicatedConnectionBegin</span>():Promise&lt;<span class="type">PgDb</span>&gt;</span>
-
----
-## dedicatedConnectionEnd
-<span class="def"><span class="func">dedicatedConnectionEnd</span>():Promise&lt;<span class="type">PgDb</span>&gt;</span>
-
-
-
----
-## execute
-<span class="def"><span class="func">execute</span>(fileName, transformer?:<span class="type">(string)=&gt;string)</span>):Promise&lt;<span class="type">void</span>&gt;</span>
-
-Executes an sql file, with a transformer function. For more details see "Executing sql files" section.
-
-```js
-for (let schemaName of ['test1', 'test2']) {
-    await pgdb.execute(__dirname + '/db_upgrade/all.sql', (cmd)=&gt;cmd.replace(/__SCHEMA__/g, '"' + schemaName + '"'));
-}
-```
-
-where the sql file is (`__SCHEMA__` will be replaced to the `schemaName` see above)
-```sql
-UPDATE __SCHEMA__.webapp set lang='TS' where lang='JS';
-```
