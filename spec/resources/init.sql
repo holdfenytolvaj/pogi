@@ -1,3 +1,6 @@
+
+SET search_path TO __SCHEMA__;
+
 -- drop tables
 DROP TABLE IF EXISTS "users";
 DROP TABLE IF EXISTS "groups";
@@ -59,8 +62,10 @@ CREATE TRIGGER "update_users_updated" BEFORE INSERT ON "users" FOR EACH ROW EXEC
 
 CREATE OR REPLACE FUNCTION list_gold_users()
 RETURNS SETOF varchar AS $$
-    SELECT name FROM users WHERE membership = 'gold';
+    SELECT name FROM __SCHEMA__.users WHERE membership = 'gold';
 $$ LANGUAGE SQL;
+
+SET search_path TO public, __SCHEMA__;
 
 CREATE OR REPLACE FUNCTION increment(i INT)
 RETURNS INT AS $$

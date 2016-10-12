@@ -35,11 +35,10 @@ describe("pgdb", () => {
          * etc...
          */
         pgdb = await PgDb.connect({connectionString: "postgres://"});
-        await pgdb.run('DROP SCHEMA IF EXISTS "' + schema + '" CASCADE ');
-        await pgdb.run('CREATE SCHEMA IF NOT EXISTS "' + schema + '"');
-        await pgdb.run('SET search_path TO "' + schema + '"');
-        await pgdb.execute('spec/resources/init.sql', (cmd)=>cmd.replace(/__SCHEMA__/g, '"' + schema + '"'));
-        await pgdb.reload();
+        //await pgdb.run('DROP SCHEMA IF EXISTS "' + schema + '" CASCADE ');
+        //await pgdb.run('CREATE SCHEMA IF NOT EXISTS "' + schema + '"');
+        //await pgdb.execute('spec/resources/init.sql', (cmd)=>cmd.replace(/__SCHEMA__/g, '"' + schema + '"'));
+        //await pgdb.reload();
 
         //pgdb.setLogger(console);
         table = pgdb.schemas[schema]['users'];

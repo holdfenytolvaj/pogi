@@ -331,14 +331,14 @@ export class PgDb extends QueryAble {
             return this;
         } else {
             let pgDb = new PgDb(this);
-            this.connection = await this.pool.connect();
+            pgDb.connection = await this.pool.connect();
             return pgDb;
         }
     }
 
     async dedicatedConnectionEnd(): Promise<PgDb> {
         if (this.connection) {
-            this.connection.release();
+            await this.connection.release();
             this.connection = null;
         }
         return this;

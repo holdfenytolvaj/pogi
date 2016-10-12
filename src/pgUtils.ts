@@ -143,7 +143,7 @@ export var pgUtils = {
             let res = await q.query(`SELECT "${fn.schema}"."${fn.name}"(${placeHolders.join(',')})`, params);
 
             if (fn.return_single_value) {
-                var keys = Object.keys(res[0]);
+                var keys = res[0] ? Object.keys(res[0]) : [];
                 if (keys.length != 1){
                     throw Error(`Return type error. schema: ${fn.schema} fn: ${fn.name} expected return type: single value, current value:`+JSON.stringify(res))
                 }

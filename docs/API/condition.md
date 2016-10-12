@@ -1,21 +1,21 @@
 ##Conditions and operators
 
-Basic examples:
+###Basic examples:
 
-| Condition     | SQL                      
-| ------------- |:-------------- 
-| {id: 2}        | "id" = 2  
-| {'id <': 2}    | "id" < 2      
-| {'id >': 2}    | "id" > 2
-| {'id <=': 2}   | "id" <= 2      
-| {'id >=': 2}   | "id" >= 2
-| {'id !=': 2}   | "id" != 2
-| {'id <>': 2}   | "id" != 2
-| {'id': null}   | "id" is null
-| {'id !=': null}| "id" is not null
+| Condition         | SQL                      
+| -------------     |:-------------- 
+| {id: 2}           | "id" = 2  
+| {'id <': 2}       | "id" < 2      
+| {'id >': 2}       | "id" > 2
+| {'id <=': 2}      | "id" <= 2      
+| {'id >=': 2}      | "id" >= 2
+| {'id !=': 2}      | "id" != 2
+| {'id <>': 2}      | "id" != 2
+| {'id': null}      | "id" is null
+| {'id !=': null}   | "id" is not null
 | {'id is not': null}| "id" is not null
 
-Extended:
+###Extended:
 
 | Condition        | SQL                      
 | -------------    |:-------------- 
@@ -25,7 +25,7 @@ Extended:
 | {'id <>':[1,2,3]}| "id" not in (1,2,3) 
 | {'id =*':'gamma'}| LOWER("id") = LOWER('gamma')
 
-Pattern matching:
+###Pattern matching:
 [PostgreSQL Documentation](https://www.postgresql.org/docs/9.6/static/functions-matching.html)
 
 | Condition        | SQL                      
@@ -47,7 +47,7 @@ Pattern matching:
 | {'id is distinct from': '^a'}| "id" IS DISTINCT FROM '^a'
 | {'id is not distinct from': '^a'}| "id" IS NOT DISTINCT FROM '^a'
 
-##Array type 
+###Array type 
 [PostgreSQL Documentation](https://www.postgresql.org/docs/current/static/functions-array.html)
 
 | Condition          | SQL                      
@@ -61,31 +61,31 @@ Pattern matching:
 | {'ids ~': 'a%'}    | EXISTS (SELECT * FROM (SELECT UNNEST("ids") _el) _arr WHERE _arr._el ~ 'a%')'; //same with all pattern
 
 
-##Jsonb type
+###Jsonb type
 [PostgreSQL Documentation](https://www.postgresql.org/docs/current/static/functions-json.html)
 
-| Condition         | SQL                      
-| -------------     |:-------------- 
-| {'id @>':[1,2,3]} | "id" @> '[1,2,3]'
-| {'id @>':{a:1}}   | "id" @> '{a:1}'
-| {'id <@':[1,2,3]} | "id" <@ '[1,2,3]'
-| {'id <@':{a:1}}   | "id" <@ '{a:1}'
-| {'id ?':'a'}      | "id" ? 'a'
-| {'id ?&#124;':['a','b']}| "id" ?&#124; '{a,b}'
-| {'id ?&':['a','b']}| "id" ?& '{a,b}'
-| {'id --> a':3| "id"-->'a' = 3
-| {'id --> 3':3| "id"-->3 = 3 //if the field is a number, the quote wont apply as it can refer index ... 
-| {"id --> '3'":3| "id"-->'3' = 3 //... so you have to apply that manually
+| Condition         | SQL                       | NOTE
+| -------------     |:--------------           :|---
+| {'id @>':[1,2,3]} | "id" @> '[1,2,3]'         |
+| {'id @>':{a:1}}   | "id" @> '{a:1}'           |
+| {'id <@':[1,2,3]} | "id" <@ '[1,2,3]'         |
+| {'id <@':{a:1}}   | "id" <@ '{a:1}'           |
+| {'id ?':'a'}      | "id" ? 'a'                |
+| {'id ?&#124;':['a','b']}| "id" ?&#124; '{a,b}'|
+| {'id ?&':['a','b']}| "id" ?& '{a,b}'          |
+| {'id --> a':3}    | "id"-->'a' = 3            |
+| {'id --> 3':3}    | "id"-->3 = 3              |if the field is a number, the quote wont apply as it could refer index also 
+| {"id --> '3'":3}  | "id"-->'3' = 3            |... so you have to apply that manually
 
 
-## OR - AND
+### AND - OR
 condition-expressions can be joined together e.g.:
 
 | Condition                | SQL                      
 | -------------            |:-------------- 
 | {id:1, name:'a'}         | id=1 AND name='a'
-| {or:[{id:1},{name:'a'}]} | id=1 OR  name='a'
-| {and:[or:[{id:1},{'port >':'1024'}],or:[{host:'localhost', os:'linux'},{host:'127.0.0.1'}]]} | (.. OR ..) AND ((.. AND ..) OR ..)
+| {or:[{id:1}, {name:'a'}]} | id=1 OR  name='a'
+| {and: [<br/>or: [{id:1}, {'port >':'1024'}], <br/> or: [{host:'localhost', os:'linux'}, {host:'127.0.0.1'}]]} | (.. OR ..) AND ((.. AND ..) OR ..)
 
 
 

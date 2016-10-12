@@ -65,6 +65,7 @@ describe("pgdb", () => {
     var pgdb:PgDb;
     var schema = 'pgdb_test';
     var table:PgTable<any>;
+    var tableGroups:PgTable<any>;
 
     beforeAll(w(async() => {
         jasmine.DEFAULT_TIMEOUT_INTERVAL = 800000;
@@ -78,18 +79,20 @@ describe("pgdb", () => {
          * etc...
          */
         pgdb = await PgDb.connect({connectionString: "postgres://"});
-        await pgdb.run('DROP SCHEMA IF EXISTS "' + schema + '" CASCADE ');
+        /*await pgdb.run('DROP SCHEMA IF EXISTS "' + schema + '" CASCADE ');
         await pgdb.run('CREATE SCHEMA IF NOT EXISTS "' + schema + '"');
-        await pgdb.run('SET search_path TO "' + schema + '"');
         await pgdb.execute('spec/resources/init.sql', (cmd)=>cmd.replace(/__SCHEMA__/g, '"' + schema + '"'));
         await pgdb.reload();
+        */
 
         pgdb.setLogger(console);
         table = pgdb.schemas[schema]['users'];
+        tableGroups = pgdb.schemas[schema]['groups'];
     }));
 
     beforeEach(w(async() => {
         await table.delete({});
+        await tableGroups.delete({});
     }));
 
     afterEach(w(async() => {
@@ -395,7 +398,7 @@ describe("pgdb", () => {
         await tablewt.insert({name: 'A'});
 
         try {
-            await tablewt.insert({name: 'C', bigNumberList: [1, 2, Number.MAX_SAFE_INTEGER + 100]});
+            await tablewt.insertAndGet({name: 'C', bigNumberList: [1, 2, Number.MAX_SAFE_INTEGER + 100]});
             expect(false).toBeTruthy();
         } catch (e) {
             expect(/Number can't be represented in javascript/.test(e.message)).toBeTruthy();
@@ -549,24 +552,56 @@ describe("pgdb", () => {
     it("truncate",  w(async() => {
         await table.insert({name: 'A'});
         await table.insert({name: 'B'});
-        await table.truncate();
 
+        await table.truncate();
         var size = await table.count();
         expect(size).toEqual(0);
     }));
 
+    it("truncate + special types",  w(async() => {
+        await pgdb.setTypeParser('permissionForResourceType', (val) => parseComplexType(val));
+        await pgdb.setTypeParser('_permissionForResourceType', (val) => val=="{}" ? [] : parseComplexTypeArray(val));
+        await table.insert({
+            name:'Piszkos Fred',
+            permission:"(read,book)",
+            permissionList:[
+                '(admin,"chaos j ()"",""""j ,")',
+                '(write,book)',
+                '(write,)',
+                '(,"")',
+                '(,)',
+                '(write,null)'],
+        });
+
+        await table.truncate();
+
+        await table.insert({
+            name:'Piszkos Fred',
+            permission:"(read,book)",
+            permissionList:[
+                '(admin,"chaos j ()"",""""j ,")',
+                '(write,book)',
+                '(write,)',
+                '(,"")',
+                '(,)',
+                '(write,null)'],
+        });
+        let pf = await table.findOne({name:'Piszkos Fred'});
+        expect(pf.permission).toEqual(['read','book']);
+        expect(pf.permissionList[0]).toEqual(['admin','chaos j ()",""j ,']);
+    }));
+
     it("truncate - cascade",  w(async() => {
-        var groups = <PgTable<any>>pgdb.schemas[schema]['groups'];
-        var g = await groups.insertAndGet({name:'G'});
+        var g = await tableGroups.insertAndGet({name:'G'});
         await table.insert({name: 'A', mainGroup: g.id});
         await table.insert({name: 'B', mainGroup: g.id});
-        await groups.truncate({cascade:true, restartIdentity: true});
+        await tableGroups.truncate({cascade:true, restartIdentity: true});
 
         var size = await table.count();
         expect(size).toEqual(0);
 
-        var g2 = await groups.insertAndGet({name:'G'}, {return:['id']});
-        expect(g.id).toEqual(g2.id);
+        var g2 = await tableGroups.insertAndGet({name:'G'}, {return:['id']});
+        expect(g.id >= g2.id).toBeTruthy()
     }));
 
     it("orderBy",  w(async() => {
@@ -594,11 +629,11 @@ describe("pgdb", () => {
     it("stored proc", w(async()=>{
         await table.insert({name: 'A', membership:'gold'});
         await table.insert({name: 'B', membership:'gold'});
-        expect(pgdb.fn['list_gold_users']).toBeDefined();
+        expect(pgdb[schema].fn['list_gold_users']).toBeDefined();
         expect(pgdb.fn['increment']).toBeDefined();
         var s = await pgdb.run('select current_schema');
         console.log(s);
-        let res = await pgdb.fn['list_gold_users']();
+        let res = await pgdb[schema].fn['list_gold_users']();
         console.log(res);
         expect(res).toEqual(['A','B']);
 

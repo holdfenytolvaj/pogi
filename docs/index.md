@@ -33,6 +33,8 @@ there again too much restriction applied (no pool, no logger, no typescript, no 
 relational and jsonb columns (not safely at least), etc).
 
 ## Known pitfalls
+>Nothing is without pitfalls, but for most libraries it's well hidden...
+
 ### postgre data types vs javascript types - general
 pg.js is a powerful library but left many decision to the user, e.g. converting types. 
 By default it doesn't convert arrays or integers, dates are also tricky. We've added some basic 
