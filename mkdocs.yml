@@ -12,6 +12,7 @@ pages:
 - Mapping database types : mappingDatabaseTypes.md
 - Stream : streams.md
 - FAQ : faq.md
+- Known pitfalls : pitfalls.md
 - API :
   - PgDb: API/PgDb.md
   - PgSchema: API/PgSchema.md
