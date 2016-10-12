@@ -1,6 +1,6 @@
 site_name: pgdb | The postgres db handler you have dreamed of :)
-repo_url: https://github.com/holdfenytolvaj/pgdb
-site_url: http://pgdb.readthedocs.io
+repo_url: https://github.com/holdfenytolvaj/pogi
+site_url: http://pogi.readthedocs.io
 theme: readthedocs
 pages:
 - Home : index.md

@@ -1,7 +1,7 @@
-# pgdb
+# pogi
 > What is your dream?
 
-**pgdb** is a wrapper over [pg.js](https://github.com/brianc/node-postgres) to make life easier.
+**pogi** is a wrapper over [pg.js](https://github.com/brianc/node-postgres) to make life easier.
 - it is not an over engineered ORM with new syntax to learn and with less functionality, 
 - it is not a simple prepared statements executor with a lot of boilerplate for queries 
 
@@ -55,7 +55,7 @@ power; //>9000
 ```
 
 ##It's not without pitfalls
-What is? It's just usually not written (definitely not in the front page), but see more in the [docs](http://pgdb.readthedocs.io/en/latest/).
+What is? It's just usually not written (definitely not in the front page), but see more in the [docs](http://pogi.readthedocs.io/en/latest/).
 I wish more project would be honest about it to save a lot of hours for others. If you find more,
 don't hesitate to tell us!
 

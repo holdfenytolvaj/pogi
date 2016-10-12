@@ -1,5 +1,5 @@
 {
-  "name": "pgdb",
+  "name": "pogi",
   "version": "1.0.0",
   "description": "An easy db handler over pg.js (node-postgres)",
   "main": "lib/index.js",
@@ -10,7 +10,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/holdfenytolvaj/pgdb.git"
+    "url": "git+https://github.com/holdfenytolvaj/pogi.git"
   },
   "keywords": [
     "typescript",
@@ -40,7 +40,7 @@
   "author": "Laszlo Radics<garaboncias@gmail.com>, Geza Radics<radicsge@protonmail.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/holdfenytolvaj/pgdb/issues"
+    "url": "https://github.com/holdfenytolvaj/pogi/issues"
   },
-  "homepage": "https://github.com/holdfenytolvaj/pgdb#readme"
+  "homepage": "https://github.com/holdfenytolvaj/pogi#readme"
 }
