@@ -66,5 +66,5 @@ I wish more project would be honest about it to save a lot of hours for others. 
 don't hesitate to tell us!
 
 
-##Handcrafter at 
+##Handcrafted at 
 [www.labcup.net](http://www.labcup.net/)
