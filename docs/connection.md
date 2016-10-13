@@ -6,7 +6,7 @@
 let pgdb = await PgDb.connect({connectionString:'postgres://username@hostname/database', logger:console});
 ```
 
-where username/hostname/database are all optional see below, if provided through the environment variables.
+where username/hostname/database are all optional. It could be provided through environment variables (EXPORT).
 
 ### Connection with Options Object
 ``` js
@@ -49,7 +49,7 @@ export interface ConnectionOptions {
 
 ### Static singleton
 If there is no reference kept to the object there is a static function to get the same object everywhere, 
-(so no need to keep reconnecting). Not necessarily recommended.
+(so no need to keep recreating and set up every time). At the moment doesnt handle env variables beside password.
 
 ``` js
     let pgdb = await PgDb.getInstance({connectionString:'postgres://username@hostname/database', logger:console});

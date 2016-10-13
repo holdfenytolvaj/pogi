@@ -200,7 +200,7 @@ function parseKey(key):FieldAndOperator {
         key = key.substr(0, key.length-userOp.length)
     }
     let operation = operationsMap[userOp] || {};
-    let jsonRegexp = /(-->|->>|#>>)/;
+    let jsonRegexp = /(->[^>]|->>|#>[^>]|#>>)/;
 
     let field;
     let quotedField;

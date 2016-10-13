@@ -34,13 +34,18 @@ describe("pgdb", () => {
          * PGPORT
          * etc...
          */
-        pgdb = await PgDb.connect({connectionString: "postgres://"});
+        try {
+            pgdb = await PgDb.connect({connectionString: "postgres://"});
+        } catch (e) {
+            console.error("connection failed! Are you specified PGUSER/PGDATABASE/PGPASSWORD correctly?")
+            process.exit(1);
+        }
         //await pgdb.run('DROP SCHEMA IF EXISTS "' + schema + '" CASCADE ');
         //await pgdb.run('CREATE SCHEMA IF NOT EXISTS "' + schema + '"');
         //await pgdb.execute('spec/resources/init.sql', (cmd)=>cmd.replace(/__SCHEMA__/g, '"' + schema + '"'));
         //await pgdb.reload();
 
-        //pgdb.setLogger(console);
+        pgdb.setLogger(console);
         table = pgdb.schemas[schema]['users'];
 
         return Promise.resolve();
@@ -83,6 +88,8 @@ describe("pgdb", () => {
         await table.insert({ name: 'Nobody',    jsonList: ['neverending', 'nearby'] });
         await table.insert({ name: 'Noone',     jsonList: null, });
         await table.insert({ name: 'Anonymous', jsonList: [] });
+        await table.insert({ name: 'Obi1', jsonObject: {a:{b:3}}});
+        await table.insert({ name: 'Obi2', jsonObject: {a:{b:[3,4,5,6]}} });
         //@formatter:on
 
         let res;
@@ -98,11 +105,37 @@ describe("pgdb", () => {
         res = await table.find({'jsonList ?': '0'}, {fields: ['name']}); //=> doesnt work
         expect(res.map(r=>r.name)).toEqual([]);
 
-        res = await table.find({'jsonList ->> 0': 'art'}, {fields: ['name']}); //=> the first element is
+        res = await table.find({'jsonObject -> a': {b:3}}, {fields: ['name']});
+        expect(res.map(r => r.name)).toEqual(['Obi1']);
+
+        res = await table.find({"jsonObject -> 'a'": {b:3}}, {fields: ['name']});
+        expect(res.map(r => r.name)).toEqual(['Obi1']);
+
+        res = await table.find({'jsonList ->> 0': 'art'}, {fields: ['name']});
         expect(res.map(r => r.name)).toEqual(['Anybody']);
+
+        res = await table.find({'jsonObject ->> a': '{"b": 3}'}, {fields: ['name']}); //->> return as a text
+        expect(res.map(r => r.name)).toEqual(['Obi1']);
+
+        res = await table.find({"jsonObject ->> 'a'": '{"b": 3}'}, {fields: ['name']}); //->> return as a text
+        expect(res.map(r => r.name)).toEqual(['Obi1']);
 
         res = await table.find({"jsonList ->> '0'": 'art'}, {fields: ['name']}); //=> doesnt work
         expect(res.map(r => r.name)).toEqual([]);
+
+        res = await table.find({"jsonObject #> {a}": {b:3}}, {fields: ['name']});
+        expect(res.map(r => r.name)).toEqual(['Obi1']);
+
+        res = await table.find({"jsonObject #>> {a}": '{"b": 3}'}, {fields: ['name']});
+        expect(res.map(r => r.name)).toEqual(['Obi1']);
+
+        res = await table.find({"jsonObject #>> {a,b}": 3}, {fields: ['name']});
+        expect(res.map(r => r.name)).toEqual(['Obi1']);
+
+        res = await table.find({"jsonObject #>> {a,b,1}": 4}, {fields: ['name']});
+        expect(res.map(r => r.name)).toEqual(['Obi2']);
+        res = await table.find({"jsonObject #>> {a,b,1}": '4'}, {fields: ['name']});
+        expect(res.map(r => r.name)).toEqual(['Obi2']);
     }));
 
     it("Testing Jsonb list update",  w(async() => {

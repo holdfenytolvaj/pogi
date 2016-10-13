@@ -1,6 +1,6 @@
 ## Logging
 
-The logger need to have the following interface:
+The logger need to implement the following interface:
 
 ``` js 
 export interface PgDbLogger {

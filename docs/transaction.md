@@ -24,3 +24,21 @@ active transaction can be tested with
         //...
     }
 ```
+
+##Long lasting connection
+If you want to use variables, or set the searchpath, you can use long lasting connection,
+that is similar to transactions.
+
+```js
+pgdb = await PgDb.connect(..);
+pgdb_1con = await pgdb.dedicatedConnectionBegin();
+try {
+    //do magic
+    await pgdb_1con.query(..);
+    await pgdb_1con.schema.table.find(..);
+    
+} finally {
+    //lets release it
+    await pgdb_1con.dedicatedConnectionEnd();
+}
+```

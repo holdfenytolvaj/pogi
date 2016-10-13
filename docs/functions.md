@@ -10,6 +10,10 @@ $$ LANGUAGE plpgsql;
 ```
 could be used as easy as this
 ```js
-    var num = pgdb.fn.increment(4)
+    var num = pgdb.fn.increment(4);
+    
+    //or if is in a specific schema:
+     
+    num = pgdb[schema].fn.increment(4); 
 ```
 It will detect return values, and if it is a single value or an array of single values it will resolve result row(s) for you

@@ -78,7 +78,12 @@ describe("pgdb", () => {
          * PGPORT
          * etc...
          */
-        pgdb = await PgDb.connect({connectionString: "postgres://"});
+        try {
+            pgdb = await PgDb.connect({connectionString: "postgres://"});
+        } catch (e) {
+            console.error("connection failed! Are you specified PGUSER/PGDATABASE/PGPASSWORD correctly?")
+            process.exit(1);
+        }
         await pgdb.run('DROP SCHEMA IF EXISTS "' + schema + '" CASCADE ');
         await pgdb.run('CREATE SCHEMA IF NOT EXISTS "' + schema + '"');
         await pgdb.execute('spec/resources/init.sql', (cmd)=>cmd.replace(/__SCHEMA__/g, '"' + schema + '"'));

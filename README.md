@@ -19,10 +19,15 @@ it is somewhere in between, around the _golden_ middle ground.
 
 so all the basics that you would expect in 2016.
 
+##Install
+```js
+npm install pogi --save
+```
+
 ##Documentation (includes why+1?)
 [here](http://pogi.readthedocs.io/en/latest/)
 
-##Some example to get the taste
+##Some examples to get the taste
 ```js
 import {PgDb} from "pogi";
 
@@ -35,6 +40,7 @@ let c2 = await table.count({active:true});
 c1[0].c == c2; //true
 
 await table.insert({name:'simply', permissions:['p','e','r'], props:{email:'f@e.ct'}});
+
 let rows;
 
 //use the same operators as in postgre
@@ -60,5 +66,5 @@ I wish more project would be honest about it to save a lot of hours for others. 
 don't hesitate to tell us!
 
 
-##Developed at
+##Handcrafter at 
 [www.labcup.net](http://www.labcup.net/)

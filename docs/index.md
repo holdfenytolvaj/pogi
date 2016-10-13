@@ -3,12 +3,12 @@
 ## pogi 
 **pogi** is an easy to use PostgreSQL handler for javascript, built on top of [pg.js](https://github.com/brianc/node-postgres) 
 (and inherited few things from [MassiveJS](https://github.com/robconery/massive-js)). Supporting connection pooling, transaction, 
-typescript, async-await, assignable logger, stream, executable sql files and built with a lot of sensible default.
+typescript, async-await, assignable logger, stream, executable sql files and what not, top of that with a lot of sensible default.
 
 It is not a full-featured ORM, it is rather aligned with KISS. 
-Therefore no initial definitions needed. It rather runs some initial queries
-to look up the schemas and tablenames and some special column types at startup.
-So makes a seamless integration with js objects and removes boiler plate but keeps 
+Therefore no initial definitions are needed. It rather issues some initial queries at startup
+to look up the schemas, tablenames and some special column types.
+Aim to makes a seamless integration with js objects and removes boiler plate code but keeps 
 the power of custom queries.
 
 ```js
@@ -27,7 +27,7 @@ let userWithId = await table.insert(user);
 ```
 
 ## Why we need +1?
-Since wanted to keep things simple (and fully use Postgre), ORMs were out of consideration. pg.js on the other 
+Since wanted to keep things simple (and use Postgre full power as much as possible), ORMs were out of consideration. pg.js on the other 
 hand was too basic, still required a lot of boiler plate code. MassiveJs looked promising, but
 there again too much restriction applied (no pool, no logger, no typescript, no transaction, no mixing of 
-relational and jsonb columns (not safely at least), etc).
+relational and jsonb columns (not safely at least), etc) and adding these were not possible without redesign.

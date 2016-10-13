@@ -21,7 +21,7 @@ By default all field returned as a string from postgre. Pg.js convert some of it
 
 ### Looks simple, but...
 pg.js doesn't handle well the exception during type conversion. 
-If exception is thrown the connection will be cut. So you can add your converter
+If exception is thrown the node process will exit. So you can add your converter
 to pgdb layer if exception is possible.
 
 ```ts
@@ -30,9 +30,9 @@ to pgdb layer if exception is possible.
 
 ### complex types and complex type arrays
 Complex type looks promising instead of link tables, but unfortunately 
-they do not have to foreign key check at the moment postgre(9.6). 
-Also right now we didn't put much effor to it, rather use jsonb columns instead. 
-But it would be relative easy to add support for them to save and read as js objects.
+they do not have to foreign key check at the moment in PostgreSQL(9.6). 
+Also right now we didn't put much effort to this feature, we rather use jsonb columns instead. 
+But it would be relative easy to add support for them to save and read as js objects (and might be support the operators).
 
 ####Example complex type:
 ```sql

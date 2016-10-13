@@ -31,3 +31,5 @@ So you can use it as
 let pgdb = <PgDbType>await PgDb.connect({connectionString: "postgres://"});
 let users = await pgdb.pgdb_test.users.findAll();
 ```
+
+If you want to help, you can add, the table definition generation as well, also to merge if schemas or tables have the same type.
