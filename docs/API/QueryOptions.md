@@ -7,9 +7,12 @@ export interface SqlQueryOptions {
 ```
 
 ## & Return, & Stream
-Additional interfaces to set return value type
-with `stream:true` query will return with stream instead of the populated result
-with `return *` insert / update / delete query will return the affected rows (this is the default).
+Additional interfaces to set return value type.
+
+With `stream:true` query will return with stream instead of the populated result.
+
+With `return *` insert / update / delete query will return the affected rows (this is the default).
+
 `return string[]` is the same as '*' but only return with the specified columns
 ```js
 export interface Return {
