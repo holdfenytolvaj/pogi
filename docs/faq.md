@@ -10,3 +10,6 @@ Search for 'pogacsa'.
 ##Is there any company behind it?
 It was originally developed at [www.labcup.net](http://www.labcup.net/), where we also use it. 
 
+##My IDE don't show pogi's typing definitions
+Typescript should get it from npm, but maybe this help:
+`typings install pogi=github:holdfenytolvaj/pogi/lib/index.d.ts --save`

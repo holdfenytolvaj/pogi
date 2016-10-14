@@ -4,14 +4,21 @@ import {PgDb} from "pogi";
 
 let pgdb = PgDb.connect(..);
 ```
-Note: search path will be readed on connection and `tables` and `fn` properties will be populated by that. However these are not merged to pgdb while schemas will be.
+Note: search path will be readed on connection and `tables` and `fn` properties will be populated by that. However these are not merged into PgDb object, while schemas will be.
 
 #Properties
-## <span class="def">db:</span><span class="type">PgDb</span>
-## <span class="def">schemas:</span><span class="type">{[name:string]:PgSchema}</span>
-## <span class="def">tables:</span><span class="type">{[name:string]:PgTable}</span>
-## <span class="def">fn:</span><span class="type">{[name:string]:Function}</span>
-
+## db
+<span class="def">db:</span><span class="type">PgDb</span>
+Back reference to this instance.
+## schemas
+<span class="def">schemas:</span><span class="type">{[name:string]:PgSchema}</span>
+Schemas, also merged to db object.
+## tables
+<span class="def">tables:</span><span class="type">{[name:string]:PgTable}</span>
+Tables in the search_path.
+## fn
+<span class="def">fn:</span><span class="type">{[name:string]:Function}</span>
+Stored procedures and functions in the search_path.
 #Functions
 ##setLogger
 <span class="def"><span class="func">setLogger</span>(logger:<span class="type">PgDbLogger</span>) </span>
@@ -40,15 +47,24 @@ see [connection](/connection) section
 ## dedicatedConnectionBegin
 <span class="def"><span class="func">dedicatedConnectionBegin</span>():Promise&lt;<span class="type">PgDb</span>&gt;</span>
 
+You can use dedicated connection instead of pool. It is very useful if you plan to use such a command: `SET search_path TO "dev";`
+Similar to [transactionBegin](#transactionBegin) but without transaction. This function will create a new PgDb instance with the dedicated connection mode. 
+Use of that Pgdb instance all query will go throuth that single connection. The original pgdb instance won't touched.
+For example see the [transaction](/transaction) section. 
+
 ---
 ## dedicatedConnectionEnd
 <span class="def"><span class="func">dedicatedConnectionEnd</span>():Promise&lt;<span class="type">PgDb</span>&gt;</span>
+
+Close dedicated connection. If there is no dedicated connection, do nothing. After that pgdb instance will work in pooled connection mode. 
+Return value will be the same pgdb instance.
+For example see the [transaction](/transaction) section. 
 
 ---
 ## execute
 <span class="def"><span class="func">execute</span>(fileName, transformer?:<span class="type">(string)=&gt;string)</span>):Promise&lt;<span class="type">void</span>&gt;</span>
 
-Executes an sql file, with a transformer function. For more details see "Executing sql files" section.
+Executes an sql file, with a transformer function. For more details see [Executing sql files](/executingSqlFile) section.
 
 ```js
 for (let schemaName of ['test1', 'test2']) {
@@ -118,36 +134,36 @@ await schema.run('CREATE schema myschema');
 ## setTypeParser
 <span class="def"><span class="func">setTypeParser</span>(typeName:<span class="type">string</span>, parser:<span class="type">(string)=&gt;any</span>, schemaName?:<span class="type">string</span>): Promise&lt;<span class="type">void</span>&gt;</span>
 
-see the [mapping database types to js types](/mappingDatabaseTypes) section
+See the [mapping database types to js types](/mappingDatabaseTypes) section
 
 ---
 ## setPgTypeParser
 <span class="def"><span class="func">setPgTypeParser</span>(typeName:<span class="type">string</span>, parser:<span class="type">(string)=&gt;any</span>, schemaName?:<span class="type">string</span>): Promise&lt;<span class="type">void</span>&gt;</span>
 
-see the [mapping database types to js types](/mappingDatabaseTypes) section
+See the [mapping database types to js types](/mappingDatabaseTypes) section
 
 
 ---
 ## transactionBegin 
 <span class="def"><span class="func">transactionBegin</span>():Promise&lt;<span class="type">PgDb</span>&gt;</span>
 
-Start a transaction and return with the connection. 
-(Only this connection has the transaction, can be committed or rolled back.)
+Return with a new PgDb instance with dedicated connection mode and start a transaction. 
+(Only this connection has the transaction, can be committed or rolled back. Similar to [dedicatedConnectionBegin](#dedicatedConnectionBegin))
 
-for example see the [transaction](/transaction) section. 
+For example see the [transaction](/transaction) section. 
 
 ---
 ## transactionCommit 
 <span class="def"><span class="func">transactionCommit</span>():Promise&lt;<span class="type">PgDb</span>&gt;</span>
 
-If the connection had transaction it commits it, otherwise do nothing.
-Returns with PgDb instance (pool of connections) where no transaction is taking place.
-for example see the "transaction" section. 
+If the PgDb instance has dedicated connection mode and has transaction it will commits that, otherwise do nothing.
+Returns with PgDb instance (with pool connections mode) where no transaction is taking place.
+For example see the [transaction](/transaction) section. 
 
 ---
 ## transactionRollback
 <span class="def"><span class="func">transactionRollback</span>():Promise&lt;<span class="type">PgDb</span>&gt;</span>
 
-If the connection had transaction it rolls back it, otherwise do nothing.
-Returns with PgDb instance (pool of connections) where no transaction is taking place.
-for example see the "transaction" section. 
+If the PgDb instance has dedicated connection mode and has transaction it will rolls back, otherwise do nothing.
+Returns with PgDb instance (with pool connections mode) where no transaction is taking place.
+For example see the [transaction](/transaction) section. 

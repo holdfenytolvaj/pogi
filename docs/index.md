@@ -26,6 +26,11 @@ let user = {..}
 let userWithId = await table.insert(user);
 ```
 
+Typescript should get typing definition from npm package, but if doesn't you can add with typings:
+```sh 
+typings install pogi=github:holdfenytolvaj/pogi/lib/index.d.ts --save
+```
+
 ## Why we need +1?
 Since wanted to keep things simple (and use Postgre full power as much as possible), ORMs were out of consideration. pg.js on the other 
 hand was too basic, still required a lot of boiler plate code. MassiveJs looked promising, but

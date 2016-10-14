@@ -32,13 +32,15 @@ export interface Stream {
 
 ```
 #Properties
-### <span class="def">db:</span><span class="type">PgDb</span>
+## db
+<span class="def">db:</span><span class="type">PgDb</span>
+Back reference to the db instance
 
 #Functions
 ##toString
 <span class="def"><span class="func">toString</span>()</span>
 
-returns the fully qualified name of the table
+Returns the fully qualified name of the table
 
 ##setLogger
 <span class="def"><span class="func">setLogger</span>(logger:<span class="type">PgDbLogger</span>) </span>
@@ -60,7 +62,7 @@ console.log(count); //most probably 1
 
 ---
 ## delete
-<span class="def"><span class="func">delete</span>(conditions:<span class="type">{}</span>, options?:<span class="type">UpdateDeleteOption</span>):Promise&lt;<span class="type">number</span>&gt;</span>
+<span class="def"><span class="func">delete</span>(conditions:<span class="type">{}</span>, options?:<a href="../QueryOptions"><span class="type">UpdateDeleteOption</span></a>):Promise&lt;<span class="type">number</span>&gt;</span>
 
 Executes a delete-where query.
 
@@ -73,7 +75,7 @@ if (numberOfRowsDeleted!=3) {
 
 ---
 ## deleteOne
-<span class="def"><span class="func">deleteOne</span>(conditions:<span class="type">{}</span>, options?:<span class="type">UpdateDeleteOption</span>):Promise&lt;<span class="type">number</span>&gt;</span>
+<span class="def"><span class="func">deleteOne</span>(conditions:<span class="type">{}</span>, options?:<a href="../QueryOptions"><span class="type">UpdateDeleteOption</span></a>):Promise&lt;<span class="type">number</span>&gt;</span>
 
 Executes a delete-where query, but throws exception if more then one record is deleted;
 ```js
@@ -83,7 +85,7 @@ console.log(numberOfDeleted); //0 or 1
 
 ---
 ## deleteAndGet
-<span class="def"><span class="func">deleteAndGet</span>(conditions:<span class="type">{}</span>, options?:<span class="type">UpdateDeleteOption & Return</span>):Promise&lt;<span class="type">T[]</span>&gt;</span>
+<span class="def"><span class="func">deleteAndGet</span>(conditions:<span class="type">{}</span>, options?:<a href="../QueryOptions"><span class="type">UpdateDeleteOption & Return</span></a>):Promise&lt;<span class="type">T[]</span>&gt;</span>
 
 Executes a delete-where query and returns with the deleted records;
 ```js
@@ -95,7 +97,7 @@ for (let player of playersDeleted) {
 
 ---
 ## deleteAndGetOne
-<span class="def"><span class="func">deleteAndGetOne</span>(conditions:<span class="type">{}</span>, options?:<span class="type">UpdateDeleteOption & Return</span>):Promise&lt;<span class="type">T[]</span>&gt;</span>
+<span class="def"><span class="func">deleteAndGetOne</span>(conditions:<span class="type">{}</span>, options?:<a href="../QueryOptions"><span class="type">UpdateDeleteOption & Return</span></a>):Promise&lt;<span class="type">T</span>&gt;</span>
 
 Executes a delete-where query, but throws exception if more then one record is deleted;
 Returns with the deleted record if any.
@@ -107,9 +109,9 @@ console.log(player.id); //Either 1, 2, 3 or null if no record is deleted
 
 ---
 ## find
-<span class="def"><span class="func">find</span>(conditions:<span class="type">{}</span>, options?:<span class="type">QueryOptions</span>):Promise&lt;<span class="type">T[]</span>&gt;</span>
+<span class="def"><span class="func">find</span>(conditions:<span class="type">{}</span>, options?:<a href="../QueryOptions"><span class="type">QueryOptions</span></a>):Promise&lt;<span class="type">T[]</span>&gt;</span>
 
-<span class="def"><span class="func">find</span>(conditions:<span class="type">{}</span>, options?:<span class="type">QueryOptions & Stream</span>):Promise&lt;<span class="type">T[]</span>&gt;</span>
+<span class="def"><span class="func">find</span>(conditions:<span class="type">{}</span>, options?:<a href="../QueryOptions"><span class="type">QueryOptions & Stream</span></a>):Promise&lt;<span class="type">ReadableStream</span>&gt;</span>
 
 Executes a select-where query.
 ```js
@@ -130,9 +132,9 @@ See [streams](/streams) for example.
 
 ---
 ## findWhere
-<span class="def"><span class="func">findWhere</span>(where:<span class="type">string</span>,params:<span class="type">any[]|{}</span>,options?:<span class="type">QueryOptions</span>):Promise&lt;<span class="type">ReadableStream</span>&gt;</span>
+<span class="def"><span class="func">findWhere</span>(where:<span class="type">string</span>,params:<span class="type">any[]|{}</span>,options?:<a href="../QueryOptions"><span class="type">QueryOptions</span></a>):Promise&lt;<span class="type">ReadableStream</span>&gt;</span>
 
-<span class="def"><span class="func">findWhere</span>(where:<span class="type">string</span>,params:<span class="type">any[]|{}</span>,options?:<span class="type">QueryOptions & Stream</span>):Promise&lt;<span class="type">ReadableStream</span>&gt;</span>
+<span class="def"><span class="func">findWhere</span>(where:<span class="type">string</span>,params:<span class="type">any[]|{}</span>,options?:<a href="../QueryOptions"><span class="type">QueryOptions & Stream</span></a>):Promise&lt;<span class="type">ReadableStream</span>&gt;</span>
 
 Executes a select-where query with free text where etc. 
 ```js
@@ -151,9 +153,9 @@ See [streams](/streams) for example.
 
 ---
 ## findAll
-<span class="def"><span class="func">findAll</span>(options?:<span class="type">QueryOptions</span>):Promise&lt;<span class="type">T[]</span>&gt;</span>
+<span class="def"><span class="func">findAll</span>(options?:<a href="../QueryOptions"><span class="type">QueryOptions</span></a>):Promise&lt;<span class="type">T[]</span>&gt;</span>
 
-<span class="def"><span class="func">findAll</span>(options?:<span class="type">QueryOptions & Stream</span>):Promise&lt;<span class="type">ReadableStream</span>&gt;</span>
+<span class="def"><span class="func">findAll</span>(options?:<a href="../QueryOptions"><span class="type">QueryOptions & Stream</span></a>):Promise&lt;<span class="type">ReadableStream</span>&gt;</span>
 
 Returns everything from the table. Same as table.find({})
 ```js
@@ -167,7 +169,7 @@ See [streams](/streams) for example.
 
 ---
 ## findOne
-<span class="def"><span class="func">findOne</span>(conditions, options?:<span class="type">QueryOptions</span>):Promise&lt;<span class="type">T</span>&gt;</span>
+<span class="def"><span class="func">findOne</span>(conditions, options?:<a href="../QueryOptions"><span class="type">QueryOptions</span></a>):Promise&lt;<span class="type">T</span>&gt;</span>
 
 Most system get this wrong, as they use it as "_findFirst_" instead of using as "_findOnly_". 
 While 99% of the time the programmer means the latter, by default they use the formal.
@@ -183,7 +185,7 @@ let res2 = await table.findOne({'name like': 'A%'}); //most probably throws an e
 
 ---
 ## findFirst
-<span class="def"><span class="func">findFirst</span>(conditions, options?:<span class="type">QueryOptions</span>):Promise&lt;<span class="type">T</span>&gt;</span>
+<span class="def"><span class="func">findFirst</span>(conditions, options?:<a href="../QueryOptions"><span class="type">QueryOptions</span></a>):Promise&lt;<span class="type">T</span>&gt;</span>
 
 Same as await table.find(condition, {limit:1})
 ```js
@@ -192,7 +194,7 @@ let somebody = await table.findFirst({'score &gt;':9000});
 
 ---
 ## findOneFieldOnly
-<span class="def"><span class="func">findOneFieldOnly</span>(conditions:<span class="type">{}</span>, field:<span class="type">string</span>, options?:<span class="type">QueryOptions</span>):Promise&lt;<span class="type">any</span>&gt;</span>
+<span class="def"><span class="func">findOneFieldOnly</span>(conditions:<span class="type">{}</span>, field:<span class="type">string</span>, options?:<a href="../QueryOptions"><span class="type">QueryOptions</span></a>):Promise&lt;<span class="type">any</span>&gt;</span>
 
 Returns directly the value of a column/field directly.
 
@@ -203,9 +205,9 @@ console.log(nameOfUser); //most probably 'Admin'
 
 ---
 ## insert
-<span class="def"><span class="func">insert</span>(records:<span class="type">T</span>, options:<span class="type">InsertOption</span>): Promise&lt;<span class="type">T</span>&gt;</span>
+<span class="def"><span class="func">insert</span>(records:<span class="type">T</span>, options:<a href="../QueryOptions"><span class="type">InsertOption</span></a>): Promise&lt;<span class="type">T</span>&gt;</span>
 
-<span class="def"><span class="func">insert</span>(records:<span class="type">T[]</span>, options:<span class="type">InsertOption</span>): Promise&lt;<span class="type">T[]</span>&gt;</span>
+<span class="def"><span class="func">insert</span>(records:<span class="type">T[]</span>, options:<a href="../QueryOptions"><span class="type">InsertOption</span></a>): Promise&lt;<span class="type">T[]</span>&gt;</span>
 
 You can insert one or multiple records, by default the new record(s) will be returned. This can be prevented if not needed;
 ```js
@@ -239,7 +241,7 @@ await table.insert({username:'anonymous2'}, {return:[]}); //returns [{}]
 
 ---
 ## update
-<span class="def"><span class="func">update</span>(conditions:<span class="type">{}</span>, fields:<span class="type">{}</span>, options?:<span class="type">UpdateDeleteOption</span>):Promise&lt;<span class="type">number</span>&gt;</span>
+<span class="def"><span class="func">update</span>(conditions:<span class="type">{}</span>, fields:<span class="type">{}</span>, options?:<a href="../QueryOptions"><span class="type">UpdateDeleteOption</span></a>):Promise&lt;<span class="type">number</span>&gt;</span>
 
 Run an update query on the table, returns the number of records changed.
 ```js
@@ -249,7 +251,7 @@ await table.update({'name ~': '^G'}, {numOfLifes:4}); //all record where name st
 
 ---
 ## updateOne
-<span class="def"><span class="func">updateOne</span>(conditions:<span class="type">{}</span>, fields:<span class="type">{}</span>, options?:<span class="type">UpdateDeleteOption</span>): Promise&lt;<span class="type">number</span>&gt;</span>
+<span class="def"><span class="func">updateOne</span>(conditions:<span class="type">{}</span>, fields:<span class="type">{}</span>, options?:<a href="../QueryOptions"><span class="type">UpdateDeleteOption</span></a>): Promise&lt;<span class="type">number</span>&gt;</span>
 
 Run an update query, throws exception if more then one record has been updated. (Handy if you roll back on exception)
 ```js
@@ -259,7 +261,7 @@ await table.updateOne({notUniqId:1},{password:null}); //throws exception if more
 
 ---
 ## updateAndGet
-<span class="def"><span class="func">updateAndGet</span>(conditions:<span class="type">{}</span>, fields:<span class="type">{}</span>, options?:<span class="type">UpdateDeleteOption & Return</span>):Promise&lt;<span class="type">T[]</span>&gt;</span>
+<span class="def"><span class="func">updateAndGet</span>(conditions:<span class="type">{}</span>, fields:<span class="type">{}</span>, options?:<a href="../QueryOptions"><span class="type">UpdateDeleteOption & Return</span></a>):Promise&lt;<span class="type">T[]</span>&gt;</span>
 
 Run an update query on the table
 ```js
@@ -271,7 +273,7 @@ let playerIdList = await table.updateAndGet({'score &gt;': '9000'}, {achivement:
 
 ---
 ## updateAndGetOne
-<span class="def"><span class="func">updateAndGetOne</span>(conditions:<span class="type">{}</span>, fields:<span class="type">{}</span>, options?:<span class="type">UpdateDeleteOption & Return</span>): Promise&lt;<span class="type">T</span>&gt;</span>
+<span class="def"><span class="func">updateAndGetOne</span>(conditions:<span class="type">{}</span>, fields:<span class="type">{}</span>, options?:<a href="../QueryOptions"><span class="type">UpdateDeleteOption & Return</span></a>): Promise&lt;<span class="type">T</span>&gt;</span>
 
 Run an update query and returns with the updated record, 
 throws exception if more then one record has been updated. (Handy if you roll back on exception)
@@ -283,7 +285,7 @@ console.log(user.name); //the whole record is returned
 
 ---
 ##query
-<span class="def"><span class="func">query</span>(sql:<span class="type">string</span>, params?:<span class="type">any[]|{}</span>, options?:<span class="type">SqlQueryOptions</span>):Promise&lt;<span class="type">any[]</span>&gt;</span>
+<span class="def"><span class="func">query</span>(sql:<span class="type">string</span>, params?:<span class="type">any[]|{}</span>, options?:<a href="../QueryOptions"><span class="type">SqlQueryOptions</span></a>):Promise&lt;<span class="type">any[]</span>&gt;</span>
 
 <a name="query"></a>
 Note: inherited, uses table level log if present (if not then schema, then db).
@@ -297,7 +299,7 @@ let res2 = await table.query('SELECT MAX(point) from !:schema.scores WHERE name=
 ```
 ---
 ## queryOneField
-<span class="def"><span class="func">queryOneField</span>(sql:<span class="type">string</span>, params?:<span class="type">any[]|{}</span>, options?:<span class="type">SqlQueryOptions</span>):Promise&lt;<span class="type">any</span>&gt;</span>
+<span class="def"><span class="func">queryOneField</span>(sql:<span class="type">string</span>, params?:<span class="type">any[]|{}</span>, options?:<a href="../QueryOptions"><span class="type">SqlQueryOptions</span></a>):Promise&lt;<span class="type">any</span>&gt;</span>
 
 Note: inherited, uses table level log if present (if not then schema, then db).
 
@@ -310,7 +312,7 @@ console.log(winner); //The winner is Admin
 ```
 ---
 ## queryOneColumn
-<span class="def"><span class="func">queryOneColumn</span>(sql:<span class="type">string</span>, params?:<span class="type">any[]|{}</span>, options?:<span class="type">SqlQueryOptions</span>):Promise&lt;<span class="type">any[]</span>&gt;</span>
+<span class="def"><span class="func">queryOneColumn</span>(sql:<span class="type">string</span>, params?:<span class="type">any[]|{}</span>, options?:<a href="../QueryOptions"><span class="type">SqlQueryOptions</span></a>):Promise&lt;<span class="type">any[]</span>&gt;</span>
 
 Note: inherited, uses table level log if present (if not then schema, then db).
 
@@ -323,7 +325,7 @@ console.dir(userList); //['Admin', 'User1', 'User2']
 ```
 ---
 ## queryAsStream
-<span class="def"><span class="func">queryAsStream</span>(sql:<span class="type">string</span>, params?:<span class="type">any[]|{}</span>, options?:<span class="type">SqlQueryOptions</span>):Promise&lt;<span class="type">any[]</span>&gt;</span>
+<span class="def"><span class="func">queryAsStream</span>(sql:<span class="type">string</span>, params?:<span class="type">any[]|{}</span>, options?:<a href="../QueryOptions"><span class="type">SqlQueryOptions</span></a>):Promise&lt;<span class="type">any[]</span>&gt;</span>
 
 see [streams](/streams)
 
@@ -338,6 +340,20 @@ Executes an arbitrary sql string;
 
 await table.run('CREATE schema myschema');
 
+```
+
+---
+## truncate
+<span class="def"><span class="func">truncate</span>(options?:<span class="type">TruncateOptions</span>):Promise&lt;void&gt;</span>
+
+Will truncate the table, see [PostgreSQL doc](https://www.postgresql.org/docs/current/static/sql-truncate.html).
+
+```js
+export interface TruncateOptions{
+    restartIdentity?: boolean,
+    cascade?: boolean,
+    logger?: PgDbLogger;
+}
 ```
 
 

@@ -1,4 +1,26 @@
-##Query options
+##SqlQueryOption, InsertOption, UpdateDeleteOption
+These all the same yet, you can set logger.
+```js
+export interface SqlQueryOptions {
+    logger?: PgDbLogger;
+}
+```
+
+## & Return, & Stream
+Additional interfaces to set return value type
+with `stream:true` query will return with stream instead of the populated result
+with `return *` insert / update / delete query will return the affected rows (this is the default).
+`return string[]` is the same as '*' but only return with the specified columns
+```js
+export interface Return {
+    return?:string[]|'*';
+}
+export interface Stream {
+    stream: true;
+}
+```
+
+##QueryOptions
 Query option has to follow the following interface:
 
 ```js
@@ -33,3 +55,4 @@ await pgdb.find({}, {orderBy:'name dec, "ageCategory" asc'});
 await pgdb.find({}, {groupBy:'name, "ageCategory", count(*)'});
 await pgdb.find({}, {groupBy:['name', 'ageCategory', 'count(*)']});
 ```
+

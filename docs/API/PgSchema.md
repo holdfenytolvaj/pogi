@@ -6,9 +6,15 @@ let pgdb:PgDb     = PgDb.connect(..);
 let schema:PgSchema = pgdb.schemas['test1'];  
 ```
 #Properties
-## <span class="def">db:</span><span class="type">PgDb</span>
-## <span class="def">tables:</span><span class="type">{[name:string]:PgTable}</span>
-## <span class="def">fn:</span><span class="type">{[name:string]:Function}</span>
+## db
+<span class="def">db:</span><span class="type">PgDb</span>
+Back reference to the db instance
+## tables
+<span class="def">tables:</span><span class="type">{[name:string]:PgTable}</span>
+Tables, also merged to schema object.
+## fn
+<span class="def">fn:</span><span class="type">{[name:string]:Function}</span>
+Stored procedures and functions
 
 #Functions
 
@@ -30,7 +36,7 @@ pgdb.setLogger(console);
 
 #Functions - async
 ##query
-<span class="def"><span class="func">query</span>(sql:<span class="type">string</span>, params?:<span class="type">any[]|{}</span>, options?:<span class="type">SqlQueryOptions</span>):Promise&lt;<span class="type">any[]</span>&gt;</span>
+<span class="def"><span class="func">query</span>(sql:<span class="type">string</span>, params?:<span class="type">any[]|{}</span>, options?:<a href="../QueryOptions"><span class="type">SqlQueryOptions</span></a>):Promise&lt;<span class="type">any[]</span>&gt;</span>
 
 <a name="query"></a>
 Note: inherited, uses schema level log if present (if not then the db level log).
@@ -43,7 +49,7 @@ let res2 = await schema.query('SELECT MAX(point) from !:schema.scores WHERE name
 
 ---
 ## queryOneField
-<span class="def"><span class="func">queryOneField</span>(sql:<span class="type">string</span>, params?:<span class="type">any[]|{}</span>, options?:<span class="type">SqlQueryOptions</span>):Promise&lt;<span class="type">any</span>&gt;</span>
+<span class="def"><span class="func">queryOneField</span>(sql:<span class="type">string</span>, params?:<span class="type">any[]|{}</span>, options?:<a href="../QueryOptions"><span class="type">SqlQueryOptions</span></a>):Promise&lt;<span class="type">any</span>&gt;</span>
 
 Note: inherited, uses schema level log if present (if not then the db level log).
 
@@ -55,7 +61,7 @@ console.log(winner); //The winner is Admin
 
 ---
 ## queryOneColumn
-<span class="def"><span class="func">queryOneColumn</span>(sql:<span class="type">string</span>, params?:<span class="type">any[]|{}</span>, options?:<span class="type">SqlQueryOptions</span>):Promise&lt;<span class="type">any[]</span>&gt;</span>
+<span class="def"><span class="func">queryOneColumn</span>(sql:<span class="type">string</span>, params?:<span class="type">any[]|{}</span>, options?:<a href="../QueryOptions"><span class="type">SqlQueryOptions</span></a>):Promise&lt;<span class="type">any[]</span>&gt;</span>
 
 Note: inherited, uses schema level log if present (if not then the db level log).
 
@@ -67,7 +73,7 @@ console.dir(userList); //['Admin', 'User1', 'User2']
 
 ---
 ## queryAsStream
-<span class="def"><span class="func">queryAsStream</span>(sql:<span class="type">string</span>, params?:<span class="type">any[]|{}</span>, options?:<span class="type">SqlQueryOptions</span>):Promise&lt;<span class="type">any[]</span>&gt;</span>
+<span class="def"><span class="func">queryAsStream</span>(sql:<span class="type">string</span>, params?:<span class="type">any[]|{}</span>, options?:<a href="../QueryOptions"><span class="type">SqlQueryOptions</span></a>):Promise&lt;<span class="type">any[]</span>&gt;</span>
 
 see [streams](/streams)
 
