@@ -18,16 +18,16 @@ let pgdb = await PgDb.connect({connectionString: "postgres://"});
 
 let table = pgdb['test']['users']; //or pgdb.test.users if you generate the interface
 
-let c1 = await pgdb.query(`SELECT COUNT(*) as c FROM ${table} WHERE active=:active`, {active:true});
-let c2 = await table.count({active:true});
+let c1 = await pgdb.query(`SELECT COUNT(*) as c FROM ${table} WHERE active=:active`, {active: true});
+let c2 = await table.count({active: true});
 c1[0].c == c2 //true
 
-let user = {name:'admin'}
+let user = {name: 'admin'}
 await table.insert(user);
 
-await table.update({id:1}, user);
+await table.update({id: 1}, user);
 
-let res = await table.find({'name ~~*' : 'A%'}); //you can use Postgre operators
+let res = await table.find({id: [1,2,3]});
 ...
 ```
 
