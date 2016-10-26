@@ -99,7 +99,7 @@ export class QueryAble {
                     pgUtils.postProcessResult(res.rows, res.fields, this.db.pgdbTypeParsers);
                     return res.rows;
                 } catch(e){
-                    console.log('connection error1',e);
+                    logger.error(sql, util.inspect(params, false, null), connection ? connection.processID : null, e);
                     try {
                         if (connection)
                             connection.release();
@@ -111,7 +111,7 @@ export class QueryAble {
                 }
             }
         } catch (e) {
-            logger.error(sql, util.inspect(params, false, null), connection ? connection.processID : null);
+            logger.error(sql, util.inspect(params, false, null), connection ? connection.processID : null, e);
             throw e;
         }
     }

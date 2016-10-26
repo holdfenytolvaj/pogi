@@ -190,7 +190,7 @@ export class PgDb extends QueryAble {
             this.getLogger(true).error('pool error', e);
         });
         await this.reload();
-        this.getLogger(true).log('Successfully connected to Db');
+        this.getLogger().log('Successfully connected to Db');
         return this;
     }
 
