@@ -27,6 +27,9 @@ npm install pogi --save
 ##Documentation (includes why+1?)
 [here](http://pogi.readthedocs.io/en/latest/)
 
+[Our experience on migrating from mongo](https://hackernoon.com/javascript-experience-of-migrating-from-mongodb-to-postgresql-21f8bf140c05#.k4d7hqsv2)
+
+
 ##Some examples to get the taste
 ```js
 import {PgDb} from "pogi";
