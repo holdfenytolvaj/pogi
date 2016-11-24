@@ -42,12 +42,13 @@ let c1 = await pgdb.query(`SELECT COUNT(*) as c FROM ${table} WHERE active=:acti
 let c2 = await table.count({active:true});
 c1[0].c == c2; //true
 
+//mix json and relational columns (e.g. enumerations)
 await table.insert({name:'simply', permissions:['p','e','r'], props:{email:'f@e.ct'}});
 
 let rows;
 
 //use the same operators as in postgre
-rows = await table.find({'i ~':'ke.*', 'a @>':{'d':{'r':'e'}}, 'm @>':['!']});
+rows = await table.find({'name ~':'jo.*', 'jsoncolumn @>':{'d':{'r':'e'}}, 'arraycolumn @>':['!']});
 
 //will be transformed to "select * from test.users where id in (1,2,3)"
 rows = await table.find({id:[1,2,3]});
