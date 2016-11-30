@@ -646,4 +646,15 @@ describe("pgdb", () => {
         console.log(res);
         expect(res).toEqual(4);
     }));
+
+    it("executing sql file - if there is an exception, should be thrown", w(async()=> {
+        try {
+            await pgdb.execute('spec/resources/throw_exception.sql', (cmd) => cmd.replace(/__SCHEMA__/g, '"' + schema + '"'));
+            expect(false).toBeTruthy();
+        } catch (e) {
+            expect('' + e).toEqual("error: division_by_zero");
+        }
+    }));
+
+
 });

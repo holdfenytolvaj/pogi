@@ -365,7 +365,9 @@ export class PgDb extends QueryAble {
     }
 
     async execute(fileName, transformer?: (string)=>string): Promise<void> {
+        var isTransactionInPlace = this.isTransactionActive();
         var pgdb = await this.dedicatedConnectionBegin();
+
         var consume = (commands) => {
             commands = commands.slice();
             //this.getLogger(true).log('consumer start', commands.length);
@@ -485,15 +487,22 @@ export class PgDb extends QueryAble {
                 }
             });
         });
+        var error;
         return promise
-            .catch(()=> {
+            .catch((e)=> {
+                error = e;
+                this.getLogger(true).error(e);
             })
             .then(()=> {
                 // finally
-                return pgdb.dedicatedConnectionEnd();
+                //if transaction was in place, don't touch it
+                isTransactionInPlace ? pgdb : pgdb.dedicatedConnectionEnd();
             }).catch((e)=> {
                 this.getLogger(true).error(e);
             }).then(()=>{
+                if (error) {
+                    throw error;
+                }
                 // console.log('connection released');
             });
     }

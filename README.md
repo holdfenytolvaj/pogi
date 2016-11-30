@@ -69,6 +69,19 @@ What is? It's just usually not written (definitely not in the front page), but s
 I wish more project would be honest about it to save a lot of hours for others. If you find more,
 don't hesitate to tell us!
 
+##Contributing
+Ideas are welcome! To compile:
+```js
+npm run build
+```
+To test (node v4)
+```js
+npm run test
+```
+To test (node v6)
+```js
+npm run test_v6
+```
 
 ##Handcrafted at 
 [www.labcup.net](http://www.labcup.net/)

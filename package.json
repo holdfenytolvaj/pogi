@@ -6,7 +6,8 @@
   "types": "lib/index.d.ts",
   "scripts": {
     "build": "tsc -p src/tsconfig.json && babel lib/*.js -d ./",
-    "test": "node --harmony spec/run.js"
+    "test": "node --harmony spec/run.js",
+    "test_v6": "node spec/run.js"
   },
   "repository": {
     "type": "git",
