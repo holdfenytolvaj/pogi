@@ -43,18 +43,20 @@ let c2 = await table.count({active:true});
 c1[0].c == c2; //true
 
 //mix json and relational columns (e.g. enumerations)
-await table.insert({name:'simply', permissions:['p','e','r'], props:{email:'f@e.ct'}});
+await table.insert({name:'simply', permissions:['r','w','e'], props:{email:'undefined@dev.null'}});
 
 let rows;
 
 //use the same operators as in postgre
-rows = await table.find({'name ~':'jo.*', 'jsoncolumn @>':{'d':{'r':'e'}}, 'arraycolumn @>':['!']});
+rows = await table.find({'name ~':'Jo.*',                                  //regexp
+                         'jsoncolumn @>':{'dream':{'change':'the world'}}, //contains
+                         'arraycolumn @>':['up', 'down']});                //contains  
 
 //will be transformed to "select * from test.users where id in (1,2,3)"
 rows = await table.find({id:[1,2,3]});
 
 //easy fallback 
-rows = await table.where('"happyWife"="happyLife" and name=:name', {name:'me'});
+rows = await table.findWhere('"happyWife"="happyLife" and name=:name', {name:'me'});
 
 //convenient functions
 let power = await pgdb.queryOneField('SELECT MAX(power) FROM magical.dbhandlers');
