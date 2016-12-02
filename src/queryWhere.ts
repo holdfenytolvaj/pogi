@@ -99,11 +99,15 @@ function handleArrayValue(result, fieldAndOperator, value, fieldTypes:{[index:st
         ['?|', '?&'].indexOf(fieldAndOperator.operator)!=-1) {
         result.params.push(value);
         value = util.format("$%s", result.params.length + result.offset);
+        result.predicates.push(util.format('%s %s %s', fieldAndOperator.quotedField, fieldAndOperator.operator, value));
+        return result;
     }
     else if (fieldTypes[fieldAndOperator.field] == FieldType.JSON &&
         ['@>', '<@', '&&'].indexOf(fieldAndOperator.operator)!=-1) {
         result.params.push(JSON.stringify(value));
         value = util.format("$%s", result.params.length + result.offset);
+        result.predicates.push(util.format('%s %s %s', fieldAndOperator.quotedField, fieldAndOperator.operator, value));
+        return result;
     }
     else if (!fieldTypes[fieldAndOperator.field] &&
         ['=','<>','in','not in'].indexOf(fieldAndOperator.operator.toLowerCase())!=-1) {
@@ -127,17 +131,32 @@ function handleArrayValue(result, fieldAndOperator, value, fieldTypes:{[index:st
         });
 
         value = util.format('(%s)', arrayConditions.join(', '));
+        result.predicates.push(util.format('%s %s %s', fieldAndOperator.quotedField, fieldAndOperator.operator, value));
+        return result;
+    }
+    else if (!fieldTypes[fieldAndOperator.field] && ['LIKE', 'ILIKE', 'SIMILAR TO'].indexOf(fieldAndOperator.operator)!=-1) {
+        //defaults to any
+        result.params.push(value);
+        value = util.format("$%s", result.params.length + result.offset);
+        result.predicates.push(util.format('%s %s ANY(%s)', fieldAndOperator.quotedField, fieldAndOperator.operator, value));
+        return result;
+    }
+    else if (!fieldTypes[fieldAndOperator.field] && ['NOT LIKE', 'NOT ILIKE',  'NOT SIMILAR TO'].indexOf(fieldAndOperator.operator)!=-1) {
+        //defaults to all
+        result.params.push(value);
+        value = util.format("$%s", result.params.length + result.offset);
+        result.predicates.push(util.format('%s %s ALL(%s)', fieldAndOperator.quotedField, fieldAndOperator.operator, value));
+        return result;
     }
     else if (fieldTypes[fieldAndOperator.field] == FieldType.ARRAY &&
              ['=', '<>', '<', '>', '<=', '>=', '@>', '<@', '&&'].indexOf(fieldAndOperator.operator)!=-1) {
         result.params.push(value);
         value = util.format("$%s", result.params.length + result.offset);
-
-    } else {
-        throw new Error('[325] Not implemented operator: "' +fieldAndOperator.operator + '" for type ' + fieldTypes[fieldAndOperator.field]);
+        result.predicates.push(util.format('%s %s %s', fieldAndOperator.quotedField, fieldAndOperator.operator, value));
+        return result;
     }
-    result.predicates.push(util.format('%s %s %s', fieldAndOperator.quotedField, fieldAndOperator.operator, value));
-    return result;
+
+    throw new Error('[325] Not implemented operator: "' +fieldAndOperator.operator + '" for type ' + fieldTypes[fieldAndOperator.field]);
 }
 
 

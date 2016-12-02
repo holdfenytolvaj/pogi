@@ -269,6 +269,39 @@ describe("pgdb", () => {
 
     }));
 
+    it("Test " +
+        "like/~~/ilike/~~* ANY(), " +
+        "not like/!~~/not ilike/!~~* ALL()",  w(async() => {
+
+        await table.insert({ name: 'Iced lemonade'});
+        await table.insert({ name: 'Cucumber pear juice'});
+        let res;
+
+        res = await table.find({'name ~~': ['BB','%lemon%']});
+        expect(res.map(r=>r.name)).toEqual(['Iced lemonade']);
+
+        res = await table.find({'name like': ['BB','%lemon%']});
+        expect(res.map(r=>r.name)).toEqual(['Iced lemonade']);
+
+        res = await table.find({'name ~~*': ['bb','%LEMON%']});
+        expect(res.map(r=>r.name)).toEqual(['Iced lemonade']);
+
+        res = await table.find({'name ilike': ['bb','%LEMON%']});
+        expect(res.map(r=>r.name)).toEqual(['Iced lemonade']);
+
+        res = await table.find({'name !~~': ['BB', '%lemon%']});
+        expect(res.map(r=>r.name)).toEqual(['Cucumber pear juice']);
+
+        res = await table.find({'name not like': ['BB', '%lemon%']});
+        expect(res.map(r=>r.name)).toEqual(['Cucumber pear juice']);
+
+        res = await table.find({'name !~~*': ['bb', '%LEMON%']});
+        expect(res.map(r=>r.name)).toEqual(['Cucumber pear juice']);
+
+        res = await table.find({'name not ilike': ['bb', '%LEMON%']});
+        expect(res.map(r=>r.name)).toEqual(['Cucumber pear juice']);
+    }));
+
     it("Special added operators =*, icontains",  w(async() => {
         await table.insert({name: 'Iced lemonade'});
         await table.insert({name: 'Cucumber pear juice', textList: ['good', 'better', 'best']});

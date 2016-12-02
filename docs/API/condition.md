@@ -47,6 +47,14 @@
 | {'id is distinct from': '^a'}| "id" IS DISTINCT FROM '^a'
 | {'id is not distinct from': '^a'}| "id" IS NOT DISTINCT FROM '^a'
 
+###Extended
+
+| Condition                   | SQL                      
+| -------------               |:-------------- 
+| {'id ~~': ['1%','2%','3%']} | "id" LIKE ANY('{1%,2%,3%}')
+| {'id !~~': ['1%','2%','3%']}| "id" NOT LIKE ALL('{1%,2%,3%}') 
+
+
 ##Array type 
 [PostgreSQL Documentation](https://www.postgresql.org/docs/current/static/functions-array.html)
 
