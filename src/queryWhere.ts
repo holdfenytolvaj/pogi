@@ -94,23 +94,24 @@ function handleArrayValue(result, fieldAndOperator, value, fieldTypes:{[index:st
     if (fieldAndOperator.mutator) {
         value = value.map(v=>fieldAndOperator.mutator(v));
     }
+    let fieldType = fieldTypes[fieldAndOperator.field];
 
-    if (fieldTypes[fieldAndOperator.field] == FieldType.JSON &&
+    if (fieldType == FieldType.JSON &&
         ['?|', '?&'].indexOf(fieldAndOperator.operator)!=-1) {
         result.params.push(value);
         value = util.format("$%s", result.params.length + result.offset);
         result.predicates.push(util.format('%s %s %s', fieldAndOperator.quotedField, fieldAndOperator.operator, value));
         return result;
     }
-    else if (fieldTypes[fieldAndOperator.field] == FieldType.JSON &&
+    else if (fieldType == FieldType.JSON &&
         ['@>', '<@', '&&'].indexOf(fieldAndOperator.operator)!=-1) {
         result.params.push(JSON.stringify(value));
         value = util.format("$%s", result.params.length + result.offset);
         result.predicates.push(util.format('%s %s %s', fieldAndOperator.quotedField, fieldAndOperator.operator, value));
         return result;
     }
-    else if (!fieldTypes[fieldAndOperator.field] &&
-        ['=','<>','in','not in'].indexOf(fieldAndOperator.operator.toLowerCase())!=-1) {
+    else if ((!fieldType || fieldType == FieldType.TIME) &&
+        ['=','<>','IN','NOT IN'].indexOf(fieldAndOperator.operator)!=-1) {
         var arrayConditions = [];
         if (fieldAndOperator.operator === '=' ) {
             fieldAndOperator.operator = 'IN';
@@ -125,7 +126,6 @@ function handleArrayValue(result, fieldAndOperator, value, fieldTypes:{[index:st
         }
 
         value.forEach(v => {
-            let fieldType = fieldTypes[fieldAndOperator.field];
             result.params.push((fieldType == FieldType.TIME && !(value instanceof Date)) ? new Date(v) : v);
             arrayConditions.push(util.format("$%s", result.params.length + result.offset));
         });
@@ -134,21 +134,21 @@ function handleArrayValue(result, fieldAndOperator, value, fieldTypes:{[index:st
         result.predicates.push(util.format('%s %s %s', fieldAndOperator.quotedField, fieldAndOperator.operator, value));
         return result;
     }
-    else if (!fieldTypes[fieldAndOperator.field] && ['LIKE', 'ILIKE', 'SIMILAR TO', '~', '~*'].indexOf(fieldAndOperator.operator)!=-1) {
+    else if (!fieldType && ['LIKE', 'ILIKE', 'SIMILAR TO', '~', '~*'].indexOf(fieldAndOperator.operator)!=-1) {
         //defaults to any
         result.params.push(value);
         value = util.format("$%s", result.params.length + result.offset);
         result.predicates.push(util.format('%s %s ANY(%s)', fieldAndOperator.quotedField, fieldAndOperator.operator, value));
         return result;
     }
-    else if (!fieldTypes[fieldAndOperator.field] && ['NOT LIKE', 'NOT ILIKE', 'NOT SIMILAR TO', '!~', '!~*'].indexOf(fieldAndOperator.operator)!=-1) {
+    else if (!fieldType && ['NOT LIKE', 'NOT ILIKE', 'NOT SIMILAR TO', '!~', '!~*'].indexOf(fieldAndOperator.operator)!=-1) {
         //defaults to all
         result.params.push(value);
         value = util.format("$%s", result.params.length + result.offset);
         result.predicates.push(util.format('%s %s ALL(%s)', fieldAndOperator.quotedField, fieldAndOperator.operator, value));
         return result;
     }
-    else if (fieldTypes[fieldAndOperator.field] == FieldType.ARRAY &&
+    else if (fieldType == FieldType.ARRAY &&
              ['=', '<>', '<', '>', '<=', '>=', '@>', '<@', '&&'].indexOf(fieldAndOperator.operator)!=-1) {
         result.params.push(value);
         value = util.format("$%s", result.params.length + result.offset);
@@ -156,7 +156,7 @@ function handleArrayValue(result, fieldAndOperator, value, fieldTypes:{[index:st
         return result;
     }
 
-    throw new Error('[325] Not implemented operator: "' +fieldAndOperator.operator + '" for type ' + fieldTypes[fieldAndOperator.field]);
+    throw new Error('[325] Not implemented operator: "' +fieldAndOperator.operator + '" for type ' + fieldType);
 }
 
 
@@ -178,7 +178,7 @@ function handleSingleValue(result, fieldAndOperator, value, fieldTypes:{[index:s
             let q = 'EXISTS (SELECT * FROM (SELECT UNNEST(' + tableName + '.%s) _el) _arr WHERE _arr._el %s %s)';
             result.predicates.push(util.format(q, fieldAndOperator.quotedField, fieldAndOperator.operator, value));
         } else {
-            throw new Error('[326] Not implemented operator: "' +fieldAndOperator.operator + '" for type ' + fieldTypes[fieldAndOperator.field]);
+            throw new Error('[326] Not implemented operator: "' +fieldAndOperator.operator + '" for type ' + fieldType);
         }
     } else {
         result.params.push((fieldType == FieldType.TIME && !(value instanceof Date)) ? new Date(value) : value);
@@ -256,7 +256,7 @@ function parseKey(key):FieldAndOperator {
     return {
         field: field,
         quotedField: quotedField,
-        operator: operation.operator || '=',
+        operator: (operation.operator || '=').toUpperCase(),
         mutator: operation.mutator
     };
 }
