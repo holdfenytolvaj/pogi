@@ -134,14 +134,14 @@ function handleArrayValue(result, fieldAndOperator, value, fieldTypes:{[index:st
         result.predicates.push(util.format('%s %s %s', fieldAndOperator.quotedField, fieldAndOperator.operator, value));
         return result;
     }
-    else if (!fieldTypes[fieldAndOperator.field] && ['LIKE', 'ILIKE', 'SIMILAR TO'].indexOf(fieldAndOperator.operator)!=-1) {
+    else if (!fieldTypes[fieldAndOperator.field] && ['LIKE', 'ILIKE', 'SIMILAR TO', '~', '~*'].indexOf(fieldAndOperator.operator)!=-1) {
         //defaults to any
         result.params.push(value);
         value = util.format("$%s", result.params.length + result.offset);
         result.predicates.push(util.format('%s %s ANY(%s)', fieldAndOperator.quotedField, fieldAndOperator.operator, value));
         return result;
     }
-    else if (!fieldTypes[fieldAndOperator.field] && ['NOT LIKE', 'NOT ILIKE',  'NOT SIMILAR TO'].indexOf(fieldAndOperator.operator)!=-1) {
+    else if (!fieldTypes[fieldAndOperator.field] && ['NOT LIKE', 'NOT ILIKE', 'NOT SIMILAR TO', '!~', '!~*'].indexOf(fieldAndOperator.operator)!=-1) {
         //defaults to all
         result.params.push(value);
         value = util.format("$%s", result.params.length + result.offset);

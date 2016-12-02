@@ -238,6 +238,27 @@ describe("pgdb", () => {
 
     }));
 
+    it("Test regexp " +
+        "~/~* ANY" +
+        "!~/!~* ALL",  w(async() => {
+        await table.insert({ name: "All' o Phoibe"});
+        await table.insert({ name: "I've got that tune"});
+
+        let res = await table.find({'name ~': ["\\so\\s", '\\d+']});
+        expect(res.map(r=>r.name)).toEqual(["All' o Phoibe"]);
+
+        res = await table.find({'name ~*': ["\\sO\\s", '\\d+']});
+        expect(res.map(r=>r.name)).toEqual(["All' o Phoibe"]);
+
+        res = await table.find({'name !~': ["\\so\\s", '\\d+']});
+        expect(res.map(r=>r.name)).toEqual(["I've got that tune"]);
+
+        res = await table.find({'name !~*': ["\\sO\\s", '\\d+']});
+        expect(res.map(r=>r.name)).toEqual(["I've got that tune"]);
+
+    }));
+
+
     it("Test like ~~, like, ~~*, ilike, !~~, not like, !~~*, not ilike",  w(async() => {
         await table.insert({ name: 'Iced lemonade'});
         await table.insert({ name: 'Cucumber pear juice'});
