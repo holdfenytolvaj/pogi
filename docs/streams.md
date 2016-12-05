@@ -23,9 +23,32 @@ find/findAll/findWhere all can be used to return a stream, passing it to the opt
 ```ts
 
 let stream;
-stream = await pgdb.find({'id >':1}, {stream:true});
-stream = await pgdb.findAll({stream:true});
-stream = await pgdb.findWhere('true', null, {stream:true});
+stream = await pgdb.users.find({'id >':1}, {stream:true});
+stream = await pgdb.users.findAll({stream:true});
+stream = await pgdb.users.findWhere('true', null, {stream:true});
 
 
+```
+
+##Using async in stream
+```ts
+let stream = await pgdb.users.find({'id >':1}, {stream:true});
+stream.on('data', (user: User)=> {
+    stream.pause();
+    
+    (async function() {
+        ...
+        await mightDoSth(user);
+        ...        
+        stream.resume();
+    })().catch(e=>{
+        console.error(e);
+        stream.emit( "error", e);
+    });
+});
+
+await new Promise((resolve, reject)=> {
+    stream.on('end', resolve);
+    stream.on('error', reject);
+});
 ```

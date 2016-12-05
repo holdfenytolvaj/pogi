@@ -78,24 +78,24 @@
 ##Jsonb type
 [PostgreSQL Documentation](https://www.postgresql.org/docs/current/static/functions-json.html)
 
-| Condition         | SQL                                 | NOTE
-| -------------     |:--------------                     :|---
-| {'id @>':[1,2,3]} | "id" @> '[1,2,3]'                   |
-| {'id @>':{a:1}}   | "id" @> '{a:1}'                     |
-| {'id <@':[1,2,3]} | "id" <@ '[1,2,3]'                   |
-| {'id <@':{a:1}}   | "id" <@ '{a:1}'                     |
-| {'id ?':'a'}      | "id" ? 'a'                          |
-| {'id ?&#124;':['a','b']}| "id" ?&#124; '{a,b}'          |
-| {'id ?&':['a','b']}| "id" ?& '{a,b}'                    |
-| {'id -> a':{a:3}}     | "id"->'a' = '{"a":3}'::jsonb    |
-| {'id -> 3':{a:3}}     | "id"->3 = '{"a":3}'::jsonb      |if the field is a number, the quote wont apply as it could refer index also 
-| {"id -> '3'":{a:3}}   | "id"->'3' = '{"a":3}'::jsonb    |... so you have to apply that manually
-| {'id ->> a':3}        | "id"->>'a' = 3                  |
-| {'id ->> 3':3}        | "id"->>3 = 3                    |if the field is a number, the quote wont apply as it could refer index also
-| {'id ->> '3'":'{"a": 3}'}  | "id"->>3 = '{"a": 3}'      |... so you have to apply that manually
-| {"id #> '{a,3}'":{a:3}} | "id"#>'{a,3}' = '{"a":3}'::jsonb    |
-| {"id #>> '{a,3}'":'{"a": 3}'} | "id"#>>'{a,3}' = '{"a": 3}'    |
-| {"id #>>'{a,3}'":3}   | "id"#>>'{a,3}' = 3              |
+| Condition               | SQL                                 | NOTE
+| -------------           |:--------------                      |:---
+| {'jdata @>':[1,2,3]}       | "jdata" @> '[1,2,3]'                   |
+| {'jdata @>':{a:1}}         | "jdata" @> '{a:1}'                     |
+| {'jdata <@':[1,2,3]}       | "jdata" <@ '[1,2,3]'                   |
+| {'jdata <@':{a:1}}         | "jdata" <@ '{a:1}'                     |
+| {'jdata ?':'a'}            | "jdata" ? 'a'                          |
+| {'jdata ?&#124;':['a','b']}| "jdata" ?&#124; '{a,b}'                |
+| {'jdata ?&':['a','b']}     | "jdata" ?& '{a,b}'                     |
+| {'jdata -> a':{a:3}}       | "jdata" -> 'a' = '{"a":3}'::jsonb      |
+| {'jdata -> 3':{a:3}}       | "jdata" ->  3  = '{"a":3}'::jsonb      |if the field is a number, the quote wont apply as it could refer index also 
+| {"jdata -> '3'":{a:3}}     | "jdata" -> '3' = '{"a":3}'::jsonb      |... so you have to apply that manually
+| {'jdata ->> a':3}          | "jdata" ->>'a' = 3                     |
+| {'jdata ->> 3':3}          | "jdata" ->> 3  = 3                     |if the field is a number, the quote wont apply as it could refer index also
+| {'jdata ->> '3'":'{"a": 3}'}   | "jdata"->>3 = '{"a": 3}'           |... so you have to apply that manually
+| {"jdata #> '{a,3}'":{a:3}}     | "jdata"#>'{a,3}' = '{"a":3}'::jsonb|surronding {} with ' is possible but not obligatory 
+| {"jdata #>> {a,3}":'{"a": 3}'} | "jdata"#>>'{a,3}' = '{"a": 3}'     |
+| {"jdata #>> {a} >":'a'          | "jdata"#>>'{a}' > 'a'             |
 
 Note: 
  
