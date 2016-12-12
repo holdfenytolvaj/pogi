@@ -78,6 +78,7 @@ export interface ConnectionOptions {
     idleTimeoutMillis?: number; // how long a client is allowed to remain idle before being closed
 
     logger?: PgDbLogger;
+    skipUndefined?: 'all' | 'select' | 'none'; //if there is a undefined value in the condition, what should pogi do. Default is 'none', meaning raise error if a value is undefined.
 }
 
 /**
@@ -179,7 +180,7 @@ export class PgDb extends QueryAble {
     }
 
     private async init(): Promise<PgDb> {
-        this.pool = new pg.Pool(Object.create(this.config, {logger: {value: undefined}}));
+        this.pool = new pg.Pool(Object.create(this.config, {logger: {value: undefined}, skipUndefined: {value: undefined}}));
         if (this.config.logger)
             this.setLogger(this.config.logger);
 

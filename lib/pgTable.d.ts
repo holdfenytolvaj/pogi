@@ -8,6 +8,11 @@ export interface Return {
     return?: string[] | '*';
 }
 export interface UpdateDeleteOption {
+    skipUndefined?: boolean;
+    logger?: PgDbLogger;
+}
+export interface CountOption {
+    skipUndefined?: boolean;
     logger?: PgDbLogger;
 }
 export interface Stream {
@@ -102,20 +107,20 @@ export declare class PgTable<T> extends QueryAble {
     findAll(options?: QueryOptions & Stream): Promise<any>;
     findOne(conditions: any, options?: QueryOptions): Promise<T>;
     findFirst(conditions: any, options?: QueryOptions): Promise<T>;
-    count(conditions?: {}): Promise<number>;
+    count(conditions?: {}, options?: CountOption): Promise<number>;
     findOneFieldOnly(conditions: any, field: string, options?: QueryOptions): Promise<any>;
     private getInsertQuery(records);
     protected getUpdateQuery(conditions: {
         [k: string]: any;
     }, fields: {
         [k: string]: any;
-    }): {
+    }, options?: UpdateDeleteOption): {
         sql: string;
         parameters: any[];
     };
     protected getDeleteQuery(conditions: {
         [k: string]: any;
-    }): {
+    }, options?: UpdateDeleteOption): {
         sql: string;
         parameters: any[];
     };

@@ -199,19 +199,19 @@ describe("pgdb", () => {
         expect(res.length).toEqual(1);
     }));
 
-    it("Ignore field with undefined value, but keep with null value",  w(async() => {
+    it("Ignore field with undefined value if requested, but keep with null value",  w(async() => {
         await table.insert({name: 'A', numberList: [1, 2]});
 
-        let res = await table.find({name: undefined});
+        let res = await table.find({name: undefined}, {skipUndefined:true});
         expect(res.length).toEqual(1);
 
-        res = await table.find({name: null});
+        res = await table.find({name: null}, {skipUndefined:true});
         expect(res.length).toEqual(0);
 
-        let res2 = await table.updateAndGetOne({name: 'A'}, {numberList: undefined, favourites:['sport']});
+        let res2 = await table.updateAndGetOne({name: 'A'}, {numberList: undefined, favourites:['sport']}, {skipUndefined:true});
         expect(res2.numberList).toEqual([1, 2]);
 
-        res2 = await table.updateAndGetOne({name: 'A', numberList: undefined}, {numberList: null});
+        res2 = await table.updateAndGetOne({name: 'A', numberList: undefined}, {numberList: null}, {skipUndefined:true});
         expect(res2.numberList).toEqual(null);
     }));
 
@@ -656,5 +656,40 @@ describe("pgdb", () => {
         }
     }));
 
+    it("select/update/delete should throw exception if the condition contains undefined value", w(async()=> {
+        await table.insert({name: 'A', membership:'gold'});
+        let conditions = {name: 'A', membership:undefined};
+
+        try {
+            await table.find(conditions);
+            expect(false).toBeTruthy();
+        } catch (e) {
+            expect('' + e).toEqual('Error: Invalid conditions! Field value undefined: "membership". Either delete the field, set it to null or use the options.skipUndefined parameter.');
+        }
+        let res = await table.find(conditions, {skipUndefined: true});
+        expect(res.length==1).toBeTruthy();
+
+        try {
+            await table.update(conditions, {name:'B'});
+            expect(false).toBeTruthy();
+        } catch (e) {
+            expect('' + e).toEqual('Error: Invalid conditions! Field value undefined: "membership". Either delete the field, set it to null or use the options.skipUndefined parameter.');
+        }
+        await table.update(conditions, {name:'B'}, {skipUndefined: true});
+        res = await table.find(conditions, {skipUndefined: true});
+        expect(res.length==0).toBeTruthy();
+
+        try {
+            conditions.name = 'B';
+            await table.delete(conditions);
+            expect(false).toBeTruthy();
+        } catch (e) {
+            expect('' + e).toEqual('Error: Invalid conditions! Field value undefined: "membership". Either delete the field, set it to null or use the options.skipUndefined parameter.');
+        }
+        await table.delete(conditions, {skipUndefined: true});
+        res = await table.findAll();
+        expect(res.length==0).toBeTruthy();
+
+    }));
 
 });

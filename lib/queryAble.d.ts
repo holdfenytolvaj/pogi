@@ -8,6 +8,7 @@ export interface QueryOptions {
     groupBy?: string | string[];
     fields?: string | string[];
     logger?: PgDbLogger;
+    skipUndefined?: boolean;
 }
 export interface SqlQueryOptions {
     logger?: PgDbLogger;

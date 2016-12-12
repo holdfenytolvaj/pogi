@@ -44,8 +44,31 @@ export interface ConnectionOptions {
     poolIdleTimeout?:number;
 
     logger?:PgDbLogger;
+    skipUndefined?: 'all' | 'select' | 'none'; //if there is a undefined value in the query condition, what should pogi do. Default is 'none', meaning raise an error if a value is undefined.
 }
 ```
+##skipUndefined
+while most settings are self explanatory, this parameter is important. In the first version of pogi
+we ignored the condition if the value was undefined in order for ease the use e.g.:
+``` ts
+    let query = {
+        powerfull: params.powerfull,
+        wise: params.wise
+    }
+    await pgdb.users.find(query);
+```
+would return a result if e.g. the `form.wise` would be undefined. While this is comfortable
+in many situation, it can cause critical issues e.g. for update
+``` ts
+   await pgdb.users.update({id:user.id}, {password});
+```
+would update all users password, in case of the id is undefined. (Although this can be mitigated
+with the `updateOne` function as well.) Still the best if no undefined value is allowed in the conditions.
+Nevertheless to keep the compatibility, this parameter added, and skipUndefined can be set to `all` if needed.
+`select` would allow undefined values for selects/count only but would be strict for update/deletes.
+`none` is the new default value, meaning undefined value considered as programming error and will throw an exception.
+This setting can be specified on query level as well.
+
 
 ### Static singleton
 If there is no reference kept to the object there is a static function to get the same object everywhere, 

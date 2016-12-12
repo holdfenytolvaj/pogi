@@ -10,12 +10,12 @@ class FieldAndOperator {
     mutator?: Function;
 }
 
-function generateWhere(conditions, fieldTypes:{[index:string]:FieldType}, tableName:string, placeholderOffset=0) : {where:string, params:Array<any>} {
+function generateWhere(conditions, fieldTypes:{[index:string]:FieldType}, tableName:string, placeholderOffset=0, skipUndefined) : {where:string, params:Array<any>} {
     var result = generate({
         params: [],
         predicates: [],
         offset: placeholderOffset,
-    }, conditions, fieldTypes, tableName);
+    }, conditions, fieldTypes, tableName, skipUndefined);
 
     return {
         where: result.predicates.length>0 ? ' WHERE ' + result.predicates.join(' AND ') : '',
@@ -23,15 +23,16 @@ function generateWhere(conditions, fieldTypes:{[index:string]:FieldType}, tableN
     };
 }
 
-function generate(result, conditions, fieldTypes:{[index:string]:FieldType}, tableName:string) {
+function generate(result, conditions, fieldTypes:{[index:string]:FieldType}, tableName:string, skipUndefined) {
     _.each(conditions, (value, key) => {
         var fieldAndOperator = parseKey(key);
 
-        if (value === undefined) { //null is ok, but undefined is skipped
-            return;
+        if (value === undefined) { //null is ok, but undefined is skipped if requested
+            if (skipUndefined === true) return;
+            throw new Error('Invalid conditions! Field value undefined: "' + fieldAndOperator.field + '". Either delete the field, set it to null or use the options.skipUndefined parameter.');
         }
         else if (fieldAndOperator.field === 'or' || fieldAndOperator.field === 'and') {
-            result = handleOrAnd(result, fieldAndOperator, value, fieldTypes, tableName);
+            result = handleOrAnd(result, fieldAndOperator, value, fieldTypes, tableName, skipUndefined);
         }
         else if (value === null) {
             result = handleNullValue(result, fieldAndOperator, value);
@@ -47,7 +48,7 @@ function generate(result, conditions, fieldTypes:{[index:string]:FieldType}, tab
     return result;
 }
 
-function handleOrAnd(result, fieldAndOperator, value, fieldTypes:{[index:string]:FieldType}, tableName:string) {
+function handleOrAnd(result, fieldAndOperator, value, fieldTypes:{[index:string]:FieldType}, tableName:string, skipUndefined) {
     if (!Array.isArray(value)) {
         value = [value];
     }
@@ -58,7 +59,7 @@ function handleOrAnd(result, fieldAndOperator, value, fieldTypes:{[index:string]
             params: [],
             predicates: [],
             offset: result.params.length + acc.offset   // ensure the offset from predicates outside the subgroup is counted
-        }, v, fieldTypes, tableName);
+        }, v, fieldTypes, tableName, skipUndefined);
 
         // encapsulate and join the individual predicates with AND to create the complete subgroup predicate
         acc.predicates.push(util.format('(%s)', subResult.predicates.join(' AND ')));
@@ -121,7 +122,7 @@ function handleArrayValue(result, fieldAndOperator, value, fieldTypes:{[index:st
         }
 
         if (value.length === 0){  // avoid empty "[NOT] IN ()"
-            throw new Error('Invalid conditions: empty array for field:"' + fieldAndOperator.field + '" and operator:"' + fieldAndOperator.operator +'"');
+            throw new Error('Invalid conditions! empty array for field:"' + fieldAndOperator.field + '" and operator:"' + fieldAndOperator.operator +'"');
             //return result;
         }
 

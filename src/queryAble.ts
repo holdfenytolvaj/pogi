@@ -11,6 +11,7 @@ export interface QueryOptions {
     groupBy?: string|string[];//free text or column list
     fields?: string|string[];//free text or column list
     logger?: PgDbLogger;
+    skipUndefined?:boolean;
 }
 
 export interface SqlQueryOptions {

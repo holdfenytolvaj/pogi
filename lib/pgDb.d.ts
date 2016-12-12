@@ -26,6 +26,7 @@ export interface ConnectionOptions {
     connectionString?: string;
     idleTimeoutMillis?: number;
     logger?: PgDbLogger;
+    skipUndefined?: 'all' | 'select' | 'none';
 }
 /**
  * log will get 3 parameters:

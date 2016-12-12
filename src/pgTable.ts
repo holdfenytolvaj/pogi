@@ -15,6 +15,11 @@ export interface Return {
     return?:string[]|'*';
 }
 export interface UpdateDeleteOption {
+    skipUndefined?:boolean;
+    logger?: PgDbLogger;
+}
+export interface CountOption {
+    skipUndefined?:boolean;
     logger?: PgDbLogger;
 }
 
@@ -132,21 +137,21 @@ export class PgTable<T> extends QueryAble {
     }
 
     async update(conditions:{[k:string]:any}, fields:{[k:string]:any}, options?:UpdateDeleteOption):Promise<number> {
-        let {sql, parameters} = this.getUpdateQuery(conditions, fields);
+        let {sql, parameters} = this.getUpdateQuery(conditions, fields, options);
         sql = "WITH __RESULT as ( " + sql + " RETURNING 1) SELECT SUM(1) FROM __RESULT";
         let res = await this.query(sql, parameters, options);
         return res[0].sum;
     };
 
     async updateAndGet(conditions:{[k:string]:any}, fields:{[k:string]:any}, options?:UpdateDeleteOption & Return):Promise<T[]> {
-        let {sql, parameters} = this.getUpdateQuery(conditions, fields);
+        let {sql, parameters} = this.getUpdateQuery(conditions, fields, options);
         sql += " RETURNING " + (options && options.return && Array.isArray(options.return) ? options.return.map(pgUtils.quoteField).join(',') : '*');
         return this.query(sql, parameters, options);
     };
 
 
     async delete(conditions:{[k:string]:any}, options?:UpdateDeleteOption):Promise<number> {
-        let {sql, parameters} = this.getDeleteQuery(conditions);
+        let {sql, parameters} = this.getDeleteQuery(conditions, options);
         sql = "WITH __RESULT as ( " + sql + " RETURNING 1) SELECT SUM(1) FROM __RESULT";
         let res = await this.query(sql, parameters, options);
         return res[0].sum;
@@ -161,7 +166,7 @@ export class PgTable<T> extends QueryAble {
     }
 
     async deleteAndGet(conditions:{[k:string]:any}, options?:UpdateDeleteOption & Return): Promise<any[]> {
-        let {sql, parameters} = this.getDeleteQuery(conditions);
+        let {sql, parameters} = this.getDeleteQuery(conditions, options);
         sql += " RETURNING " + options && options.return && Array.isArray(options.return) ? options.return.map(pgUtils.quoteField).join(',') : '*';
         return this.query(sql, parameters);
     }
@@ -196,7 +201,9 @@ export class PgTable<T> extends QueryAble {
     async find(conditions:{[k:string]:any}, options?:QueryOptions & Stream):Promise<{on:any}>
     async find(conditions:{[k:string]:any}, options?:any):Promise<any> {
         options = options || {};
-        let where = _.isEmpty(conditions) ? {where: " ", params: null} : generateWhere(conditions, this.fieldTypes, this.qualifiedName);
+        options.skipUndefined = options.skipUndefined===true || (options.skipUndefined===undefined && ['all', 'select'].indexOf(this.db.config.skipUndefined)>-1);
+
+        let where = _.isEmpty(conditions) ? {where: " ", params: null} : generateWhere(conditions, this.fieldTypes, this.qualifiedName, 0, options.skipUndefined);
         let sql = `SELECT ${pgUtils.processQueryFields(options)} FROM ${this.qualifiedName} ${where.where} ${pgUtils.processQueryOptions(options)}`;
         return options.stream ? this.queryAsStream(sql, where.params, options) : this.query(sql, where.params, options);
     }
@@ -234,8 +241,11 @@ export class PgTable<T> extends QueryAble {
     }
 
 
-    async count(conditions?:{}):Promise<number> {
-        var where = _.isEmpty(conditions) ? {where: " ", params: null} : generateWhere(conditions, this.fieldTypes, this.qualifiedName);
+    async count(conditions?:{}, options?:CountOption):Promise<number> {
+        options = options || {};
+        options.skipUndefined = options.skipUndefined===true || (options.skipUndefined===undefined && ['all', 'select'].indexOf(this.db.config.skipUndefined)>-1);
+
+        var where = _.isEmpty(conditions) ? {where: " ", params: null} : generateWhere(conditions, this.fieldTypes, this.qualifiedName, 0, options.skipUndefined);
         var sql = `SELECT COUNT(*) c FROM ${this.qualifiedName} ${where.where}`;
         return (await this.queryOneField(sql, where.params));
     }
@@ -268,7 +278,10 @@ export class PgTable<T> extends QueryAble {
 
     }
 
-    protected getUpdateQuery(conditions:{[k:string]:any}, fields:{[k:string]:any}):{sql:string, parameters:any[]} {
+    protected getUpdateQuery(conditions:{[k:string]:any}, fields:{[k:string]:any}, options?:UpdateDeleteOption):{sql:string, parameters:any[]} {
+        options = options || {};
+        options.skipUndefined = options.skipUndefined===true || (options.skipUndefined===undefined && this.db.config.skipUndefined === 'all');
+
         var hasConditions = true;
 
         if (_.isEmpty(fields)) {
@@ -289,19 +302,22 @@ export class PgTable<T> extends QueryAble {
         let sql = util.format("UPDATE %s SET %s", this.qualifiedName, f.join(', '));
 
         if (!hasConditions || !_.isEmpty(conditions)) {
-            var parsedWhere = generateWhere(conditions, this.fieldTypes, this.qualifiedName, parameters.length);
+            var parsedWhere = generateWhere(conditions, this.fieldTypes, this.qualifiedName, parameters.length, options.skipUndefined);
             sql += parsedWhere.where;
         }
         parameters = parameters.concat(_.flatten(_.values(conditions).filter(v=>v!==undefined)));
         return {sql, parameters};
     }
 
-    protected getDeleteQuery(conditions:{[k:string]:any}):{sql:string, parameters:any[]} {
+    protected getDeleteQuery(conditions:{[k:string]:any}, options?:UpdateDeleteOption):{sql:string, parameters:any[]} {
+        options = options || {};
+        options.skipUndefined = options.skipUndefined===true || (options.skipUndefined===undefined && this.db.config.skipUndefined === 'all');
+
         let sql = util.format("DELETE FROM %s ", this.qualifiedName);
 
         var parsedWhere;
         if (!_.isEmpty(conditions)) {
-            parsedWhere = generateWhere(conditions, this.fieldTypes, this.qualifiedName);
+            parsedWhere = generateWhere(conditions, this.fieldTypes, this.qualifiedName, 0, options.skipUndefined);
             sql += parsedWhere.where;
         }
         return {sql, parameters: parsedWhere && parsedWhere.params||[]}
