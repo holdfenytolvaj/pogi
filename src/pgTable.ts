@@ -261,7 +261,7 @@ export class PgTable<T> extends QueryAble {
     private getInsertQuery(records:T[]) {
         let columnsMap = {};
         records.forEach(rec => {
-            for(let field in rec) columnsMap[field] = true;
+            for(let field in rec) columnsMap[<string>field] = true;
         });
         let columns = Object.keys(columnsMap);
         let sql = util.format("INSERT INTO %s (%s) VALUES\n", this.qualifiedName, columns.map(pgUtils.quoteField).join(", "));

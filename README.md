@@ -72,16 +72,14 @@ I wish more project would be honest about it to save a lot of hours for others. 
 don't hesitate to tell us!
 
 ##Contributing
-Ideas are welcome! To compile:
+Ideas are welcome! To compile & test
 ```js
 npm run build
-```
-To test (node v4)
-```js
 npm run test
 ```
-To test (node v6)
+node v6
 ```js
+npm run build_v6
 npm run test_v6
 ```
 

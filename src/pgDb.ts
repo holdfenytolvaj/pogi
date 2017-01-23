@@ -52,17 +52,27 @@ const LIST_SPECIAL_TYPE_FIELDS =
     JOIN pg_class b ON (a.attrelid = b.oid)
     JOIN pg_type t ON (a.atttypid = t.oid)
     JOIN pg_namespace c ON (b.relnamespace=c.oid) 
-    WHERE (a.atttypid in (114, 3802, 1082, 1083, 1114, 1184, 1266) or t.typcategory='A') 
+    WHERE (a.atttypid in (114, 3802, 1082, 1083, 1114, 1184, 1266, 3614) or t.typcategory='A') 
     AND c.nspname not in ('pg_catalog','pg_constraint') and reltoastrelid>0`;
 
-export enum FieldType {JSON, ARRAY, TIME}
+export enum FieldType {JSON, ARRAY, TIME, TSVECTOR}
 
+/**
+ * @property connectionString e.g.: "postgres://user@localhost/database"
+ * @property user can be specified through PGHOST env variable
+ * @property user can be specified through PGUSER env variable (defaults USER env var)
+ * @property database can be specified through PGDATABASE env variable (defaults USER env var)
+ * @property password can be specified through PGPASSWORD env variable
+ * @property port can be specified through PGPORT env variable
+ * @property idleTimeoutMillis how long a client is allowed to remain idle before being closed
+ * @property skipUndefined if there is a undefined value in the condition, what should pogi do. Default is 'none', meaning raise error if a value is undefined.
+ */
 export interface ConnectionOptions {
-    host?: string;
-    user?: string; //can be specified through PGUSER env variable (defaults USER env var)
-    database?: string; //can be specified through PGDATABASE env variable (defaults USER env var)
-    password?: string; //can be specified through PGPASSWORD env variable
-    port?: number; //can be specified through PGPORT env variable
+    host?: string; //host can be specified through PGHOST env variable (defaults USER env var)
+    user?: string; //user can be specified through PGUSER env variable (defaults USER env var)
+    database?: string; // can be specified through PGDATABASE env variable (defaults USER env var)
+    password?: string; // can be specified through PGPASSWORD env variable
+    port?: number; // can be specified through PGPORT env variable
     poolSize?: number;
     rows?: number;
     binary?: boolean;
@@ -78,7 +88,7 @@ export interface ConnectionOptions {
     idleTimeoutMillis?: number; // how long a client is allowed to remain idle before being closed
 
     logger?: PgDbLogger;
-    skipUndefined?: 'all' | 'select' | 'none'; //if there is a undefined value in the condition, what should pogi do. Default is 'none', meaning raise error if a value is undefined.
+    skipUndefined?: 'all' | 'select' | 'none'; // if there is a undefined value in the condition, what should pogi do. Default is 'none', meaning raise error if a value is undefined.
 }
 
 /**
@@ -249,6 +259,7 @@ export class PgDb extends QueryAble {
         for (let r of specialTypeFields.rows) {
             this.schemas[r.schema_name][r.table_name].fieldTypes[r.column_name] =
                 ([3802, 114].indexOf(r.typid) > -1) ? FieldType.JSON :
+                    ([3614].indexOf(r.typid) > -1) ? FieldType.TSVECTOR :
                     ([1082, 1083, 1114, 1184, 1266].indexOf(r.typid) > -1) ? FieldType.TIME :
                         FieldType.ARRAY;
         }
@@ -262,6 +273,7 @@ export class PgDb extends QueryAble {
                 case 1114: // timestamp
                 case 1184: // timestamptz
                 case 1266: // timetz
+                case 3614: // tsvector
                     break;
                 case 1005: // smallInt[] int2[]
                 case 1007: // integer[]  int4[]
@@ -365,46 +377,48 @@ export class PgDb extends QueryAble {
         return this.connection != null;
     }
 
-    async execute(fileName, transformer?: (string)=>string): Promise<void> {
-        var isTransactionInPlace = this.isTransactionActive();
-        var pgdb = await this.dedicatedConnectionBegin();
+    async execute(fileName, statementTransformerFunction?: (string)=>string): Promise<void> {
+        let isTransactionInPlace = this.isTransactionActive();
+        let pgdb = await this.dedicatedConnectionBegin();
 
-        var consume = (commands) => {
-            commands = commands.slice();
+        /** run statements one after the other */
+        let runStatementList = (statementList) => {
             //this.getLogger(true).log('consumer start', commands.length);
             return new Promise((resolve, reject)=> {
-                var i = 0;
-                var runCommand = ()=> {
+                let currentStatement = 0;
+                let runStatement = ()=> {
                     //this.getLogger(true).log('commnads length', commands.length, i);
-                    if (commands.length == i) {
+                    if (statementList.length == currentStatement) {
                         resolve();
                     } else {
-                        let command = commands[i++];
-                        if (transformer) {
-                            command = transformer(command);
+                        let statement = statementList[currentStatement++];
+                        if (statementTransformerFunction) {
+                            statement = statementTransformerFunction(statement);
                         }
-                        // this.getLogger(true).log('run', commands[i]);
-                        pgdb.query(command)
-                            .then(()=>runCommand(), reject)
+                        this.getLogger(true).log('run', statementList[currentStatement-1]);
+                        pgdb.query(statement)
+                            .then(()=>runStatement(), reject)
                             .catch(reject);
                     }
                 };
-                runCommand();
+                runStatement();
             }).catch((e)=> {
                 this.getLogger(true).error(e);
                 throw e;
             });
         };
 
+        let lineCounter = 0;
         var promise = new Promise<void>((resolve, reject)=> {
-            var commands = [];
-            var tmp = '', m;
-            var consumer;
-            var inQuotedString;
-            var rl = readline.createInterface({
+            let statementList = [];
+            let tmp = '', m;
+            let consumer;
+            let inQuotedString;
+            let rl = readline.createInterface({
                 input: fs.createReadStream(fileName),
                 terminal: false
             }).on('line', (line) => {
+                lineCounter++;
                 try {
                     //console.log('Line: ' + line);
                     line = line.replace(/--.*$/, '');   // remove comments
@@ -434,15 +448,15 @@ export class PgDb extends QueryAble {
                             }
                         } else if (!inQuotedString && m[0] == ';') {
                             //console.log('push ' + tmp);
-                            commands.push(tmp);
+                            statementList.push(tmp);
                             if (!consumer) {
-                                consumer = consume(commands).then(()=> {
+                                consumer = runStatementList(statementList).then(()=> {
                                     // console.log('consumer done');
                                     consumer = null;
+                                    statementList.length = 0;
                                     rl.resume();
                                 }, reject);
                                 rl.pause();
-                                commands.length = 0;
                             }
                             tmp = '';
                         } else {
@@ -459,32 +473,20 @@ export class PgDb extends QueryAble {
                 if (inQuotedString){
                     reject(Error('Invalid SQL, unterminated string'));
                 }
+
+                //if the last statement did't have ';'
                 if (tmp.length) {
-                    //console.log('tmp left:', tmp);
-                    commands.push(tmp);
+                    statementList.push(tmp);
                 }
-                // console.log('commmands length: ', commands.length);
                 if (!consumer) {
-                    if (commands.length) {
-                        consumer = consume(commands);
-                        commands.length = 0;
+                    if (statementList.length) {
+                        consumer = runStatementList(statementList).catch(reject);
                     } else {
                         resolve();
                     }
                 }
                 if (consumer) {
-                    if (commands.length) {
-                        consumer = consumer.then(()=> {
-                            return consume(commands);
-                        });
-                    }
-                    consumer.then(()=> {
-                        // console.log('done');
-                        resolve();
-                    }).catch((e)=> {
-                        this.getLogger(true).error(e);
-                        reject();
-                    });
+                    consumer = consumer.then(resolve, reject);
                 }
             });
         });
@@ -492,7 +494,7 @@ export class PgDb extends QueryAble {
         return promise
             .catch((e)=> {
                 error = e;
-                this.getLogger(true).error(e);
+                this.getLogger(true).error('Error at line ' + lineCounter + ' in ' + fileName + '. ' + e);
             })
             .then(()=> {
                 // finally

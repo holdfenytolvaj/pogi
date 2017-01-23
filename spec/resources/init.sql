@@ -13,6 +13,9 @@ DROP TYPE IF EXISTS "categoryType";
 DROP TYPE IF EXISTS "permissionForResourceType";
 DROP TYPE IF EXISTS "permissionType";
 
+DROP FUNCTION IF EXISTS update_tsv();
+
+
 CREATE TYPE "membershipType" AS ENUM ('bronze', 'silver', 'gold');
 CREATE TYPE "categoryType" AS ENUM ('sport', 'food', 'tech', 'music');
 CREATE TYPE "permissionType" AS ENUM ('read', 'write', 'admin');
@@ -45,6 +48,8 @@ CREATE TABLE IF NOT EXISTS "users" (
     "mainGroup" integer REFERENCES groups(id),
 	"permission" "permissionForResourceType",
 	"permissionList" "permissionForResourceType"[],
+
+	"tsv" tsvector,
 	"updated" timestamp with time zone,
 	"created" timestamp,
 	"createdtz" timestamptz
@@ -71,4 +76,16 @@ BEGIN
   RETURN i + 1;
 END;
 $$ LANGUAGE plpgsql;
+
+CREATE FUNCTION update_tsv() RETURNS trigger AS $$
+begin
+  new.tsv :=
+     setweight(to_tsvector('pg_catalog.english', coalesce(new.name,'')), 'A') ||
+     setweight(to_tsvector('pg_catalog.english', coalesce(new."aCategory",'')), 'B') ||
+     setweight(to_tsvector('pg_catalog.english', coalesce(new."jsonList"::text,'')), 'C');
+  return new;
+end
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_tsv BEFORE INSERT OR UPDATE ON __SCHEMA__."users" FOR EACH ROW EXECUTE PROCEDURE update_tsv();
 

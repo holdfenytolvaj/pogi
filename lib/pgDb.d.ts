@@ -5,7 +5,18 @@ export declare enum FieldType {
     JSON = 0,
     ARRAY = 1,
     TIME = 2,
+    TSVECTOR = 3,
 }
+/**
+ * @property connectionString e.g.: "postgres://user@localhost/database"
+ * @property user can be specified through PGHOST env variable
+ * @property user can be specified through PGUSER env variable (defaults USER env var)
+ * @property database can be specified through PGDATABASE env variable (defaults USER env var)
+ * @property password can be specified through PGPASSWORD env variable
+ * @property port can be specified through PGPORT env variable
+ * @property idleTimeoutMillis how long a client is allowed to remain idle before being closed
+ * @property skipUndefined if there is a undefined value in the condition, what should pogi do. Default is 'none', meaning raise error if a value is undefined.
+ */
 export interface ConnectionOptions {
     host?: string;
     user?: string;
@@ -77,6 +88,6 @@ export declare class PgDb extends QueryAble {
     transactionCommit(): Promise<PgDb>;
     transactionRollback(): Promise<PgDb>;
     isTransactionActive(): boolean;
-    execute(fileName: any, transformer?: (string) => string): Promise<void>;
+    execute(fileName: any, statementTransformerFunction?: (string) => string): Promise<void>;
 }
 export default PgDb;

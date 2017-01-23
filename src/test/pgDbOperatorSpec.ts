@@ -40,7 +40,7 @@ describe("pgdb", () => {
             console.error("connection failed! Are you specified PGUSER/PGDATABASE/PGPASSWORD correctly?")
             process.exit(1);
         }
-        await pgdb.run('DROP SCHEMA IF EXISTS "' + schema + '" CASCADE ');
+        //await pgdb.run('DROP SCHEMA IF EXISTS "' + schema + '" CASCADE ');
         await pgdb.run('CREATE SCHEMA IF NOT EXISTS "' + schema + '"');
         await pgdb.execute('spec/resources/init.sql', (cmd)=>cmd.replace(/__SCHEMA__/g, '"' + schema + '"'));
         await pgdb.reload();
@@ -79,6 +79,51 @@ describe("pgdb", () => {
 
         res = await table.find({'favourites !=': ['sport']});//
         expect(res.map(r=>r.name)).toEqual(['SF', 'TF']);
+    }));
+
+    it("Searching in elements in jsonList", w(async() => {
+        await table.insert({ name: 'Medium and high risk',  jsonList: [{risk:'H'}, {risk:'M'}]});
+
+        let query1 = {
+            or: [{'"jsonList" @>': [{"risk": "H"}]}, {'"jsonList" @>': [{"risk": "L"}]}]
+        };
+        let query2 = {
+            or: [{'jsonList @>': [{"risk": "H"}]}, {'jsonList @>': [{"risk": "L"}]}]
+        };
+        let query3 = {
+            or: [{'jsonList @>': '[{"risk": "H"}]'}, {'jsonList @>': '[{"risk": "L"}]'}]
+        };
+
+        let res;
+        res = await table.find(query1, {fields: ['name']});
+        expect(res.map(r=>r.name)).toEqual(['Medium and high risk']);
+
+        res = await table.find(query2, {fields: ['name']});
+        expect(res.map(r=>r.name)).toEqual(['Medium and high risk']);
+
+        res = await table.find(query3, {fields: ['name']});
+        expect(res.map(r=>r.name)).toEqual(['Medium and high risk']);
+    }));
+
+    it("Free text search", w(async() => {
+        await table.insert({name: 'Medium and high risk', jsonList: [{name:"The return of the Jedi"}]});
+
+        let res;
+        for (let searchCol of ['"name"||"jsonList" @@', 'tsv @@']) {
+            res = await table.find({[searchCol]: 'risk & return'}, {fields: ['name']});
+            expect(res.map(r => r.name)).toEqual(['Medium and high risk']);
+
+            res = await table.find({[searchCol]: 'risk & future'}, {fields: ['name']});
+            expect(res.length).toEqual(0);
+
+            res = await table.find({
+                [searchCol]: {
+                    lang: 'english',
+                    query: 'risk & return'
+                }
+            }, {fields: ['name']});
+            expect(res.map(r => r.name)).toEqual(['Medium and high risk']);
+        }
     }));
 
     it("Testing Jsonb list selector operators",  w(async() => {

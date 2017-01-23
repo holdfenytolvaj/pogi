@@ -35,6 +35,9 @@ declare var _default: {
     'is not': {
         operator: string;
     };
+    '@@': {
+        operator: string;
+    };
     '@>': {
         operator: string;
     };

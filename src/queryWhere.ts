@@ -10,6 +10,7 @@ class FieldAndOperator {
     mutator?: Function;
 }
 
+/** public */
 function generateWhere(conditions, fieldTypes:{[index:string]:FieldType}, tableName:string, placeholderOffset=0, skipUndefined) : {where:string, params:Array<any>} {
     var result = generate({
         params: [],
@@ -23,8 +24,10 @@ function generateWhere(conditions, fieldTypes:{[index:string]:FieldType}, tableN
     };
 }
 
+/** private */
 function generate(result, conditions, fieldTypes:{[index:string]:FieldType}, tableName:string, skipUndefined) {
     _.each(conditions, (value, key) => {
+        //get the column field and the operator if specified
         var fieldAndOperator = parseKey(key);
 
         if (value === undefined) { //null is ok, but undefined is skipped if requested
@@ -157,7 +160,7 @@ function handleArrayValue(result, fieldAndOperator, value, fieldTypes:{[index:st
         return result;
     }
 
-    throw new Error('[325] Not implemented operator: "' +fieldAndOperator.operator + '" for type ' + fieldType);
+    throw new Error('[325] Not implemented operator: "' +fieldAndOperator.operator + '" for field ' + fieldAndOperator.field + ' with type ' + fieldType );
 }
 
 
@@ -166,7 +169,46 @@ function handleSingleValue(result, fieldAndOperator, value, fieldTypes:{[index:s
         value = fieldAndOperator.mutator(value);
     }
     let fieldType = fieldTypes[fieldAndOperator.field];
-    if (fieldType == FieldType.ARRAY) {
+    if (fieldAndOperator.operator === '@@') {
+        /**
+         * field can be string -> to_tsquery(string)
+         * or object {lang:'english', txt:string} -> to_tsquery(o.lang, o.txt)
+         */
+        if (typeof value == 'object') {
+            if (!(value.lang||value.language) || !(value.query||value.plainquery)) {
+                throw new Error('[499] only "lang"/"language" and "query/plainquery" properties are supported!');
+            }
+            if (fieldType==FieldType.TSVECTOR) {
+                //language is already set
+                result.params.push(value.lang||value.language);
+                result.params.push(value.query||value.plainquery);
+                let template = value.query ? "%s %s to_tsquery($%s, $%s)" : "%s %s plainto_tsquery($%s, $%s)";
+                result.predicates.push(util.format(template,
+                    fieldAndOperator.quotedField,
+                    fieldAndOperator.operator,
+                    result.params.length-1 + result.offset, //lang
+                    result.params.length + result.offset //query
+                ));
+            } else {
+                result.params.push(value.lang||value.language);
+                result.params.push(value.lang||value.language);
+                result.params.push(value.query||value.plainquery);
+                let template = value.query ? "to_tsvector($%s, %s) %s to_tsquery($%s, $%s)" : "to_tsvector($%s, %s) %s plainto_tsquery($%s, $%s)";
+                result.predicates.push(util.format(template,
+                    result.params.length-2 + result.offset, //lang
+                    fieldAndOperator.quotedField,
+                    fieldAndOperator.operator,
+                    result.params.length-1 + result.offset, //lang
+                    result.params.length + result.offset //query
+                ));
+            }
+        } else {
+            result.params.push(value);
+            let template = fieldType==FieldType.TSVECTOR ? "%s %s plainto_tsquery($%s)" : "to_tsvector(%s) %s plainto_tsquery($%s)";
+            result.predicates.push(util.format(template, fieldAndOperator.quotedField, fieldAndOperator.operator, result.params.length + result.offset));
+        }
+    }
+    else if (fieldType == FieldType.ARRAY) {
         if (['=','<>'].indexOf(fieldAndOperator.operator)!=-1) {
             result.params.push(value);
             value = util.format("$%s", result.params.length + result.offset);
@@ -205,9 +247,16 @@ function getOp(str) {
 
 /**
  * Parse out a criterion key into something more intelligible. Supports quoted
- * field names and whitespace between components.
+ * field names and whitespace between components. If a function is applied on the field
+ * it takes the first quoted string to assume to be the column. (e.g. max("score") -> field: "score"
+ * in order to be able to recognize the field type)
  *
- * 'createdTs >' => {field:'createdTs', quotedField:'"createdTs"', operator:'>', mutator:null}
+ * 'createdTs >' => {
+ *                   field:       'createdTs',
+ *                   quotedField: '"createdTs"',
+ *                   operator:'>',
+ *                   mutator:null
+ *                   }
  *
  * @param  {String} key Key in a format resembling "field [JSON operation+path] operation"
  * @return {Object}     [description]
@@ -227,8 +276,12 @@ function parseKey(key):FieldAndOperator {
 
     let quotedByUser = key.indexOf('"')>-1; //key[0]=='"'; -> lets make it possible to write transformed columns, e.g. LOWER("field")
     if (quotedByUser) {
-        field = key;
         quotedField = key;
+        //field is used for find out the type of the field, so lets restore it if possible, grab the first quoted string
+        field = /[^"]*"([^"]*)".*/.exec(key)[1];
+        if (!quotedField || !field) {
+            console.error("Parsing error!");
+        }
     } else {
         let parts = strip(key.split(jsonRegexp));
 

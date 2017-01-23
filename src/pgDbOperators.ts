@@ -25,6 +25,9 @@ export default {
     '<>': {operator: '<>'},
     'is not': {operator: 'IS NOT'},
 
+    // free text search
+    '@@': {operator: '@@'}, //value can be {lang:string, query:string} or simply string (defaults to english)
+
     // jsonb / array
     '@>': {operator: '@>'}, //contains                          ARRAY[1,4,3] @> ARRAY[3,1]      => true
     '<@': {operator: '<@'}, //is contained by                   ARRAY[2,7] <@ ARRAY[1,7,4,2,6] 	=> true
