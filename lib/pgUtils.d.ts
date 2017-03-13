@@ -1,6 +1,6 @@
 import { QueryOptions, ResultFieldType, QueryAble } from "./queryAble";
 import { FieldType } from "./pgDb";
-export declare var pgUtils: {
+export declare let pgUtils: {
     quoteField(f: any): any;
     processQueryFields(options: QueryOptions): string;
     processNamedParams(sql: string, params: Object): {

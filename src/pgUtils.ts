@@ -1,10 +1,11 @@
 import {QueryOptions, ResultFieldType, QueryAble} from "./queryAble";
-var util = require('util');
+const util = require('util');
 const NAMED_PARAMS_REGEXP = /(?:^|[^:]):(!?[a-zA-Z0-9_]+)/g;    // do not convert "::type cast"
 import {FieldType} from "./pgDb";
 const ASC_DESC_REGEXP = /^([^" (]+)( asc| desc)?$/;
+const _ = require('lodash');
 
-export var pgUtils = {
+export let pgUtils = {
     quoteField(f) {
         return f.indexOf('"') == -1 && f.indexOf('(') == -1 ? '"' + f + '"' : f;
     },
@@ -134,8 +135,8 @@ export var pgUtils = {
 
     createFunctionCaller(q: QueryAble, fn: {schema: string,name: string, return_single_row: boolean,return_single_value: boolean }) {
         return async(...args) => {
-            var placeHolders = [];
-            var params = [];
+            let placeHolders = [];
+            let params = [];
             args.forEach((arg)=> {
                 placeHolders.push('$' + (placeHolders.length + 1));
                 params.push(arg);
@@ -143,7 +144,7 @@ export var pgUtils = {
             let res = await q.query(`SELECT "${fn.schema}"."${fn.name}"(${placeHolders.join(',')})`, params);
 
             if (fn.return_single_value) {
-                var keys = res[0] ? Object.keys(res[0]) : [];
+                let keys = res[0] ? Object.keys(res[0]) : [];
                 if (keys.length != 1){
                     throw Error(`Return type error. schema: ${fn.schema} fn: ${fn.name} expected return type: single value, current value:`+JSON.stringify(res))
                 }
