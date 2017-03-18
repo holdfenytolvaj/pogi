@@ -88,6 +88,8 @@ export class QueryAble {
                 logger.log('reused connection', sql, util.inspect(params, false, null), connection.processID);
                 let res = await connection.query(sql, params);
                 pgUtils.postProcessResult(res.rows, res.fields, this.db.pgdbTypeParsers);
+                if (this.db.postProcessResult) this.db.postProcessResult(res.rows, res.fields, logger);
+
                 return res.rows;
             } else {
                 connection = await this.db.pool.connect();
@@ -98,6 +100,8 @@ export class QueryAble {
                     connection.release();
                     connection = null;
                     pgUtils.postProcessResult(res.rows, res.fields, this.db.pgdbTypeParsers);
+                    if (this.db.postProcessResult) this.db.postProcessResult(res.rows, res.fields, logger);
+
                     return res.rows;
                 } catch(e){
                     logger.error(sql, util.inspect(params, false, null), connection ? connection.processID : null, e);
@@ -139,6 +143,8 @@ export class QueryAble {
                         stream.on('data', (res) => {
                             try {
                                 pgUtils.postProcessResult([res], stream._result.fields, this.db.pgdbTypeParsers);
+                                if (this.db.postProcessResult) this.db.postProcessResult([res], stream._result.fields, this.getLogger(false));
+
                                 if (callback(res)) {
                                     stream.emit('close');
                                 }
@@ -160,6 +166,8 @@ export class QueryAble {
                         stream.on('data', (res) => {
                             try {
                                 pgUtils.postProcessResult([res], stream._result.fields, this.db.pgdbTypeParsers);
+                                if (this.db.postProcessResult) this.db.postProcessResult([res], stream._result.fields, this.getLogger(false));
+
                                 if (callback(res)) {
                                     stream.emit('close');
                                 }
@@ -195,6 +203,8 @@ export class QueryAble {
         let convertTypeFilter = through(function(data) {
             try {
                 pgUtils.postProcessResult([data], pgStream._result.fields, pgdb.pgdbTypeParsers);
+                if (pgdb.postProcessResult) pgdb.postProcessResult([data], pgStream._result.fields, logger);
+
                 this.emit('data', data);
             } catch (err) {
                 this.emit('error', err);

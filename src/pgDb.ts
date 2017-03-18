@@ -1,4 +1,4 @@
-import {QueryAble} from "./queryAble";
+import {QueryAble, ResultFieldType} from "./queryAble";
 var pg = require('pg');
 var util = require('util');
 var readline = require('readline');
@@ -74,14 +74,20 @@ export interface ConnectionOptions {
     password?: string; // can be specified through PGPASSWORD env variable
     port?: number; // can be specified through PGPORT env variable
     poolSize?: number;
+
+    //number of rows to return at a time from a prepared statement's portal. 0 will return all rows at once
     rows?: number;
+
+    min?: number; //set min pool size
+    max?: number; //set pool max size
+
     binary?: boolean;
     poolIdleTimeout?: number;
     reapIntervalMillis?: number;
     poolLog?: boolean;
     client_encoding?: string;
     ssl?: boolean| any; //| TlsOptions;
-    application_name?: string;
+    application_name?: string; //default:process.env.PGAPPNAME - name displayed in the pg_stat_activity view and included in CSV log entries
     fallback_application_name?: string;
     parseInputDatesAsUTC?: boolean;
     connectionString?: string;
@@ -102,23 +108,28 @@ export interface PgDbLogger {
     error: Function;
 }
 
+export type PostProcessResultFunc = (res: any[], fields: ResultFieldType[], logger:PgDbLogger)=>void;
+
+
 export class PgDb extends QueryAble {
     protected static instances: {[index: string]: Promise<PgDb>};
-    pool;
-    connection;
-    config: ConnectionOptions;
+    /*protected*/ pool;
+    protected connection;
+    /*protected*/ config: ConnectionOptions;
     db;
     schemas: {[name: string]: PgSchema};
     tables: {[name: string]: PgTable<any>} = {};
     fn: {[name: string]: (...any)=>any} = {};
     [name: string]: any|PgSchema;
-    pgdbTypeParsers = {};
+    /*protected*/ pgdbTypeParsers = {};
+    /*protected*/ postProcessResult: PostProcessResultFunc;
 
-    private constructor(pgdb: {config?,schemas?,pool?,pgdbTypeParsers?,getLogger?:()=>any} = {}) {
+    private constructor(pgdb: {config?,schemas?,pool?,pgdbTypeParsers?,getLogger?:()=>any, postProcessResult?:PostProcessResultFunc } = {}) {
         super();
         this.schemas = {};
         this.config = pgdb.config;
         this.pool = pgdb.pool;
+        this.postProcessResult = pgdb.postProcessResult;
         this.pgdbTypeParsers = pgdb.pgdbTypeParsers || {};
         this.db = this;
         if (pgdb.getLogger) {
@@ -138,6 +149,8 @@ export class PgDb extends QueryAble {
             }
         }
     }
+
+    setPostProcessResult(f:(res: any[], fields: ResultFieldType[], logger:PgDbLogger)=>void) {this.postProcessResult = f;}
 
     /** If planned to used as a static singleton */
     static async getInstance(config: ConnectionOptions): Promise<PgDb> {

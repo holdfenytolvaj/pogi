@@ -142,6 +142,11 @@ See the [mapping database types to js types](/mappingDatabaseTypes) section
 
 See the [mapping database types to js types](/mappingDatabaseTypes) section
 
+---
+## setPostProcessResult
+<span class="def"><span class="func">setPostProcessResult</span>(f:(res: <span class="type">any[]</span>, fields: <span class="type">ResultFieldType[]</span>, logger:<span class="type">PgDbLogger</span>)=&gt;<span class="type">void</span>): <span class="type">void</span></span>
+You can add a postprocessor function that will be executed for every result (even empty ones), if you want to do something extra.
+If you call it twice the second function will overwrite the first. So you can easily unset also if you call it will null; 
 
 ---
 ## transactionBegin 

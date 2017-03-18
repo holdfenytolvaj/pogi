@@ -123,6 +123,8 @@ describe("pgdb", () => {
     }));
 
 
+
+
     it("After adding parser should be able to parse complex type", w(async() => {
         await pgdb.setTypeParser('permissionForResourceType', (val) => parseComplexType(val));
         await pgdb.setTypeParser('_permissionForResourceType', (val) => val=="{}" ? [] : parseComplexTypeArray(val));
@@ -692,4 +694,17 @@ describe("pgdb", () => {
 
     }));
 
+
+    it("Testing postprocess function",  w(async() => {
+        await table.insert({name: 'A'});
+
+        pgdb.setPostProcessResult((res, fields, logger)=> {
+            res[0].name='B';
+        });
+        let res = await pgdb.query(`select * from ${table}`);
+        expect(res[0].name=='B').toBeTruthy();
+        res = await table.findAll();
+        expect(res[0].name=='B').toBeTruthy();
+        pgdb.setPostProcessResult(null);
+    }));
 });

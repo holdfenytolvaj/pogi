@@ -24,16 +24,19 @@ let pgdb = await PgDb.connect({
 With the following options:
 ``` js
 export interface ConnectionOptions {
+    //--- node-postgres specific ----------------------
     host?:string;
     user?:string;     //can be specified through PGUSER     env variable (defaults USER env var)
     database?:string; //can be specified through PGDATABASE env variable (defaults USER env var)
     password?:string; //can be specified through PGPASSWORD env variable
     port?:number;     //can be specified through PGPORT     env variable
-    poolSize?:number;
-    rows?:number;
+    poolSize?:number; //number of connections to use in connection pool. 0 - disable pooling
+    min?:number;                   //minimum number of resources to keep in pool at any given time.  
+    max?:number;      
+    rows?:number;                  //number of rows to return at a time from a prepared statement's portal. 0 will return all rows at once
     binary?:boolean;
-    reapIntervalMillis?:number;
-    poolLog?:boolean;
+    reapIntervalMillis?:number;    //frequency to check for idle clients within the client pool
+    poolLog?:boolean;              //pool log function / boolean
     client_encoding?:string;
     ssl?:boolean| any; // TlsOptions;
     application_name?:string;
@@ -43,10 +46,17 @@ export interface ConnectionOptions {
     idleTimeoutMillis?:number;     // how long a client is allowed to remain idle before being closed
     poolIdleTimeout?:number;
 
+    //--- pogi specific ----------------------------
     logger?:PgDbLogger;
     skipUndefined?: 'all' | 'select' | 'none'; //if there is a undefined value in the query condition, what should pogi do. Default is 'none', meaning raise an error if a value is undefined.
 }
 ```
+
+About node-postgres specific, more explanation can be found at
+https://github.com/brianc/node-postgres/blob/f6c40b9331c90d794d5fcbb1d4ae2f28eabd4d42/lib/defaults.js 
+and 
+https://github.com/coopernurse/node-pool
+
 ##skipUndefined
 while most settings are self explanatory, this parameter is important. In the first version of pogi
 we ignored the condition if the value was undefined in order for ease the use e.g.:

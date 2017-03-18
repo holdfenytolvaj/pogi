@@ -1,4 +1,4 @@
-import { QueryAble } from "./queryAble";
+import { QueryAble, ResultFieldType } from "./queryAble";
 import { PgTable } from "./pgTable";
 import { PgSchema } from "./pgSchema";
 export declare enum FieldType {
@@ -25,6 +25,8 @@ export interface ConnectionOptions {
     port?: number;
     poolSize?: number;
     rows?: number;
+    min?: number;
+    max?: number;
     binary?: boolean;
     poolIdleTimeout?: number;
     reapIntervalMillis?: number;
@@ -49,12 +51,13 @@ export interface PgDbLogger {
     log: Function;
     error: Function;
 }
+export declare type PostProcessResultFunc = (res: any[], fields: ResultFieldType[], logger: PgDbLogger) => void;
 export declare class PgDb extends QueryAble {
     protected static instances: {
         [index: string]: Promise<PgDb>;
     };
     pool: any;
-    connection: any;
+    protected connection: any;
     config: ConnectionOptions;
     db: any;
     schemas: {
@@ -68,7 +71,9 @@ export declare class PgDb extends QueryAble {
     };
     [name: string]: any | PgSchema;
     pgdbTypeParsers: {};
+    postProcessResult: PostProcessResultFunc;
     private constructor(pgdb?);
+    setPostProcessResult(f: (res: any[], fields: ResultFieldType[], logger: PgDbLogger) => void): void;
     /** If planned to used as a static singleton */
     static getInstance(config: ConnectionOptions): Promise<PgDb>;
     close(): Promise<void>;
