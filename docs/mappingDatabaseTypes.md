@@ -22,7 +22,7 @@ By default all field returned as a string from postgre. Pg.js convert some of it
 ### Looks simple, but...
 pg.js doesn't handle well the exception during type conversion. 
 If exception is thrown the node process will exit. So you can add your converter
-to pgdb layer if exception is possible.
+to pgdb layer if exception is possible. Note the 'PgDb' in the function name.
 
 ```ts
     await pgdb.setPgDbTypeParser('int8', numWithValidation); 

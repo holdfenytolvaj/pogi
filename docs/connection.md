@@ -26,26 +26,28 @@ With the following options:
 export interface ConnectionOptions {
     //--- node-postgres specific ----------------------
     host?:string;
-    user?:string;     //can be specified through PGUSER     env variable (defaults USER env var)
-    database?:string; //can be specified through PGDATABASE env variable (defaults USER env var)
-    password?:string; //can be specified through PGPASSWORD env variable
-    port?:number;     //can be specified through PGPORT     env variable
-    poolSize?:number; //number of connections to use in connection pool. 0 - disable pooling
-    min?:number;                   //minimum number of resources to keep in pool at any given time.  
+    user?:string;              //can be specified through PGUSER     env variable (defaults USER env var)
+    database?:string;          //can be specified through PGDATABASE env variable (defaults USER env var)
+    password?:string;          //can be specified through PGPASSWORD env variable
+    port?:number;              //can be specified through PGPORT     env variable
+    connectionString?:string;  //'postgres://username:password@hostname/database'
+    
+    poolSize?:number;            //number of connections to use in connection pool. 0 - disable pooling
+    min?:number;                 //minimum number of resources to keep in pool at any given time.  
     max?:number;      
-    rows?:number;                  //number of rows to return at a time from a prepared statement's portal. 0 will return all rows at once
+    reapIntervalMillis?:number;  //frequency to check for idle clients within the client pool
+    poolLog?:boolean;            //pool log function / boolean
+    idleTimeoutMillis?:number;   // how long a client is allowed to remain idle before being closed
+    poolIdleTimeout?:number;
+        
+    rows?:number;                //number of rows to return at a time from a prepared statement's portal. 0 will return all rows at once
     binary?:boolean;
-    reapIntervalMillis?:number;    //frequency to check for idle clients within the client pool
-    poolLog?:boolean;              //pool log function / boolean
     client_encoding?:string;
-    ssl?:boolean| any; // TlsOptions;
+    ssl?:boolean| any;           // TlsOptions;
     application_name?:string;
     fallback_application_name?:string;
     parseInputDatesAsUTC?:boolean; 
-    connectionString?:string;      //'postgres://username:password@hostname/database'
-    idleTimeoutMillis?:number;     // how long a client is allowed to remain idle before being closed
-    poolIdleTimeout?:number;
-
+    
     //--- pogi specific ----------------------------
     logger?:PgDbLogger;
     skipUndefined?: 'all' | 'select' | 'none'; //if there is a undefined value in the query condition, what should pogi do. Default is 'none', meaning raise an error if a value is undefined.
@@ -59,7 +61,7 @@ https://github.com/coopernurse/node-pool
 
 ##skipUndefined
 while most settings are self explanatory, this parameter is important. In the first version of pogi
-we ignored the condition if the value was undefined in order for ease the use e.g.:
+we ignored the condition if the value was undefined (null was not ignored) in order for ease the use e.g.:
 ``` ts
     let query = {
         powerfull: params.powerfull,

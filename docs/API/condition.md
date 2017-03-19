@@ -69,6 +69,9 @@
 | {'ids': 'a'}       | 'a' = ANY("ids")
 | {'ids <>': 'a'}    | 'a' <> ANY("ids")
 
+Please note that `'a' = ANY("ids")` is not using index in psql. E.g. if a `GIN` index is defined on the column "ids",
+You should use `{'ids &&': ['a']}` which is translated to `"ids" && '{a}'` to make a use of it.
+
 ###Extended
 | Condition          | SQL                      
 | -------------      |:-------------- 
