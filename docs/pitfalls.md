@@ -2,6 +2,18 @@
 ## Known pitfalls
 >Nothing is without pitfalls, but for most libraries it's well hidden...
 
+### Named parameter + `column in ()` expression
+
+```
+let dates = ['2000-01-01','2000-02-02'];
+//don't work:
+await pgdb.query(`SELECT * FROM ${dbTable} b WHERE DATE(b.from) IN :dates`, {dates});
+
+//work:
+await pgdb.query(`SELECT * FROM ${dbTable} b WHERE ARRAY[DATE(b.from)] && :dates`, {dates});
+```
+
+
 ### postgre data types vs javascript types - general
 pg.js is a powerful library but left many decision to the user, e.g. converting types. 
 By default it doesn't convert arrays or integers, dates are also tricky. We've added some basic 
