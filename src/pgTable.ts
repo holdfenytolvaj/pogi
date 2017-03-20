@@ -4,8 +4,8 @@ import {PgDb, FieldType, PgDbLogger} from "./pgDb";
 import generateWhere from "./queryWhere";
 import {PgSchema} from "./pgSchema";
 import {pgUtils} from "./pgUtils";
-var util = require('util');
-var _ = require('lodash');
+let util = require('util');
+let _ = require('lodash');
 
 export interface InsertOption {
     logger?: PgDbLogger;
@@ -167,7 +167,7 @@ export class PgTable<T> extends QueryAble {
 
     async deleteAndGet(conditions:{[k:string]:any}, options?:UpdateDeleteOption & Return): Promise<any[]> {
         let {sql, parameters} = this.getDeleteQuery(conditions, options);
-        sql += " RETURNING " + options && options.return && Array.isArray(options.return) ? options.return.map(pgUtils.quoteField).join(',') : '*';
+        sql += " RETURNING " + (options && options.return && Array.isArray(options.return) ? options.return.map(pgUtils.quoteField).join(',') : '*');
         return this.query(sql, parameters);
     }
 
@@ -245,8 +245,8 @@ export class PgTable<T> extends QueryAble {
         options = options || {};
         options.skipUndefined = options.skipUndefined===true || (options.skipUndefined===undefined && ['all', 'select'].indexOf(this.db.config.skipUndefined)>-1);
 
-        var where = _.isEmpty(conditions) ? {where: " ", params: null} : generateWhere(conditions, this.fieldTypes, this.qualifiedName, 0, options.skipUndefined);
-        var sql = `SELECT COUNT(*) c FROM ${this.qualifiedName} ${where.where}`;
+        let where = _.isEmpty(conditions) ? {where: " ", params: null} : generateWhere(conditions, this.fieldTypes, this.qualifiedName, 0, options.skipUndefined);
+        let sql = `SELECT COUNT(*) c FROM ${this.qualifiedName} ${where.where}`;
         return (await this.queryOneField(sql, where.params));
     }
 
@@ -261,7 +261,7 @@ export class PgTable<T> extends QueryAble {
     private getInsertQuery(records:T[]) {
         let columnsMap = {};
         records.forEach(rec => {
-            for(let field in rec) columnsMap[<string>field] = true;
+            for(let field in rec) {columnsMap[field] = true;}
         });
         let columns = Object.keys(columnsMap);
         let sql = util.format("INSERT INTO %s (%s) VALUES\n", this.qualifiedName, columns.map(pgUtils.quoteField).join(", "));
@@ -282,7 +282,7 @@ export class PgTable<T> extends QueryAble {
         options = options || {};
         options.skipUndefined = options.skipUndefined===true || (options.skipUndefined===undefined && this.db.config.skipUndefined === 'all');
 
-        var hasConditions = true;
+        let hasConditions = true;
 
         if (_.isEmpty(fields)) {
             throw new Error('Missing fields for update');
@@ -302,7 +302,7 @@ export class PgTable<T> extends QueryAble {
         let sql = util.format("UPDATE %s SET %s", this.qualifiedName, f.join(', '));
 
         if (!hasConditions || !_.isEmpty(conditions)) {
-            var parsedWhere = generateWhere(conditions, this.fieldTypes, this.qualifiedName, parameters.length, options.skipUndefined);
+            let parsedWhere = generateWhere(conditions, this.fieldTypes, this.qualifiedName, parameters.length, options.skipUndefined);
             sql += parsedWhere.where;
         }
         parameters = parameters.concat(_.flatten(_.values(conditions).filter(v=>v!==undefined)));
@@ -315,7 +315,7 @@ export class PgTable<T> extends QueryAble {
 
         let sql = util.format("DELETE FROM %s ", this.qualifiedName);
 
-        var parsedWhere;
+        let parsedWhere;
         if (!_.isEmpty(conditions)) {
             parsedWhere = generateWhere(conditions, this.fieldTypes, this.qualifiedName, 0, options.skipUndefined);
             sql += parsedWhere.where;

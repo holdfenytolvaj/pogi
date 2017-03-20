@@ -706,5 +706,14 @@ describe("pgdb", () => {
         res = await table.findAll();
         expect(res[0].name=='B').toBeTruthy();
         pgdb.setPostProcessResult(null);
+        res = await table.findAll();
+        expect(res[0].name=='A').toBeTruthy();
     }));
+
+    it("Testing deleteAndGet",  w(async() => {
+        await table.insert([{name: 'A'}, {name: 'B'}]);
+        let res = await table.deleteAndGet({name:['A','B']});
+        expect(res.length==2).toBeTruthy();
+    }));
+
 });

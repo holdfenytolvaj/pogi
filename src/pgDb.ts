@@ -1,9 +1,9 @@
 import {QueryAble, ResultFieldType} from "./queryAble";
-var pg = require('pg');
-var util = require('util');
-var readline = require('readline');
-var fs = require('fs');
-var moment = require('moment');
+let pg = require('pg');
+let util = require('util');
+let readline = require('readline');
+let fs = require('fs');
+let moment = require('moment');
 
 import {PgTable} from "./pgTable";
 import {PgSchema} from "./pgSchema";
@@ -155,7 +155,7 @@ export class PgDb extends QueryAble {
     /** If planned to used as a static singleton */
     static async getInstance(config: ConnectionOptions): Promise<PgDb> {
         if (config.connectionString) {
-            var res = CONNECTION_URL_REGEXP.exec(config.connectionString);
+            let res = CONNECTION_URL_REGEXP.exec(config.connectionString);
             if (res) {
                 config.user = res[1];
                 config.password = res[2] ? res[2] : '';
@@ -164,14 +164,14 @@ export class PgDb extends QueryAble {
                 config.database = res[5];
             }
         }
-        var connectionString = `postgres://${config.user}@${config.host}:${config.port}/${config.database}`; // without password!
+        let connectionString = `postgres://${config.user}@${config.host}:${config.port}/${config.database}`; // without password!
         if (!PgDb.instances) {
             PgDb.instances = {};
         }
         if (PgDb.instances[connectionString]) {
             return PgDb.instances[connectionString];
         } else {
-            var pgdb = new PgDb({config: config});
+            let pgdb = new PgDb({config: config});
             PgDb.instances[connectionString] = pgdb.init();
             return PgDb.instances[connectionString];
         }
@@ -189,7 +189,7 @@ export class PgDb extends QueryAble {
 
     static async connect(config: ConnectionOptions): Promise<PgDb> {
         if (config.connectionString) {
-            var res = CONNECTION_URL_REGEXP.exec(config.connectionString);
+            let res = CONNECTION_URL_REGEXP.exec(config.connectionString);
             if (res) {
                 config.user = res[1];
                 if (res[2]) config.password = res[2];
@@ -198,7 +198,7 @@ export class PgDb extends QueryAble {
                 config.database = res[5];
             }
         }
-        var pgdb = new PgDb({config: config});
+        let pgdb = new PgDb({config: config});
         return pgdb.init();
     }
 
@@ -422,7 +422,7 @@ export class PgDb extends QueryAble {
         };
 
         let lineCounter = 0;
-        var promise = new Promise<void>((resolve, reject)=> {
+        let promise = new Promise<void>((resolve, reject)=> {
             let statementList = [];
             let tmp = '', m;
             let consumer;
@@ -503,7 +503,7 @@ export class PgDb extends QueryAble {
                 }
             });
         });
-        var error;
+        let error;
         return promise
             .catch((e)=> {
                 error = e;
@@ -512,7 +512,9 @@ export class PgDb extends QueryAble {
             .then(()=> {
                 // finally
                 //if transaction was in place, don't touch it
-                isTransactionInPlace ? pgdb : pgdb.dedicatedConnectionEnd();
+                if (!isTransactionInPlace) {
+                    return pgdb.dedicatedConnectionEnd();
+                }
             }).catch((e)=> {
                 this.getLogger(true).error(e);
             }).then(()=>{
