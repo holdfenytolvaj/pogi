@@ -10,7 +10,7 @@ import {PgSchema} from "./pgSchema";
 import * as PgConverters from "./pgConverters";
 import {pgUtils} from "./pgUtils";
 const CONNECTION_URL_REGEXP = /^postgres:\/\/(?:([^:]+)(?::([^@]*))?@)?([^\/:]+)?(?::([^\/]+))?\/(.*)$/;
-const SQL_TOKENIZER_REGEXP = /''|'|""|"|;|\$|([^;'"$]+)/g;
+const SQL_TOKENIZER_REGEXP = /''|'|""|"|;|\$|--|(.+?)/g;
 const SQL_$_ESCAPE_REGEXP = /\$[^$]*\$/g;
 
 const LIST_SCHEMAS_TABLES = "SELECT table_schema as schema, table_name as name FROM information_schema.tables WHERE table_schema NOT IN ('pg_catalog', 'information_schema')";
@@ -434,7 +434,6 @@ export class PgDb extends QueryAble {
                 lineCounter++;
                 try {
                     //console.log('Line: ' + line);
-                    line = line.replace(/--.*$/, '');   // remove comments
                     while (m = SQL_TOKENIZER_REGEXP.exec(line)) {
                         if (m[0] == '"' || m[0] == "'") {
                             if (!inQuotedString) {
@@ -461,17 +460,21 @@ export class PgDb extends QueryAble {
                             }
                         } else if (!inQuotedString && m[0] == ';') {
                             //console.log('push ' + tmp);
-                            statementList.push(tmp);
-                            if (!consumer) {
-                                consumer = runStatementList(statementList).then(()=> {
-                                    // console.log('consumer done');
-                                    consumer = null;
-                                    statementList.length = 0;
-                                    rl.resume();
-                                }, reject);
-                                rl.pause();
+                            if (tmp.trim() != '') {
+                                statementList.push(tmp);
+                                if (!consumer) {
+                                    consumer = runStatementList(statementList).then(()=> {
+                                        // console.log('consumer done');
+                                        consumer = null;
+                                        statementList.length = 0;
+                                        rl.resume();
+                                    }, reject);
+                                    rl.pause();
+                                }
                             }
                             tmp = '';
+                        } else if (!inQuotedString && m[0].substring(0,2) == '--') {
+                            line = '';
                         } else {
                             tmp += m[0];
                         }
@@ -488,7 +491,7 @@ export class PgDb extends QueryAble {
                 }
 
                 //if the last statement did't have ';'
-                if (tmp.length) {
+                if (tmp.trim() != '') {
                     statementList.push(tmp);
                 }
                 if (!consumer) {

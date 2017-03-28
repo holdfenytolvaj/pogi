@@ -164,7 +164,7 @@ describe("pgdb", () => {
         });
 
         let res = await table.query(
-            `SELECT to_json(permission) perjson, to_json("permissionList") perlistjson   
+            `SELECT to_json(permission) perjson, to_json("permissionList") perlistjson
              FROM ${table}
              WHERE name='Elveszett cirkalo' `);
         expect(res[0].perjson).toEqual({permission:'read', resource:'book'});
@@ -716,4 +716,7 @@ describe("pgdb", () => {
         expect(res.length==2).toBeTruthy();
     }));
 
+    it("Testing sql executing",  w(async() => {
+        await pgdb.execute('spec/resources/tricky.sql', (cmd) => cmd.replace(/__SCHEMA__/g, '"' + schema + '"'));
+    }));
 });
