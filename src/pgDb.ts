@@ -270,11 +270,13 @@ export class PgDb extends QueryAble {
             = await this.pool.query(LIST_SPECIAL_TYPE_FIELDS);
 
         for (let r of specialTypeFields.rows) {
-            this.schemas[r.schema_name][r.table_name].fieldTypes[r.column_name] =
-                ([3802, 114].indexOf(r.typid) > -1) ? FieldType.JSON :
-                    ([3614].indexOf(r.typid) > -1) ? FieldType.TSVECTOR :
-                    ([1082, 1083, 1114, 1184, 1266].indexOf(r.typid) > -1) ? FieldType.TIME :
-                        FieldType.ARRAY;
+            if (this.schemas[r.schema_name][r.table_name]) {
+                this.schemas[r.schema_name][r.table_name].fieldTypes[r.column_name] =
+                    ([3802, 114].indexOf(r.typid) > -1) ? FieldType.JSON :
+                        ([3614].indexOf(r.typid) > -1) ? FieldType.TSVECTOR :
+                            ([1082, 1083, 1114, 1184, 1266].indexOf(r.typid) > -1) ? FieldType.TIME :
+                                FieldType.ARRAY;
+            }
         }
 
         for (let r of specialTypeFields.rows) {
