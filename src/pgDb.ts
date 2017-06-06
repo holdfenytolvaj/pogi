@@ -116,6 +116,8 @@ export class PgDb extends QueryAble {
     /*protected*/ pool;
     protected connection;
     /*protected*/ config: ConnectionOptions;
+    /*protected*/ defaultSchemas; // for this.tables and this.fn
+
     db;
     schemas: {[name: string]: PgSchema};
     tables: {[name: string]: PgTable<any>} = {};
@@ -124,7 +126,7 @@ export class PgDb extends QueryAble {
     /*protected*/ pgdbTypeParsers = {};
     /*protected*/ postProcessResult: PostProcessResultFunc;
 
-    private constructor(pgdb: {config?,schemas?,pool?,pgdbTypeParsers?,getLogger?:()=>any, postProcessResult?:PostProcessResultFunc } = {}) {
+    private constructor(pgdb: {defaultSchemas?,config?,schemas?,pool?,pgdbTypeParsers?,getLogger?:()=>any, postProcessResult?:PostProcessResultFunc } = {}) {
         super();
         this.schemas = {};
         this.config = pgdb.config;
@@ -135,7 +137,6 @@ export class PgDb extends QueryAble {
         if (pgdb.getLogger) {
             this.setLogger(pgdb.getLogger());
         }
-
 
         for (let schemaName in pgdb.schemas) {
             let schema = new PgSchema(this, schemaName);
@@ -148,6 +149,9 @@ export class PgDb extends QueryAble {
                     schema[tableName] = schema.tables[tableName];
             }
         }
+
+        this.defaultSchemas = pgdb.defaultSchemas;
+        this.setDefaultTablesAndFunctions();
     }
 
     setPostProcessResult(f:(res: any[], fields: ResultFieldType[], logger:PgDbLogger)=>void) {this.postProcessResult = f;}
@@ -226,7 +230,8 @@ export class PgDb extends QueryAble {
     private async initSchemasAndTables() {
         let schemasAndTables = await this.pool.query(LIST_SCHEMAS_TABLES);
         let functions = await this.pool.query(GET_SCHEMAS_PROCEDURES);
-        let defaultSchemas = PgConverters.arraySplit(await this.queryOneField(GET_CURRENT_SCHEMAS));
+        this.defaultSchemas = PgConverters.arraySplit(await this.queryOneField(GET_CURRENT_SCHEMAS));
+
         let oldSchemaNames = Object.keys(this.schemas);
         for (let sc of oldSchemaNames) {
             if (this[sc] === this.schemas[sc])
@@ -250,9 +255,15 @@ export class PgDb extends QueryAble {
         }
 
         // this.getLogger(true).log('defaultSchemas: ' + defaultSchemas);
+        this.setDefaultTablesAndFunctions();
+    }
+
+    private setDefaultTablesAndFunctions() {
         this.tables = {};
         this.fn = {};
-        for (let sc of defaultSchemas) {
+
+        if (!this.defaultSchemas) return;
+        for (let sc of this.defaultSchemas) {
             let schema = this.schemas[sc];
             // this.getLogger(true).log('copy schame to default', sc, schema && Object.keys(schema.tables), schema && Object.keys(schema.fn));
             if (!schema)

@@ -376,6 +376,21 @@ describe("pgdb", () => {
         expect(res[0].name).toEqual('A');
     }));
 
+    it("transaction should keep the table definitions",  w(async() => {
+        const pgDB = pgdb; //= await PgDb.connect({connectionString: "postgres://"});
+        const dPgDb = await pgDB.transactionBegin();
+
+        let list1 = Object.keys(pgDB.tables);
+        let list2 = Object.keys(dPgDb.tables);
+
+        await dPgDb.transactionCommit();
+
+        expect(list1.length).toEqual(list2.length);
+        expect(list1.length > 0).toBeTruthy();
+
+    }));
+
+
     it("transaction - commit",  w(async() => {
         await table.insert({name: 'A'});
 
@@ -716,7 +731,7 @@ describe("pgdb", () => {
         expect(res.length==2).toBeTruthy();
     }));
 
-    it("Testing sql executing",  w(async() => {
+    it("Testing sql execution",  w(async() => {
         await pgdb.execute('spec/resources/tricky.sql', (cmd) => cmd.replace(/__SCHEMA__/g, '"' + schema + '"'));
     }));
 });

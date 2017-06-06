@@ -59,6 +59,7 @@ export declare class PgDb extends QueryAble {
     pool: any;
     protected connection: any;
     config: ConnectionOptions;
+    defaultSchemas: any;
     db: any;
     schemas: {
         [name: string]: PgSchema;
@@ -81,6 +82,7 @@ export declare class PgDb extends QueryAble {
     private init();
     reload(): Promise<void>;
     private initSchemasAndTables();
+    private setDefaultTablesAndFunctions();
     private initFieldTypes();
     /**
      * if schemaName is null, it will be applied for all schemas
