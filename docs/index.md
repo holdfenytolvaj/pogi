@@ -14,21 +14,24 @@ the power of custom queries.
 ```js
 import {PgDb} from "pogi";
 
-let pgdb = await PgDb.connect({connectionString: "postgres://"});
-
-let table = pgdb['test']['users']; //or pgdb.test.users if you generate the interface
-
-let c1 = await pgdb.query(`SELECT COUNT(*) as c FROM ${table} WHERE active=:active`, {active: true});
-let c2 = await table.count({active: true});
-c1[0].c == c2 //true
-
-let user = {name: 'admin'}
-await table.insert(user);
-
-await table.update({id: 1}, user);
-
-let res = await table.find({id: [1,2,3]});
-...
+(async()=> {
+    let pgdb = await PgDb.connect({connectionString: "postgres://"});
+    
+    let table = pgdb['test']['users']; //or pgdb.test.users if you generate the interface
+    
+    let c1 = await pgdb.query(`SELECT COUNT(*) as c FROM ${table} WHERE active=:active`, {active: true});
+    let c2 = await table.count({active: true});
+    c1[0].c == c2 //true
+    
+    let user = {name: 'admin'}
+    await table.insert(user);
+    
+    await table.update({id: 1}, user);
+    
+    let res = await table.find({id: [1,2,3]});
+    ...
+    
+})().catch(console.error)
 ```
 
 Typescript should get typing definition from npm package, but if doesn't you can add with typings:
