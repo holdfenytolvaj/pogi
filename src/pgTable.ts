@@ -166,6 +166,7 @@ export class PgTable<T> extends QueryAble {
     }
 
     async deleteAndGet(conditions:{[k:string]:any}, options?:UpdateDeleteOption & Return): Promise<any[]> {
+        options = options || {};
         let {sql, parameters} = this.getDeleteQuery(conditions, options);
         sql += " RETURNING " + (options && options.return && Array.isArray(options.return) ? options.return.map(pgUtils.quoteField).join(',') : '*');
         return this.query(sql, parameters);

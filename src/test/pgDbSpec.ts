@@ -709,6 +709,15 @@ describe("pgdb", () => {
 
     }));
 
+    it("Testing deleteAndGet ",  w(async() => {
+        await table.insert({name: 'A'});
+        let res = await table.deleteAndGetOne({name: 'A'});
+        expect(res!=null).toBeTruthy();
+        expect(res.name=='A').toBeTruthy();
+
+        let res2 = await table.deleteAndGetOne({name: 'A'});
+        expect(res2==null).toBeTruthy();
+    }));
 
     it("Testing postprocess function",  w(async() => {
         await table.insert({name: 'A'});
