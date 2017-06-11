@@ -1,5 +1,19 @@
 #Example
 
+##Use stream instead of e.g.:
+```ts
+    let total = await table.count();
+    for (let offset = 0; offset < total; offset += 100)) {
+        let list = await table.findAll({offset, limit:100});
+        for (let row of list) {
+            ...
+            //unless you have a stable ordering and use it in the query above
+            //you might get some rows multiple times here...
+            //use streams instead
+        }
+    }
+```
+
 ##Using queryAsStream
 ```ts
 

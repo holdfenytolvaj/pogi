@@ -60,17 +60,17 @@
 ##Array type 
 [PostgreSQL Documentation](https://www.postgresql.org/docs/current/static/functions-array.html)
 
-| Condition          | SQL                      
-| -------------      |:-------------- 
-| {'ids @>':[1,2,3]} | "ids" @> '{1,2,3}'       
-| {'ids <@':[1,2,3]} | "ids" <@ '{1,2,3}'
-| {'ids &&':[1,2,3]} | "ids" && '{1,2,3}'
-| {'ids': [1,2,3]}   | "ids" = '{1,2,3}'
-| {'ids': 'a'}       | 'a' = ANY("ids")
-| {'ids <>': 'a'}    | 'a' <> ANY("ids")
+| Condition          | SQL                 | note                     
+| -------------      |:--------------      | :-------------- 
+| {'ids @>':[1,2,3]} | "ids" @> '{1,2,3}'  | ids contains all of 1,2,3     
+| {'ids <@':[1,2,3]} | "ids" <@ '{1,2,3}'  | ids is a subset of {1,2,3}
+| {'ids &&':[1,2,3]} | "ids" && '{1,2,3}'  | ids overlaps with {1,2,3}
+| {'ids': [1,2,3]}   | "ids" = '{1,2,3}'   | 
+| {'ids': 'a'}       | 'a' = ANY("ids")    | 
+| {'ids <>': 'a'}    | 'a' <> ANY("ids")   | 
 
-Please note that `'a' = ANY("ids")` is not using index in psql. E.g. if a `GIN` index is defined on the column "ids",
-You should use `{'ids &&': ['a']}` which is translated to `"ids" && '{a}'` to make a use of it.
+Please note that as-of-9.5 `'a' = ANY("ids")` is not using the index in psql. So if have a `GIN` index is defined on the column "ids",
+You should use `{'ids &&': ['a']}` (that is translated to `"ids" && '{a}'`).
 
 ###Extended
 | Condition          | SQL                      
