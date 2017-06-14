@@ -89,3 +89,7 @@ $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER update_tsv BEFORE INSERT OR UPDATE ON __SCHEMA__."users" FOR EACH ROW EXECUTE PROCEDURE update_tsv();
 
+CREATE OR REPLACE FUNCTION lower(text[]) RETURNS text[] LANGUAGE SQL IMMUTABLE AS
+$$
+    SELECT array_agg(lower(value)) FROM unnest($1) value;
+$$;

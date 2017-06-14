@@ -8,6 +8,7 @@ function escapeForLike(s) {
 export default {
     // lowercase comparison
     '=*': {operator: '=', mutator: (s:string) => s.toLocaleLowerCase(), fieldMutator: s => util.format('LOWER("%s")',s)},
+
     // caseless contains for string
     'icontains': {operator: 'ILIKE', mutator: s => '%' + escapeForLike(s) + '%'},
 

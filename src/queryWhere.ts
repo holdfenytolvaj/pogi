@@ -7,6 +7,7 @@ class FieldAndOperator {
     field: string;
     quotedField: string;
     operator: string;
+    originalOp: string;
     mutator?: Function;
 }
 
@@ -164,7 +165,7 @@ function handleArrayValue(result, fieldAndOperator, value, fieldTypes:{[index:st
 }
 
 
-function handleSingleValue(result, fieldAndOperator, value, fieldTypes:{[index:string]:FieldType}, tableName) {
+function handleSingleValue(result, fieldAndOperator:FieldAndOperator, value, fieldTypes:{[index:string]:FieldType}, tableName) {
     if (fieldAndOperator.mutator) {
         value = fieldAndOperator.mutator(value);
     }
@@ -210,9 +211,15 @@ function handleSingleValue(result, fieldAndOperator, value, fieldTypes:{[index:s
     }
     else if (fieldType == FieldType.ARRAY) {
         if (['=','<>'].indexOf(fieldAndOperator.operator)!=-1) {
-            result.params.push(value);
-            value = util.format("$%s", result.params.length + result.offset);
-            result.predicates.push(util.format('%s %s ANY(%s)',  value, fieldAndOperator.operator, fieldAndOperator.quotedField));
+            if (fieldAndOperator.originalOp=='=*') {
+                result.params.push([value]);
+                value = util.format("$%s", result.params.length + result.offset);
+                result.predicates.push(util.format('%s && %s', fieldAndOperator.quotedField, value));
+            } else {
+                result.params.push(value);
+                value = util.format("$%s", result.params.length + result.offset);
+                result.predicates.push(util.format('%s %s ANY(%s)', value, fieldAndOperator.operator, fieldAndOperator.quotedField));
+            }
         }
         else if (['LIKE', 'ILIKE', 'NOT LIKE', 'NOT ILIKE', 'SIMILAR TO', 'NOT SIMILAR TO'].indexOf(fieldAndOperator.operator)!=-1) {
             result.params.push(value);
@@ -311,7 +318,8 @@ function parseKey(key):FieldAndOperator {
         field: field,
         quotedField: quotedField,
         operator: (operation.operator || '=').toUpperCase(),
-        mutator: operation.mutator
+        mutator: operation.mutator,
+        originalOp: userOp
     };
 }
 
