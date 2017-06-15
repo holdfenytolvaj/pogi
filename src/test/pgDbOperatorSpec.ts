@@ -381,6 +381,9 @@ describe("pgdb", () => {
 
         res = await table.find({'textList =*': 'GOOD'});
         expect(res.map(r=>r.name)).toEqual(['Cucumber pear juice']);
+
+        res = await table.find({'textList &&*': ['GOOD', 'Bad']});
+        expect(res.map(r=>r.name)).toEqual(['Cucumber pear juice']);
     }));
 
 

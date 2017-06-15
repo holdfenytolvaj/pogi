@@ -47,6 +47,11 @@ declare var _default: {
     '&&': {
         operator: string;
     };
+    '&&*': {
+        operator: string;
+        mutator: (s: string) => string;
+        fieldMutator: (f: any) => any;
+    };
     '?': {
         operator: string;
     };

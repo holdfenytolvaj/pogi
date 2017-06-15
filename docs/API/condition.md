@@ -24,6 +24,7 @@
 | {id: [1,2,3]}      | "id" in (1,2,3)
 | {'id <>': [1,2,3]} | "id" not in (1,2,3) 
 | {'id =*':'gamma'}  | LOWER("id") = LOWER('gamma')
+| {'fruits =*':'KiWi'}  | LOWER("fruits") && '{kiwi}' //Has to have the LOWER function defined see below. (It uses GIN index if defined on fruits)
 
 ##Pattern matching
 [PostgreSQL Documentation](https://www.postgresql.org/docs/9.6/static/functions-matching.html)
@@ -76,7 +77,7 @@ You should use `{'ids &&': ['a']}` (that is translated to `"ids" && '{a}'`).
 | Condition          | SQL                      
 | -------------      |:-------------- 
 | {'ids ~': 'a%'}    | EXISTS (SELECT * FROM (SELECT UNNEST("ids") _el) _arr WHERE _arr._el ~ 'a%')'; //same with all pattern matching operator
-
+| {'names &&*': ['A','B','C']}    | LOWER("names") && '{a, b, c}' //case insensitive overlap operator, has to have the LOWER function defined for arrays (see below) 
 
 ##Jsonb type
 [PostgreSQL Documentation](https://www.postgresql.org/docs/current/static/functions-json.html)
@@ -119,7 +120,11 @@ condition-expressions can be joined together e.g.:
 | {and: [<br/>&nbsp;&nbsp;&nbsp;&nbsp; or: [{id:1}, {'port >':'1024'}], <br/>&nbsp;&nbsp;&nbsp;&nbsp; or: [{host:'localhost', os:'linux'}, {host:'127.0.0.1'}]<br>]} | (.. OR ..) AND ((.. AND ..) OR ..)
 
 
-
+# Definition of LOWER function for array type
+ CREATE OR REPLACE FUNCTION LOWER(text[]) RETURNS text[] LANGUAGE SQL IMMUTABLE AS
+ $$
+     SELECT array_agg(LOWER(value)) FROM unnest($1) value;
+ $$;
 
 
 

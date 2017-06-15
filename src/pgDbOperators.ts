@@ -33,6 +33,7 @@ export default {
     '@>': {operator: '@>'}, //contains                          ARRAY[1,4,3] @> ARRAY[3,1]      => true
     '<@': {operator: '<@'}, //is contained by                   ARRAY[2,7] <@ ARRAY[1,7,4,2,6] 	=> true
     '&&': {operator: '&&'}, //overlap (have elements in common) ARRAY[1,4,3] && ARRAY[2,1]      => true
+    '&&*': {operator: '&&',  mutator: (s:string) => s.toLocaleLowerCase(), fieldMutator: f => util.format('LOWER("%s")', f)},
 
     // jsonb
     '?': {operator: '?'}, //exists key
