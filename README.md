@@ -7,7 +7,7 @@
 
 it is somewhere in between, around the _golden_ middle ground.
 
-##Some of the features:
+## Some of the features:
 - typescript support (async-await!) (also can generate the structure for the db)
 - transaction support
 - connection pooling
@@ -19,18 +19,18 @@ it is somewhere in between, around the _golden_ middle ground.
 
 so all the basics that you would expect in 2016.
 
-##Install
+## Install
 ```js
 npm install pogi --save
 ```
 
-##Documentation (includes why+1?)
+## Documentation (includes why+1?)
 [here](http://pogi.readthedocs.io/en/latest/)
 
 [Our experience on migrating from mongo](https://hackernoon.com/javascript-experience-of-migrating-from-mongodb-to-postgresql-21f8bf140c05#.k4d7hqsv2)
 
 
-##Some examples to get the taste
+## Some examples to get the taste
 ```js
 import {PgDb} from "pogi";
 
@@ -66,12 +66,12 @@ power; //>9000
 
 ```
 
-##It's not without pitfalls
+## It's not without pitfalls
 What is? It's just usually not written (definitely not in the front page), but see more in the [docs](http://pogi.readthedocs.io/en/latest/).
 I wish more project would be honest about it to save a lot of hours for others. If you find more,
 don't hesitate to tell us!
 
-##Contributing
+## Contributing
 Ideas are welcome! To compile & test
 ```js
 npm run build
@@ -83,5 +83,5 @@ npm run build_v6
 npm run test_v6
 ```
 
-##Handcrafted at 
+## Handcrafted at 
 [www.labcup.net](http://www.labcup.net/)
