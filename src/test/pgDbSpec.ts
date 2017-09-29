@@ -743,4 +743,12 @@ describe("pgdb", () => {
     it("Testing sql execution",  w(async() => {
         await pgdb.execute('spec/resources/tricky.sql', (cmd) => cmd.replace(/__SCHEMA__/g, '"' + schema + '"'));
     }));
+
+    it("Testing text array parsing",  w(async() => {
+        let list = ["'A'","'A'",'//','\\','""',"''"];
+        let rec = await table.insertAndGet({name:'', textList: list});
+        let same = list.some((v,i)=> rec.textList[i] !== v);
+        expect(same).toBeTruthy();
+    }));
+
 });
