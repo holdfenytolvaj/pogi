@@ -83,5 +83,8 @@ npm run build_v6
 npm run test_v6
 ```
 
+## Changelog
+[Changelog.md](CHANGELOG.md)
+
 ## Handcrafted at 
 [www.labcup.net](http://www.labcup.net/)
