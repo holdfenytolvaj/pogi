@@ -8,7 +8,8 @@
     "build": "tsc -p src/tsconfig.json && babel lib/*.js -d ./",
     "build_v6": "tsc -p src/tsconfig.json ",
     "test": "node --harmony spec/run.js",
-    "test_v6": "node spec/run.js"
+    "test_v6": "node spec/run.js",
+    "release_patch": "npm version patch; conventional-changelog -p angular -i CHANGELOG.md -s;"
   },
   "repository": {
     "type": "git",
