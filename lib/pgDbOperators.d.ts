@@ -1,4 +1,4 @@
-declare var _default: {
+declare const _default: {
     '=*': {
         operator: string;
         mutator: (s: string) => string;

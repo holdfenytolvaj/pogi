@@ -2,6 +2,7 @@
   "compilerOptions": {
     "target": "es2015",
     "module": "commonjs",
+    "moduleResolution": "node",
     "sourceMap": true,
     "declaration": true,
     "forceConsistentCasingInFileNames": true,
@@ -9,13 +10,10 @@
     "rootDir": "./",
     "outDir": "../lib",
     "types": [
-      "jasmine",
       "node"
     ]
   },
   "include": [
-    "./*.ts",
-    "./**/*.ts",
-    "../typings/index.d.ts"
+    "index.ts"
   ]
 }

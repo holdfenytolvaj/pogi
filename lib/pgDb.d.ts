@@ -73,7 +73,7 @@ export declare class PgDb extends QueryAble {
     [name: string]: any | PgSchema;
     pgdbTypeParsers: {};
     postProcessResult: PostProcessResultFunc;
-    private constructor(pgdb?);
+    private constructor();
     setPostProcessResult(f: (res: any[], fields: ResultFieldType[], logger: PgDbLogger) => void): void;
     /** If planned to used as a static singleton */
     static getInstance(config: ConnectionOptions): Promise<PgDb>;

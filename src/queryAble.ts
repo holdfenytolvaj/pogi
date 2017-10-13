@@ -142,8 +142,9 @@ export class QueryAble {
                     await new Promise((resolve, reject) => {
                         stream.on('data', (res) => {
                             try {
-                                pgUtils.postProcessResult([res], stream._result.fields, this.db.pgdbTypeParsers);
-                                if (this.db.postProcessResult) this.db.postProcessResult([res], stream._result.fields, this.getLogger(false));
+                                let fields = stream._result && stream._result.fields || stream.cursor._result && stream.cursor._result.fields;
+                                pgUtils.postProcessResult([res], fields, this.db.pgdbTypeParsers);
+                                if (this.db.postProcessResult) this.db.postProcessResult([res], fields, this.getLogger(false));
 
                                 if (callback(res)) {
                                     stream.emit('close');
@@ -165,8 +166,9 @@ export class QueryAble {
                     await new Promise((resolve, reject) => {
                         stream.on('data', (res) => {
                             try {
-                                pgUtils.postProcessResult([res], stream._result.fields, this.db.pgdbTypeParsers);
-                                if (this.db.postProcessResult) this.db.postProcessResult([res], stream._result.fields, this.getLogger(false));
+                                let fields = stream._result && stream._result.fields || stream.cursor._result && stream.cursor._result.fields;
+                                pgUtils.postProcessResult([res], fields, this.db.pgdbTypeParsers);
+                                if (this.db.postProcessResult) this.db.postProcessResult([res], fields, this.getLogger(false));
 
                                 if (callback(res)) {
                                     stream.emit('close');
@@ -202,8 +204,9 @@ export class QueryAble {
         let pgdb = this.db;
         let convertTypeFilter = through(function(data) {
             try {
-                pgUtils.postProcessResult([data], pgStream._result.fields, pgdb.pgdbTypeParsers);
-                if (pgdb.postProcessResult) pgdb.postProcessResult([data], pgStream._result.fields, logger);
+                let fields = pgStream._result && pgStream._result.fields || pgStream.cursor._result && pgStream.cursor._result.fields;
+                pgUtils.postProcessResult([data], fields, pgdb.pgdbTypeParsers);
+                if (pgdb.postProcessResult) pgdb.postProcessResult([data], fields, logger);
 
                 this.emit('data', data);
             } catch (err) {
