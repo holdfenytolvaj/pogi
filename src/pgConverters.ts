@@ -4,13 +4,13 @@ import * as moment from 'moment';
 export let arraySplit = (str) => {
     if (str == "{}") return [];
     str = str.substring(1, str.length - 1); //cut off {}
-    let e = /(?:"((?:[^"]|\\")*)"|([^,]*))(?:,|$)/g; //has to be mutable because of exec
+    let e = /(?:"((?:[^"]|\\")*)"|([^,"]*))(?:,|$)/g; //has to be mutable because of exec
     let valList = [];
     let parsingResult;
     do {
         parsingResult = e.exec(str);
         let valStr = (parsingResult[2] == 'NULL') ? null :
-            (parsingResult[1] == null ? parsingResult[2] : parsingResult[1].replace(/\\\\/g, '\\'));
+            (parsingResult[1] == null ? parsingResult[2] : parsingResult[1].replace(/\\\\/g, '\\')).replace(/\\"/g,'"');
         valList.push(valStr);
     } while (parsingResult[0].substring(parsingResult[0].length - 1, parsingResult[0].length) == ',');
     return valList;
