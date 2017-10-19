@@ -1,3 +1,14 @@
+<a name="2.3.4"></a>
+## [2.3.4](https://github.com/holdfenytolvaj/pogi/compare/v2.3.3...v2.3.4) (2017-10-19)
+
+
+### Bug Fixes
+
+* streams not released connections ([a7fdb42](https://github.com/holdfenytolvaj/pogi/commit/a7fdb42))
+* textArray parsing do not handle right "  character ([c3993db](https://github.com/holdfenytolvaj/pogi/commit/c3993db))
+
+
+
 <a name="2.3.3"></a>
 ## [2.3.3](https://github.com/holdfenytolvaj/pogi/compare/v2.3.2...v2.3.3) (2017-10-13)
 
