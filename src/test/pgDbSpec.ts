@@ -1,3 +1,4 @@
+/// <reference types="jasmine"/>
 import {PgDb} from "../pgDb";
 import {PgTable} from "../pgTable";
 
@@ -12,7 +13,7 @@ function w(func) {
                 console.log('------------------------------');
                 console.error(e.message, e.stack);
                 console.log('------------------------------');
-                expect('Exception: ' + e.message).toEqual(false);
+                expect('Exception: ' + e.message).toBeFalsy();
             }
             return done();
         })();
@@ -82,7 +83,7 @@ describe("pgdb", () => {
         try {
             pgdb = await PgDb.connect({connectionString: "postgres://"});
         } catch (e) {
-            console.error("connection failed! Are you specified PGUSER/PGDATABASE/PGPASSWORD correctly?")
+            console.error("connection failed! Are you specified PGUSER/PGDATABASE/PGPASSWORD correctly?");
             process.exit(1);
         }
         //await pgdb.run('DROP SCHEMA IF EXISTS "' + schema + '" CASCADE ');
@@ -101,12 +102,12 @@ describe("pgdb", () => {
     }));
 
     afterEach(w(async () => {
-        if (pgdb.db.pool.pool._inUseObjects.length != 0) {
-            expect('Not all connection is released').toEqual(false);
-            for (let connection of pgdb.db.pool.pool._inUseObjects) {
+        if (pgdb.pool._pendingQueue.length != 0) {
+            expect('Not all connection is released').toBeFalsy();
+            for (let connection of pgdb.pool._clients) {
                 await connection.query('ROLLBACK');
                 if (connection.release) {
-                    console.log('stucked connection:', connection.processID);
+                    console.log('stuck connection:', connection.processID);
                     connection.release();
                 }
             }
@@ -769,11 +770,12 @@ describe("pgdb", () => {
     }));
 
     it("Testing text array parsing", w(async () => {
-        let list = ["'A'", '"A"', '//', '\\', '""', "''"];
+        let list = ["'A'", '"A"', '//', '\\', '""', "''", '--', '/*', '<!--'];
         await table.insert({name: 'A', textList: list});
-        let rec: any = await table.find({name: 'A'});
-        let same = !list.some((v, i) => rec.textList[i] !== v);
-        expect(same).toBeTruthy();
+        let rec: any = await table.findOne({name: 'A'});
+        console.log(list + '\n' + rec.textList);
+        let isDifferent = list.some((v, i) => rec.textList[i] !== v);
+        expect(isDifferent).toBeFalsy();
     }));
 
 });

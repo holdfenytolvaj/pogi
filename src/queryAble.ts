@@ -1,5 +1,6 @@
 import {PgDbLogger} from "./pgDb";
 import {pgUtils} from "./pgUtils";
+import * as stream from "stream";
 
 const util = require('util');
 const QueryStream = require('pg-query-stream');
@@ -136,31 +137,31 @@ export class QueryAble {
                 params = p.params;
             }
 
-            try {
-                if (connection) {
-                    this.getLogger(false).log(sql, util.inspect(params, false, null), connection.processID);
-                    let query = new QueryStream(sql, params);
-                    let stream = connection.query(query);
-                    await new Promise((resolve, reject) => {
-                        stream.on('data', (res) => {
-                            try {
-                                let fields = stream._result && stream._result.fields || stream.cursor._result && stream.cursor._result.fields;
-                                pgUtils.postProcessResult([res], fields, this.db.pgdbTypeParsers);
-                                if (this.db.postProcessResult) this.db.postProcessResult([res], fields, this.getLogger(false));
+            if (connection) {
+                this.getLogger(false).log(sql, util.inspect(params, false, null), connection.processID);
+                let query = new QueryStream(sql, params);
+                let stream = connection.query(query);
+                await new Promise((resolve, reject) => {
+                    stream.on('data', (res) => {
+                        try {
+                            let fields = stream._result && stream._result.fields || stream.cursor._result && stream.cursor._result.fields;
+                            pgUtils.postProcessResult([res], fields, this.db.pgdbTypeParsers);
+                            if (this.db.postProcessResult) this.db.postProcessResult([res], fields, this.getLogger(false));
 
-                                if (callback(res)) {
-                                    stream.emit('close');
-                                }
-                            } catch (e) {
-                                reject(e);
+                            if (callback(res)) {
+                                stream.emit('close');
                             }
-                        });
-
-                        stream.on('end', resolve);
-                        stream.on('error', reject);
+                        } catch (e) {
+                            reject(e);
+                        }
                     });
 
-                } else {
+                    stream.on('end', resolve);
+                    stream.on('error', reject);
+                });
+
+            } else {
+                try {
                     connection = await this.db.pool.connect();
                     this.getLogger(false).log(sql, util.inspect(params, false, null), connection.processID);
                     let query = new QueryStream(sql, params);
@@ -183,12 +184,12 @@ export class QueryAble {
                         stream.on('end', resolve);
                         stream.on('error', reject);
                     });
-                }
-            } finally {
-                try {
-                    connection.release();
-                } catch (e) {
-                    this.getLogger(true).error('connection error', e.message);
+                } finally {
+                    try {
+                        connection.release();
+                    } catch (e) {
+                        this.getLogger(true).error('connection error', e.message);
+                    }
                 }
             }
         } catch (e) {
@@ -197,11 +198,9 @@ export class QueryAble {
         }
     }
 
-    async queryAsStream(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<any> { //Readable
+    async queryAsStream(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<stream.Readable> {
         let connection = this.db.connection;
         let logger = (options && options.logger || this.getLogger(false));
-
-
         let pgStream;
         let pgdb = this.db;
         let convertTypeFilter = through(function (data) {
@@ -215,6 +214,10 @@ export class QueryAble {
                 this.emit('error', err);
             }
         });
+        convertTypeFilter.on('error', (e) => {
+            logger.error(e);
+            logger.error(sql, util.inspect(params, false, null), connection ? connection.processID : null);
+        });
 
         try {
             if (params && !Array.isArray(params)) {
@@ -227,31 +230,17 @@ export class QueryAble {
                 logger.log(sql, util.inspect(params, false, null), connection.processID);
                 let query = new QueryStream(sql, params);
                 pgStream = connection.query(query);
-                convertTypeFilter.on('error', (e) => {
-                    logger.error(e);
-                    logger.error(sql, util.inspect(params, false, null), connection ? connection.processID : null);
-                });
                 return pgStream.pipe(convertTypeFilter);
             } else {
                 connection = await this.db.pool.connect();
                 logger.log(sql, util.inspect(params, false, null), connection.processID);
                 let query = new QueryStream(sql, params);
                 pgStream = connection.query(query);
-                pgStream.on('end', () => {
-                    connection.release();
-                    connection = null;
-                });
-                pgStream.on('error', (e) => {
-                    connection.release();
-                    connection = null;
-                    logger.error(e);
-                    logger.error(sql, util.inspect(params, false, null), connection ? connection.processID : null);
-                });
-                convertTypeFilter.on('close', () => {
+                pgStream.on('close', () => {
                     if (connection) connection.release();
                     connection = null;
                 });
-                convertTypeFilter.on('error', (e) => {
+                pgStream.on('error', (e) => {
                     if (connection) connection.release();
                     connection = null;
                     logger.error(e);
