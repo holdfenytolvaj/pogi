@@ -9,6 +9,7 @@
     "build6": "tsc -p src/tsconfig.json ",
     "test": "node --harmony spec/run.js",
     "test6": "node spec/run.js",
+    "semantic-release": "semantic-release pre && npm publish && semantic-release post",
     "release_patch": "npm version patch; conventional-changelog -p angular -i CHANGELOG.md -s;"
   },
   "repository": {
@@ -39,12 +40,18 @@
     "babel-plugin-transform-es2015-parameters": "^6.17.0",
     "babel-preset-es2015": "~6.14.0",
     "jasmine": "~2.4.1",
+    "semantic-release": "^8.2.0",
     "typescript": "2.5"
   },
-  "author": "Laszlo Radics<garaboncias@gmail.com>, Geza Radics<radicsge@protonmail.com>",
+  "author": "Laszlo Radics<laszlo.radics@labcup.net>, Geza Radics<radicsge@protonmail.com>",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/holdfenytolvaj/pogi/issues"
   },
-  "homepage": "https://github.com/holdfenytolvaj/pogi#readme"
+  "homepage": "https://github.com/holdfenytolvaj/pogi#readme",
+  "config": {
+    "commitizen": {
+      "path": "cz-conventional-changelog"
+    }
+  }
 }
