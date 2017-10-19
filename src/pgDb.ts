@@ -1,14 +1,13 @@
 import {QueryAble, ResultFieldType} from "./queryAble";
-let pg = require('pg');
-let util = require('util');
-let readline = require('readline');
-let fs = require('fs');
-let moment = require('moment');
-
 import {PgTable} from "./pgTable";
 import {PgSchema} from "./pgSchema";
 import * as PgConverters from "./pgConverters";
 import {pgUtils} from "./pgUtils";
+
+const pg = require('pg');
+const readline = require('readline');
+const fs = require('fs');
+
 const CONNECTION_URL_REGEXP = /^postgres:\/\/(?:([^:]+)(?::([^@]*))?@)?([^\/:]+)?(?::([^\/]+))?\/(.*)$/;
 const SQL_TOKENIZER_REGEXP = /''|'|""|"|;|\$|--|(.+?)/g;
 const SQL_$_ESCAPE_REGEXP = /\$[^$]*\$/g;
@@ -86,7 +85,7 @@ export interface ConnectionOptions {
     reapIntervalMillis?: number;
     poolLog?: boolean;
     client_encoding?: string;
-    ssl?: boolean| any; //| TlsOptions;
+    ssl?: boolean | any; //| TlsOptions;
     application_name?: string; //default:process.env.PGAPPNAME - name displayed in the pg_stat_activity view and included in CSV log entries
     fallback_application_name?: string;
     parseInputDatesAsUTC?: boolean;
@@ -108,25 +107,30 @@ export interface PgDbLogger {
     error: Function;
 }
 
-export type PostProcessResultFunc = (res: any[], fields: ResultFieldType[], logger:PgDbLogger)=>void;
+export type PostProcessResultFunc = (res: any[], fields: ResultFieldType[], logger: PgDbLogger) => void;
 
 
 export class PgDb extends QueryAble {
-    protected static instances: {[index: string]: Promise<PgDb>};
-    /*protected*/ pool;
+    protected static instances: { [index: string]: Promise<PgDb> };
+    /*protected*/
+    pool;
     protected connection;
-    /*protected*/ config: ConnectionOptions;
-    /*protected*/ defaultSchemas; // for this.tables and this.fn
+    /*protected*/
+    config: ConnectionOptions;
+    /*protected*/
+    defaultSchemas; // for this.tables and this.fn
 
     db;
-    schemas: {[name: string]: PgSchema};
-    tables: {[name: string]: PgTable<any>} = {};
-    fn: {[name: string]: (...any)=>any} = {};
-    [name: string]: any|PgSchema;
-    /*protected*/ pgdbTypeParsers = {};
-    /*protected*/ postProcessResult: PostProcessResultFunc;
+    schemas: { [name: string]: PgSchema };
+    tables: { [name: string]: PgTable<any> } = {};
+    fn: { [name: string]: (...any) => any } = {};
+    [name: string]: any | PgSchema;
+    /*protected*/
+    pgdbTypeParsers = {};
+    /*protected*/
+    postProcessResult: PostProcessResultFunc;
 
-    private constructor(pgdb: {defaultSchemas?,config?,schemas?,pool?,pgdbTypeParsers?,getLogger?:()=>any, postProcessResult?:PostProcessResultFunc } = {}) {
+    private constructor(pgdb: { defaultSchemas?, config?, schemas?, pool?, pgdbTypeParsers?, getLogger?: () => any, postProcessResult?: PostProcessResultFunc } = {}) {
         super();
         this.schemas = {};
         this.config = pgdb.config;
@@ -154,7 +158,9 @@ export class PgDb extends QueryAble {
         this.setDefaultTablesAndFunctions();
     }
 
-    setPostProcessResult(f:(res: any[], fields: ResultFieldType[], logger:PgDbLogger)=>void) {this.postProcessResult = f;}
+    setPostProcessResult(f: (res: any[], fields: ResultFieldType[], logger: PgDbLogger) => void) {
+        this.postProcessResult = f;
+    }
 
     /** If planned to used as a static singleton */
     static async getInstance(config: ConnectionOptions): Promise<PgDb> {
@@ -207,7 +213,10 @@ export class PgDb extends QueryAble {
     }
 
     private async init(): Promise<PgDb> {
-        this.pool = new pg.Pool(Object.create(this.config, {logger: {value: undefined}, skipUndefined: {value: undefined}}));
+        this.pool = new pg.Pool(Object.create(this.config, {
+            logger: {value: undefined},
+            skipUndefined: {value: undefined}
+        }));
         if (this.config.logger)
             this.setLogger(this.config.logger);
 
@@ -277,7 +286,7 @@ export class PgDb extends QueryAble {
 
     private async initFieldTypes() {
         //--- init field types -------------------------------------------
-        let specialTypeFields: {rows: {schema_name: string,table_name: string,column_name: string,typid: number}[]}
+        let specialTypeFields: { rows: { schema_name: string, table_name: string, column_name: string, typid: number }[] }
             = await this.pool.query(LIST_SPECIAL_TYPE_FIELDS);
 
         for (let r of specialTypeFields.rows) {
@@ -333,7 +342,7 @@ export class PgDb extends QueryAble {
     /**
      * if schemaName is null, it will be applied for all schemas
      */
-    async setTypeParser(typeName: string, parser: (string)=>any, schemaName?: string): Promise<void> {
+    async setTypeParser(typeName: string, parser: (string) => any, schemaName?: string): Promise<void> {
         try {
             if (schemaName) {
                 let oid = await this.queryOneField(GET_OID_FOR_COLUMN_TYPE_FOR_SCHEMA, {typeName, schemaName});
@@ -351,7 +360,7 @@ export class PgDb extends QueryAble {
         }
     }
 
-    async setPgDbTypeParser(typeName: string, parser: (string)=>any, schemaName?: string): Promise<void> {
+    async setPgDbTypeParser(typeName: string, parser: (string) => any, schemaName?: string): Promise<void> {
         try {
             if (schemaName) {
                 let oid = await this.queryOneField(GET_OID_FOR_COLUMN_TYPE_FOR_SCHEMA, {typeName, schemaName});
@@ -403,16 +412,16 @@ export class PgDb extends QueryAble {
         return this.connection != null;
     }
 
-    async execute(fileName, statementTransformerFunction?: (string)=>string): Promise<void> {
+    async execute(fileName, statementTransformerFunction?: (string) => string): Promise<void> {
         let isTransactionInPlace = this.isTransactionActive();
         let pgdb = await this.dedicatedConnectionBegin();
 
         /** run statements one after the other */
         let runStatementList = (statementList) => {
             //this.getLogger(true).log('consumer start', commands.length);
-            return new Promise((resolve, reject)=> {
+            return new Promise((resolve, reject) => {
                 let currentStatement = 0;
-                let runStatement = ()=> {
+                let runStatement = () => {
                     //this.getLogger(true).log('commnads length', commands.length, i);
                     if (statementList.length == currentStatement) {
                         resolve();
@@ -421,21 +430,21 @@ export class PgDb extends QueryAble {
                         if (statementTransformerFunction) {
                             statement = statementTransformerFunction(statement);
                         }
-                        this.getLogger(true).log('run', statementList[currentStatement-1]);
+                        this.getLogger(true).log('run', statementList[currentStatement - 1]);
                         pgdb.query(statement)
-                            .then(()=>runStatement(), reject)
+                            .then(() => runStatement(), reject)
                             .catch(reject);
                     }
                 };
                 runStatement();
-            }).catch((e)=> {
+            }).catch((e) => {
                 this.getLogger(true).error(e);
                 throw e;
             });
         };
 
         let lineCounter = 0;
-        let promise = new Promise<void>((resolve, reject)=> {
+        let promise = new Promise<void>((resolve, reject) => {
             let statementList = [];
             let tmp = '', m;
             let consumer;
@@ -476,7 +485,7 @@ export class PgDb extends QueryAble {
                             if (tmp.trim() != '') {
                                 statementList.push(tmp);
                                 if (!consumer) {
-                                    consumer = runStatementList(statementList).then(()=> {
+                                    consumer = runStatementList(statementList).then(() => {
                                         // console.log('consumer done');
                                         consumer = null;
                                         statementList.length = 0;
@@ -486,7 +495,7 @@ export class PgDb extends QueryAble {
                                 }
                             }
                             tmp = '';
-                        } else if (!inQuotedString && m[0].substring(0,2) == '--') {
+                        } else if (!inQuotedString && m[0].substring(0, 2) == '--') {
                             line = '';
                         } else {
                             tmp += m[0];
@@ -498,8 +507,8 @@ export class PgDb extends QueryAble {
                 } catch (e) {
                     reject(e);
                 }
-            }).on('close', ()=> {
-                if (inQuotedString){
+            }).on('close', () => {
+                if (inQuotedString) {
                     reject(Error('Invalid SQL, unterminated string'));
                 }
 
@@ -521,19 +530,19 @@ export class PgDb extends QueryAble {
         });
         let error;
         return promise
-            .catch((e)=> {
+            .catch((e) => {
                 error = e;
                 this.getLogger(true).error('Error at line ' + lineCounter + ' in ' + fileName + '. ' + e);
             })
-            .then(()=> {
+            .then(() => {
                 // finally
                 //if transaction was in place, don't touch it
                 if (!isTransactionInPlace) {
                     return pgdb.dedicatedConnectionEnd();
                 }
-            }).catch((e)=> {
+            }).catch((e) => {
                 this.getLogger(true).error(e);
-            }).then(()=>{
+            }).then(() => {
                 if (error) {
                     throw error;
                 }

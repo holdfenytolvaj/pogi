@@ -1,25 +1,27 @@
 import {QueryAble, QueryOptions} from "./queryAble";
-
 import {PgDb, FieldType, PgDbLogger} from "./pgDb";
 import generateWhere from "./queryWhere";
 import {PgSchema} from "./pgSchema";
 import {pgUtils} from "./pgUtils";
-let util = require('util');
-let _ = require('lodash');
+import * as _ from 'lodash';
+
+const util = require('util');
 
 export interface InsertOption {
     logger?: PgDbLogger;
 }
 
 export interface Return {
-    return?:string[]|'*';
+    return?: string[] | '*';
 }
+
 export interface UpdateDeleteOption {
-    skipUndefined?:boolean;
+    skipUndefined?: boolean;
     logger?: PgDbLogger;
 }
+
 export interface CountOption {
-    skipUndefined?:boolean;
+    skipUndefined?: boolean;
     logger?: PgDbLogger;
 }
 
@@ -27,18 +29,18 @@ export interface Stream {
     stream: true;
 }
 
-export interface TruncateOptions{
+export interface TruncateOptions {
     restartIdentity?: boolean,
     cascade?: boolean,
     logger?: PgDbLogger;
 }
 
 export class PgTable<T> extends QueryAble {
-    qualifiedName:string;
-    db:PgDb;
-    fieldTypes:{[index:string]:FieldType}; //written directly
+    qualifiedName: string;
+    db: PgDb;
+    fieldTypes: { [index: string]: FieldType }; //written directly
 
-    constructor(public schema:PgSchema, protected desc:{name:string, pk:string, schema:string}, fieldTypes={}) {
+    constructor(public schema: PgSchema, protected desc: { name: string, pk: string, schema: string }, fieldTypes = {}) {
         super();
         this.db = schema.db;
         this.qualifiedName = util.format('"%s"."%s"', desc.schema, desc.name);
@@ -64,9 +66,9 @@ export class PgTable<T> extends QueryAble {
      * res; // {id:1, name:'anonymous', created:'...'}
      *
      */
-    async insert(records:T[], options?:InsertOption): Promise<number>
-    async insert(records:T, options?:InsertOption): Promise<number>
-    async insert(records:any, options?:any): Promise<any> {
+    async insert(records: T[], options?: InsertOption): Promise<number>
+    async insert(records: T, options?: InsertOption): Promise<number>
+    async insert(records: any, options?: any): Promise<any> {
         options = options || {};
 
         if (!records) {
@@ -79,13 +81,13 @@ export class PgTable<T> extends QueryAble {
 
         let {sql, parameters} = this.getInsertQuery(records);
         sql = "WITH __RESULT as ( " + sql + " RETURNING 1) SELECT SUM(1) FROM __RESULT";
-        let result = await this.query(sql, parameters, {logger:options.logger});
+        let result = await this.query(sql, parameters, {logger: options.logger});
         return result[0].sum;
     }
 
-    async insertAndGet(records:T[], options?:InsertOption & Return): Promise<T[]>
-    async insertAndGet(records:T,   options?:InsertOption & Return): Promise<T>
-    async insertAndGet(records:any, options?:any): Promise<any> {
+    async insertAndGet(records: T[], options?: InsertOption & Return): Promise<T[]>
+    async insertAndGet(records: T, options?: InsertOption & Return): Promise<T>
+    async insertAndGet(records: any, options?: any): Promise<any> {
         var returnSingle = false;
         options = options || {};
 
@@ -101,16 +103,16 @@ export class PgTable<T> extends QueryAble {
         let {sql, parameters} = this.getInsertQuery(records);
 
         if (options.return && Array.isArray(options.return)) {
-            if (options.return.length==0) {
+            if (options.return.length == 0) {
             } else {
-                    sql += " RETURNING " + options.return.map(pgUtils.quoteField).join(',');
+                sql += " RETURNING " + options.return.map(pgUtils.quoteField).join(',');
             }
         } else {
             sql += " RETURNING *";
         }
 
-        let result = await this.query(sql, parameters, {logger:options.logger});
-        if (options.return && options.return.length==0) {
+        let result = await this.query(sql, parameters, {logger: options.logger});
+        if (options.return && options.return.length == 0) {
             return new Array(returnSingle ? 1 : records.length).fill({});
         }
         if (returnSingle) {
@@ -120,7 +122,7 @@ export class PgTable<T> extends QueryAble {
         }
     };
 
-    async updateOne(conditions:{[k:string]:any}, fields:{[k:string]:any}, options?:UpdateDeleteOption): Promise<number> {
+    async updateOne(conditions: { [k: string]: any }, fields: { [k: string]: any }, options?: UpdateDeleteOption): Promise<number> {
         let affected = await this.update(conditions, fields, options);
         if (affected > 1) {
             throw new Error('More then one record has been updated!');
@@ -128,7 +130,7 @@ export class PgTable<T> extends QueryAble {
         return affected;
     }
 
-    async updateAndGetOne(conditions:{[k:string]:any}, fields:{[k:string]:any}, options?:UpdateDeleteOption & Return): Promise<T> {
+    async updateAndGetOne(conditions: { [k: string]: any }, fields: { [k: string]: any }, options?: UpdateDeleteOption & Return): Promise<T> {
         let result = await this.updateAndGet(conditions, fields, options);
         if (result.length > 1) {
             throw new Error('More then one record has been updated!');
@@ -136,28 +138,28 @@ export class PgTable<T> extends QueryAble {
         return result[0];
     }
 
-    async update(conditions:{[k:string]:any}, fields:{[k:string]:any}, options?:UpdateDeleteOption):Promise<number> {
+    async update(conditions: { [k: string]: any }, fields: { [k: string]: any }, options?: UpdateDeleteOption): Promise<number> {
         let {sql, parameters} = this.getUpdateQuery(conditions, fields, options);
         sql = "WITH __RESULT as ( " + sql + " RETURNING 1) SELECT SUM(1) FROM __RESULT";
         let res = await this.query(sql, parameters, options);
         return res[0].sum;
     };
 
-    async updateAndGet(conditions:{[k:string]:any}, fields:{[k:string]:any}, options?:UpdateDeleteOption & Return):Promise<T[]> {
+    async updateAndGet(conditions: { [k: string]: any }, fields: { [k: string]: any }, options?: UpdateDeleteOption & Return): Promise<T[]> {
         let {sql, parameters} = this.getUpdateQuery(conditions, fields, options);
         sql += " RETURNING " + (options && options.return && Array.isArray(options.return) ? options.return.map(pgUtils.quoteField).join(',') : '*');
         return this.query(sql, parameters, options);
     };
 
 
-    async delete(conditions:{[k:string]:any}, options?:UpdateDeleteOption):Promise<number> {
+    async delete(conditions: { [k: string]: any }, options?: UpdateDeleteOption): Promise<number> {
         let {sql, parameters} = this.getDeleteQuery(conditions, options);
         sql = "WITH __RESULT as ( " + sql + " RETURNING 1) SELECT SUM(1) FROM __RESULT";
         let res = await this.query(sql, parameters, options);
         return res[0].sum;
     }
 
-    async deleteOne(conditions:{[k:string]:any}, options?:UpdateDeleteOption):Promise<number> {
+    async deleteOne(conditions: { [k: string]: any }, options?: UpdateDeleteOption): Promise<number> {
         let affected = await this.delete(conditions, options);
         if (affected > 1) {
             throw new Error('More then one record has been deleted!');
@@ -165,14 +167,14 @@ export class PgTable<T> extends QueryAble {
         return affected;
     }
 
-    async deleteAndGet(conditions:{[k:string]:any}, options?:UpdateDeleteOption & Return): Promise<any[]> {
+    async deleteAndGet(conditions: { [k: string]: any }, options?: UpdateDeleteOption & Return): Promise<any[]> {
         options = options || {};
         let {sql, parameters} = this.getDeleteQuery(conditions, options);
         sql += " RETURNING " + (options && options.return && Array.isArray(options.return) ? options.return.map(pgUtils.quoteField).join(',') : '*');
         return this.query(sql, parameters);
     }
 
-    async deleteAndGetOne(conditions:{[k:string]:any}, options?:UpdateDeleteOption & Return): Promise<any> {
+    async deleteAndGetOne(conditions: { [k: string]: any }, options?: UpdateDeleteOption & Return): Promise<any> {
         let result = await this.deleteAndGet(conditions, options);
         if (result.length > 1) {
             throw new Error('More then one record has been deleted!');
@@ -187,9 +189,9 @@ export class PgTable<T> extends QueryAble {
     //     return res[0].sum;
     // }
 
-    async truncate(options?:TruncateOptions):Promise<void> {
+    async truncate(options?: TruncateOptions): Promise<void> {
         let sql = `TRUNCATE ${this.qualifiedName}`;
-        if (options && options.restartIdentity){
+        if (options && options.restartIdentity) {
             sql += ' RESTART IDENTITY';
         }
         if (options && options.cascade) {
@@ -198,35 +200,38 @@ export class PgTable<T> extends QueryAble {
         await this.query(sql, null, options);
     }
 
-    async find(conditions:{[k:string]:any}, options?:QueryOptions):Promise<T[]>
-    async find(conditions:{[k:string]:any}, options?:QueryOptions & Stream):Promise<{on:any}>
-    async find(conditions:{[k:string]:any}, options?:any):Promise<any> {
+    async find(conditions: { [k: string]: any }, options?: QueryOptions): Promise<T[]>
+    async find(conditions: { [k: string]: any }, options?: QueryOptions & Stream): Promise<{ on: any }>
+    async find(conditions: { [k: string]: any }, options?: any): Promise<any> {
         options = options || {};
-        options.skipUndefined = options.skipUndefined===true || (options.skipUndefined===undefined && ['all', 'select'].indexOf(this.db.config.skipUndefined)>-1);
+        options.skipUndefined = options.skipUndefined === true || (options.skipUndefined === undefined && ['all', 'select'].indexOf(this.db.config.skipUndefined) > -1);
 
-        let where = _.isEmpty(conditions) ? {where: " ", params: null} : generateWhere(conditions, this.fieldTypes, this.qualifiedName, 0, options.skipUndefined);
+        let where = _.isEmpty(conditions) ? {
+            where: " ",
+            params: null
+        } : generateWhere(conditions, this.fieldTypes, this.qualifiedName, 0, options.skipUndefined);
         let sql = `SELECT ${pgUtils.processQueryFields(options)} FROM ${this.qualifiedName} ${where.where} ${pgUtils.processQueryOptions(options)}`;
         return options.stream ? this.queryAsStream(sql, where.params, options) : this.query(sql, where.params, options);
     }
 
 
-    async findWhere(where:string, params:any[]|{}, options?:QueryOptions):Promise<T[]>
-    async findWhere(where:string, params:any[]|{}, options?:QueryOptions & Stream):Promise<any> //Readable
-    async findWhere(where:string, params:any, options?:any):Promise<any> {
+    async findWhere(where: string, params: any[] | {}, options?: QueryOptions): Promise<T[]>
+    async findWhere(where: string, params: any[] | {}, options?: QueryOptions & Stream): Promise<any> //Readable
+    async findWhere(where: string, params: any, options?: any): Promise<any> {
         options = options || {};
         let sql = `SELECT ${pgUtils.processQueryFields(options)} FROM ${this.qualifiedName} WHERE ${where} ${pgUtils.processQueryOptions(options)}`;
         return options.stream ? this.queryAsStream(sql, params, options) : this.query(sql, params, options);
     }
 
-    public async findAll(options?:QueryOptions):Promise<T[]>
-    public async findAll(options?:QueryOptions & Stream):Promise<any> //Readable
-    public async findAll(options?:any):Promise<any> {
+    public async findAll(options?: QueryOptions): Promise<T[]>
+    public async findAll(options?: QueryOptions & Stream): Promise<any> //Readable
+    public async findAll(options?: any): Promise<any> {
         options = options || {};
         let sql = `SELECT ${pgUtils.processQueryFields(options)} FROM ${this.qualifiedName} ${pgUtils.processQueryOptions(options)}`;
         return options.stream ? this.queryAsStream(sql, null, options) : this.query(sql, null, options);
     }
 
-    async findOne(conditions, options?:QueryOptions):Promise<T> {
+    async findOne(conditions, options?: QueryOptions): Promise<T> {
         let res = await this.find(conditions, options);
         if (res.length > 1) {
             throw new Error('More then one rows exists');
@@ -234,7 +239,7 @@ export class PgTable<T> extends QueryAble {
         return res[0];
     }
 
-    async findFirst(conditions, options?:QueryOptions):Promise<T> {
+    async findFirst(conditions, options?: QueryOptions): Promise<T> {
         options = options || {};
         options.limit = 1;
         let res = await this.find(conditions, options);
@@ -242,16 +247,19 @@ export class PgTable<T> extends QueryAble {
     }
 
 
-    async count(conditions?:{}, options?:CountOption):Promise<number> {
+    async count(conditions?: {}, options?: CountOption): Promise<number> {
         options = options || {};
-        options.skipUndefined = options.skipUndefined===true || (options.skipUndefined===undefined && ['all', 'select'].indexOf(this.db.config.skipUndefined)>-1);
+        options.skipUndefined = options.skipUndefined === true || (options.skipUndefined === undefined && ['all', 'select'].indexOf(this.db.config.skipUndefined) > -1);
 
-        let where = _.isEmpty(conditions) ? {where: " ", params: null} : generateWhere(conditions, this.fieldTypes, this.qualifiedName, 0, options.skipUndefined);
+        let where = _.isEmpty(conditions) ? {
+            where: " ",
+            params: null
+        } : generateWhere(conditions, this.fieldTypes, this.qualifiedName, 0, options.skipUndefined);
         let sql = `SELECT COUNT(*) c FROM ${this.qualifiedName} ${where.where}`;
         return (await this.queryOneField(sql, where.params));
     }
 
-    async findOneFieldOnly(conditions, field:string, options?:QueryOptions):Promise<any> {
+    async findOneFieldOnly(conditions, field: string, options?: QueryOptions): Promise<any> {
         options = options || {};
         options.fields = [field];
         let res = await this.findOne(conditions, options);
@@ -259,10 +267,12 @@ export class PgTable<T> extends QueryAble {
     }
 
 
-    private getInsertQuery(records:T[]) {
+    private getInsertQuery(records: T[]) {
         let columnsMap = {};
         records.forEach(rec => {
-            for(let field in <Object>rec) {columnsMap[field] = true;}
+            for (let field in <Object>rec) {
+                columnsMap[field] = true;
+            }
         });
         let columns = Object.keys(columnsMap);
         let sql = util.format("INSERT INTO %s (%s) VALUES\n", this.qualifiedName, columns.map(pgUtils.quoteField).join(", "));
@@ -279,9 +289,9 @@ export class PgTable<T> extends QueryAble {
 
     }
 
-    protected getUpdateQuery(conditions:{[k:string]:any}, fields:{[k:string]:any}, options?:UpdateDeleteOption):{sql:string, parameters:any[]} {
+    protected getUpdateQuery(conditions: { [k: string]: any }, fields: { [k: string]: any }, options?: UpdateDeleteOption): { sql: string, parameters: any[] } {
         options = options || {};
-        options.skipUndefined = options.skipUndefined===true || (options.skipUndefined===undefined && this.db.config.skipUndefined === 'all');
+        options.skipUndefined = options.skipUndefined === true || (options.skipUndefined === undefined && this.db.config.skipUndefined === 'all');
 
         let hasConditions = true;
 
@@ -306,13 +316,13 @@ export class PgTable<T> extends QueryAble {
             let parsedWhere = generateWhere(conditions, this.fieldTypes, this.qualifiedName, parameters.length, options.skipUndefined);
             sql += parsedWhere.where;
         }
-        parameters = parameters.concat(_.flatten(_.values(conditions).filter(v=>v!==undefined)));
+        parameters = parameters.concat(_.flatten(_.values(conditions).filter(v => v !== undefined)));
         return {sql, parameters};
     }
 
-    protected getDeleteQuery(conditions:{[k:string]:any}, options?:UpdateDeleteOption):{sql:string, parameters:any[]} {
+    protected getDeleteQuery(conditions: { [k: string]: any }, options?: UpdateDeleteOption): { sql: string, parameters: any[] } {
         options = options || {};
-        options.skipUndefined = options.skipUndefined===true || (options.skipUndefined===undefined && this.db.config.skipUndefined === 'all');
+        options.skipUndefined = options.skipUndefined === true || (options.skipUndefined === undefined && this.db.config.skipUndefined === 'all');
 
         let sql = util.format("DELETE FROM %s ", this.qualifiedName);
 
@@ -321,6 +331,6 @@ export class PgTable<T> extends QueryAble {
             parsedWhere = generateWhere(conditions, this.fieldTypes, this.qualifiedName, 0, options.skipUndefined);
             sql += parsedWhere.where;
         }
-        return {sql, parameters: parsedWhere && parsedWhere.params||[]}
+        return {sql, parameters: parsedWhere && parsedWhere.params || []}
     }
 }

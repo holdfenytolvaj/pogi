@@ -1,9 +1,8 @@
-var util = require("util");
+const util = require("util");
 
 function escapeForLike(s) {
-    return s.replace(/(\\|%|_)/g,'\\$1');
+    return s.replace(/([\\%_])/g,'\\$1');
 }
-
 
 export default {
     // lowercase comparison

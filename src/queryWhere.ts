@@ -1,7 +1,8 @@
 import operationsMap from "./pgDbOperators";
 import {FieldType} from "./pgDb";
-var _ = require("lodash");
-var util = require("util");
+
+const _ = require("lodash");
+const util = require("util");
 
 class FieldAndOperator {
     field: string;
@@ -12,24 +13,24 @@ class FieldAndOperator {
 }
 
 /** public */
-function generateWhere(conditions, fieldTypes:{[index:string]:FieldType}, tableName:string, placeholderOffset=0, skipUndefined) : {where:string, params:Array<any>} {
-    var result = generate({
+function generateWhere(conditions, fieldTypes: { [index: string]: FieldType }, tableName: string, placeholderOffset = 0, skipUndefined): { where: string, params: Array<any> } {
+    let result = generate({
         params: [],
         predicates: [],
         offset: placeholderOffset,
     }, conditions, fieldTypes, tableName, skipUndefined);
 
     return {
-        where: result.predicates.length>0 ? ' WHERE ' + result.predicates.join(' AND ') : '',
+        where: result.predicates.length > 0 ? ' WHERE ' + result.predicates.join(' AND ') : '',
         params: result.params
     };
 }
 
 /** private */
-function generate(result, conditions, fieldTypes:{[index:string]:FieldType}, tableName:string, skipUndefined) {
+function generate(result, conditions, fieldTypes: { [index: string]: FieldType }, tableName: string, skipUndefined) {
     _.each(conditions, (value, key) => {
         //get the column field and the operator if specified
-        var fieldAndOperator = parseKey(key);
+        let fieldAndOperator = parseKey(key);
 
         if (value === undefined) { //null is ok, but undefined is skipped if requested
             if (skipUndefined === true) return;
@@ -52,14 +53,14 @@ function generate(result, conditions, fieldTypes:{[index:string]:FieldType}, tab
     return result;
 }
 
-function handleOrAnd(result, fieldAndOperator, value, fieldTypes:{[index:string]:FieldType}, tableName:string, skipUndefined) {
+function handleOrAnd(result, fieldAndOperator, value, fieldTypes: { [index: string]: FieldType }, tableName: string, skipUndefined) {
     if (!Array.isArray(value)) {
         value = [value];
     }
 
-    var groupResult = _.reduce(value, (acc, v) => {
+    let groupResult = _.reduce(value, (acc, v) => {
         // assemble predicates for each subgroup in this 'or' array
-        var subResult = generate({
+        let subResult = generate({
             params: [],
             predicates: [],
             offset: result.params.length + acc.offset   // ensure the offset from predicates outside the subgroup is counted
@@ -95,38 +96,38 @@ function handleNullValue(result, fieldAndOperator, value) {
     return result;
 }
 
-function handleArrayValue(result, fieldAndOperator, value, fieldTypes:{[index:string]:FieldType}) {
+function handleArrayValue(result, fieldAndOperator, value, fieldTypes: { [index: string]: FieldType }) {
     if (fieldAndOperator.mutator) {
-        value = value.map(v=>fieldAndOperator.mutator(v));
+        value = value.map(v => fieldAndOperator.mutator(v));
     }
     let fieldType = fieldTypes[fieldAndOperator.field];
 
     if (fieldType == FieldType.JSON &&
-        ['?|', '?&'].indexOf(fieldAndOperator.operator)!=-1) {
+        ['?|', '?&'].indexOf(fieldAndOperator.operator) != -1) {
         result.params.push(value);
         value = util.format("$%s", result.params.length + result.offset);
         result.predicates.push(util.format('%s %s %s', fieldAndOperator.quotedField, fieldAndOperator.operator, value));
         return result;
     }
     else if (fieldType == FieldType.JSON &&
-        ['@>', '<@', '&&'].indexOf(fieldAndOperator.operator)!=-1) {
+        ['@>', '<@', '&&'].indexOf(fieldAndOperator.operator) != -1) {
         result.params.push(JSON.stringify(value));
         value = util.format("$%s", result.params.length + result.offset);
         result.predicates.push(util.format('%s %s %s', fieldAndOperator.quotedField, fieldAndOperator.operator, value));
         return result;
     }
     else if ((!fieldType || fieldType == FieldType.TIME) &&
-        ['=','<>','IN','NOT IN'].indexOf(fieldAndOperator.operator)!=-1) {
-        var arrayConditions = [];
-        if (fieldAndOperator.operator === '=' ) {
+        ['=', '<>', 'IN', 'NOT IN'].indexOf(fieldAndOperator.operator) != -1) {
+        let arrayConditions = [];
+        if (fieldAndOperator.operator === '=') {
             fieldAndOperator.operator = 'IN';
         }
-        else if (fieldAndOperator.operator === '<>' ) {
+        else if (fieldAndOperator.operator === '<>') {
             fieldAndOperator.operator = 'NOT IN';
         }
 
-        if (value.length === 0){  // avoid empty "[NOT] IN ()"
-            throw new Error('Invalid conditions! empty array for field:"' + fieldAndOperator.field + '" and operator:"' + fieldAndOperator.operator +'"');
+        if (value.length === 0) {  // avoid empty "[NOT] IN ()"
+            throw new Error('Invalid conditions! empty array for field:"' + fieldAndOperator.field + '" and operator:"' + fieldAndOperator.operator + '"');
             //return result;
         }
 
@@ -139,14 +140,14 @@ function handleArrayValue(result, fieldAndOperator, value, fieldTypes:{[index:st
         result.predicates.push(util.format('%s %s %s', fieldAndOperator.quotedField, fieldAndOperator.operator, value));
         return result;
     }
-    else if (!fieldType && ['LIKE', 'ILIKE', 'SIMILAR TO', '~', '~*'].indexOf(fieldAndOperator.operator)!=-1) {
+    else if (!fieldType && ['LIKE', 'ILIKE', 'SIMILAR TO', '~', '~*'].indexOf(fieldAndOperator.operator) != -1) {
         //defaults to any
         result.params.push(value);
         value = util.format("$%s", result.params.length + result.offset);
         result.predicates.push(util.format('%s %s ANY(%s)', fieldAndOperator.quotedField, fieldAndOperator.operator, value));
         return result;
     }
-    else if (!fieldType && ['NOT LIKE', 'NOT ILIKE', 'NOT SIMILAR TO', '!~', '!~*'].indexOf(fieldAndOperator.operator)!=-1) {
+    else if (!fieldType && ['NOT LIKE', 'NOT ILIKE', 'NOT SIMILAR TO', '!~', '!~*'].indexOf(fieldAndOperator.operator) != -1) {
         //defaults to all
         result.params.push(value);
         value = util.format("$%s", result.params.length + result.offset);
@@ -154,18 +155,18 @@ function handleArrayValue(result, fieldAndOperator, value, fieldTypes:{[index:st
         return result;
     }
     else if (fieldType == FieldType.ARRAY &&
-             ['=', '<>', '<', '>', '<=', '>=', '@>', '<@', '&&'].indexOf(fieldAndOperator.operator)!=-1) {
+        ['=', '<>', '<', '>', '<=', '>=', '@>', '<@', '&&'].indexOf(fieldAndOperator.operator) != -1) {
         result.params.push(value);
         value = util.format("$%s", result.params.length + result.offset);
         result.predicates.push(util.format('%s %s %s', fieldAndOperator.quotedField, fieldAndOperator.operator, value));
         return result;
     }
 
-    throw new Error('[325] Not implemented operator: "' +fieldAndOperator.operator + '" for field ' + fieldAndOperator.field + ' with type ' + fieldType );
+    throw new Error('[325] Not implemented operator: "' + fieldAndOperator.operator + '" for field ' + fieldAndOperator.field + ' with type ' + fieldType);
 }
 
 
-function handleSingleValue(result, fieldAndOperator:FieldAndOperator, value, fieldTypes:{[index:string]:FieldType}, tableName) {
+function handleSingleValue(result, fieldAndOperator: FieldAndOperator, value, fieldTypes: { [index: string]: FieldType }, tableName) {
     if (fieldAndOperator.mutator) {
         value = fieldAndOperator.mutator(value);
     }
@@ -176,42 +177,42 @@ function handleSingleValue(result, fieldAndOperator:FieldAndOperator, value, fie
          * or object {lang:'english', txt:string} -> to_tsquery(o.lang, o.txt)
          */
         if (typeof value == 'object') {
-            if (!(value.lang||value.language) || !(value.query||value.plainquery)) {
+            if (!(value.lang || value.language) || !(value.query || value.plainquery)) {
                 throw new Error('[499] only "lang"/"language" and "query/plainquery" properties are supported!');
             }
-            if (fieldType==FieldType.TSVECTOR) {
+            if (fieldType == FieldType.TSVECTOR) {
                 //language is already set
-                result.params.push(value.lang||value.language);
-                result.params.push(value.query||value.plainquery);
+                result.params.push(value.lang || value.language);
+                result.params.push(value.query || value.plainquery);
                 let template = value.query ? "%s %s to_tsquery($%s, $%s)" : "%s %s plainto_tsquery($%s, $%s)";
                 result.predicates.push(util.format(template,
                     fieldAndOperator.quotedField,
                     fieldAndOperator.operator,
-                    result.params.length-1 + result.offset, //lang
+                    result.params.length - 1 + result.offset, //lang
                     result.params.length + result.offset //query
                 ));
             } else {
-                result.params.push(value.lang||value.language);
-                result.params.push(value.lang||value.language);
-                result.params.push(value.query||value.plainquery);
+                result.params.push(value.lang || value.language);
+                result.params.push(value.lang || value.language);
+                result.params.push(value.query || value.plainquery);
                 let template = value.query ? "to_tsvector($%s, %s) %s to_tsquery($%s, $%s)" : "to_tsvector($%s, %s) %s plainto_tsquery($%s, $%s)";
                 result.predicates.push(util.format(template,
-                    result.params.length-2 + result.offset, //lang
+                    result.params.length - 2 + result.offset, //lang
                     fieldAndOperator.quotedField,
                     fieldAndOperator.operator,
-                    result.params.length-1 + result.offset, //lang
+                    result.params.length - 1 + result.offset, //lang
                     result.params.length + result.offset //query
                 ));
             }
         } else {
             result.params.push(value);
-            let template = fieldType==FieldType.TSVECTOR ? "%s %s plainto_tsquery($%s)" : "to_tsvector(%s) %s plainto_tsquery($%s)";
+            let template = fieldType == FieldType.TSVECTOR ? "%s %s plainto_tsquery($%s)" : "to_tsvector(%s) %s plainto_tsquery($%s)";
             result.predicates.push(util.format(template, fieldAndOperator.quotedField, fieldAndOperator.operator, result.params.length + result.offset));
         }
     }
     else if (fieldType == FieldType.ARRAY) {
-        if (['=','<>'].indexOf(fieldAndOperator.operator)!=-1) {
-            if (fieldAndOperator.originalOp=='=*') {
+        if (['=', '<>'].indexOf(fieldAndOperator.operator) != -1) {
+            if (fieldAndOperator.originalOp == '=*') {
                 result.params.push([value]);
                 value = util.format("$%s", result.params.length + result.offset);
                 result.predicates.push(util.format('%s && %s', fieldAndOperator.quotedField, value));
@@ -221,14 +222,14 @@ function handleSingleValue(result, fieldAndOperator:FieldAndOperator, value, fie
                 result.predicates.push(util.format('%s %s ANY(%s)', value, fieldAndOperator.operator, fieldAndOperator.quotedField));
             }
         }
-        else if (['LIKE', 'ILIKE', 'NOT LIKE', 'NOT ILIKE', 'SIMILAR TO', 'NOT SIMILAR TO'].indexOf(fieldAndOperator.operator)!=-1) {
+        else if (['LIKE', 'ILIKE', 'NOT LIKE', 'NOT ILIKE', 'SIMILAR TO', 'NOT SIMILAR TO'].indexOf(fieldAndOperator.operator) != -1) {
             result.params.push(value);
             value = util.format("$%s", result.params.length + result.offset);
 
             let q = 'EXISTS (SELECT * FROM (SELECT UNNEST(' + tableName + '.%s) _el) _arr WHERE _arr._el %s %s)';
             result.predicates.push(util.format(q, fieldAndOperator.quotedField, fieldAndOperator.operator, value));
         } else {
-            throw new Error('[326] Not implemented operator: "' +fieldAndOperator.operator + '" for type ' + fieldType);
+            throw new Error('[326] Not implemented operator: "' + fieldAndOperator.operator + '" for type ' + fieldType);
         }
     } else {
         result.params.push((fieldType == FieldType.TIME && !(value instanceof Date)) ? new Date(value) : value);
@@ -240,12 +241,12 @@ function handleSingleValue(result, fieldAndOperator:FieldAndOperator, value, fie
 
 
 function strip(arr) {
-    return arr.map((s) => s.trim()).filter(v => v!='');
+    return arr.map((s) => s.trim()).filter(v => v != '');
 }
 
 function getOp(str) {
-    for (let i=0;i<str.length;i++) {
-        if (operationsMap[str.substr(i)]){
+    for (let i = 0; i < str.length; i++) {
+        if (operationsMap[str.substr(i)]) {
             return str.substr(i);
         }
     }
@@ -268,12 +269,12 @@ function getOp(str) {
  * @param  {String} key Key in a format resembling "field [JSON operation+path] operation"
  * @return {Object}     [description]
  */
-function parseKey(key):FieldAndOperator {
+function parseKey(key): FieldAndOperator {
     key = key.trim();
 
     let userOp = getOp(key);
     if (userOp) {
-        key = key.substr(0, key.length-userOp.length)
+        key = key.substr(0, key.length - userOp.length)
     }
     let operation = operationsMap[userOp] || {};
     let jsonRegexp = /(->[^>]|->>|#>[^>]|#>>)/;
@@ -281,7 +282,7 @@ function parseKey(key):FieldAndOperator {
     let field;
     let quotedField;
 
-    let quotedByUser = key.indexOf('"')>-1; //key[0]=='"'; -> lets make it possible to write transformed columns, e.g. LOWER("field")
+    let quotedByUser = key.indexOf('"') > -1; //key[0]=='"'; -> lets make it possible to write transformed columns, e.g. LOWER("field")
     if (quotedByUser) {
         quotedField = key;
         //field is used for find out the type of the field, so lets restore it if possible, grab the first quoted string
@@ -296,11 +297,11 @@ function parseKey(key):FieldAndOperator {
         quotedField = util.format('"%s"', field);
 
         if (parts.length > 1) {
-            var jsonOp = parts.shift();
-            var jsonKey = parts.shift();
+            let jsonOp = parts.shift();
+            let jsonKey = parts.shift();
 
             // treat numeric json keys as array indices, otherwise quote it
-            if (isNaN(jsonKey) && jsonKey.indexOf("'")==-1) {
+            if (isNaN(jsonKey) && jsonKey.indexOf("'") == -1) {
                 jsonKey = util.format("'%s'", jsonKey);
             }
 

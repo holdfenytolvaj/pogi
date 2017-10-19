@@ -6,7 +6,7 @@ import {PgTable} from "../pgTable";
     try {
         let pgdb = await PgDb.connect({
             logger: {
-                log: ()=> {
+                log: () => {
                 }, error: console.error
             }
         }); //using PGUSER, PGPASSWORD + PGDATABASE env variables
@@ -47,7 +47,7 @@ import {PgTable} from "../pgTable";
 
 
         pgdb.close();
-    } catch(e) {
+    } catch (e) {
         console.error(e);
     }
     return Promise.resolve();

@@ -1,17 +1,18 @@
 import {PgDbLogger} from "./pgDb";
-var util = require('util');
-var QueryStream = require('pg-query-stream');
 import {pgUtils} from "./pgUtils";
-var through = require('through');
+
+const util = require('util');
+const QueryStream = require('pg-query-stream');
+const through = require('through');
 
 export interface QueryOptions {
     limit?: number;
     offset?: number;
-    orderBy?: string|string[]|{[fieldName:string]:'asc'|'desc'};//free text or column list
-    groupBy?: string|string[];//free text or column list
-    fields?: string|string[];//free text or column list
+    orderBy?: string | string[] | { [fieldName: string]: 'asc' | 'desc' };//free text or column list
+    groupBy?: string | string[];//free text or column list
+    fields?: string | string[];//free text or column list
     logger?: PgDbLogger;
-    skipUndefined?:boolean;
+    skipUndefined?: boolean;
 }
 
 export interface SqlQueryOptions {
@@ -27,8 +28,9 @@ export interface ResultFieldType {
     dataTypeModifier: number,
     format: string
 }
+
 export interface ResultType {
-    command: 'SELECT'|'UPDATE'|'DELETE',
+    command: 'SELECT' | 'UPDATE' | 'DELETE',
     rowCount: number,
     oid: number,
     rows: any[],
@@ -39,9 +41,9 @@ export interface ResultType {
     _getTypeParser: Function[]
 }
 
-var defaultLogger = {
-    log: ()=> {
-    }, error: ()=> {
+let defaultLogger = {
+    log: () => {
+    }, error: () => {
     }
 };
 
@@ -74,7 +76,7 @@ export class QueryAble {
      * e.g. query('select * from a.b where id=$1;',['the_stage_is_set']);
      * e.g. query('select * from :!schema.:!table where id=:id;',{schema:'a',table:'b', id:'the_stage_is_set'});
      */
-    async query(sql: string, params?: any[]|{}, options?:SqlQueryOptions): Promise<any[]> {
+    async query(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<any[]> {
         let connection = this.db.connection;
         let logger = (options && options.logger || this.getLogger(false));
         try {
@@ -103,7 +105,7 @@ export class QueryAble {
                     if (this.db.postProcessResult) this.db.postProcessResult(res.rows, res.fields, logger);
 
                     return res.rows;
-                } catch(e){
+                } catch (e) {
                     logger.error(sql, util.inspect(params, false, null), connection ? connection.processID : null, e);
                     try {
                         if (connection)
@@ -124,7 +126,7 @@ export class QueryAble {
     /**
      * If the callback function return true, the connection will be closed.
      */
-    async queryWithOnCursorCallback(sql: string, params: any[]|{}, options:SqlQueryOptions, callback:(any)=>any): Promise<void> {
+    async queryWithOnCursorCallback(sql: string, params: any[] | {}, options: SqlQueryOptions, callback: (any) => any): Promise<void> {
         let connection = this.db.connection;
 
         try {
@@ -137,8 +139,8 @@ export class QueryAble {
             try {
                 if (connection) {
                     this.getLogger(false).log(sql, util.inspect(params, false, null), connection.processID);
-                    var query = new QueryStream(sql, params);
-                    var stream = connection.query(query);
+                    let query = new QueryStream(sql, params);
+                    let stream = connection.query(query);
                     await new Promise((resolve, reject) => {
                         stream.on('data', (res) => {
                             try {
@@ -161,8 +163,8 @@ export class QueryAble {
                 } else {
                     connection = await this.db.pool.connect();
                     this.getLogger(false).log(sql, util.inspect(params, false, null), connection.processID);
-                    var query = new QueryStream(sql, params);
-                    var stream = connection.query(query);
+                    let query = new QueryStream(sql, params);
+                    let stream = connection.query(query);
                     await new Promise((resolve, reject) => {
                         stream.on('data', (res) => {
                             try {
@@ -195,14 +197,14 @@ export class QueryAble {
         }
     }
 
-    async queryAsStream(sql: string, params?: any[]|{},  options?:SqlQueryOptions): Promise<any> { //Readable
+    async queryAsStream(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<any> { //Readable
         let connection = this.db.connection;
         let logger = (options && options.logger || this.getLogger(false));
 
 
         let pgStream;
         let pgdb = this.db;
-        let convertTypeFilter = through(function(data) {
+        let convertTypeFilter = through(function (data) {
             try {
                 let fields = pgStream._result && pgStream._result.fields || pgStream.cursor._result && pgStream.cursor._result.fields;
                 pgUtils.postProcessResult([data], fields, pgdb.pgdbTypeParsers);
@@ -223,9 +225,9 @@ export class QueryAble {
 
             if (connection) {
                 logger.log(sql, util.inspect(params, false, null), connection.processID);
-                var query = new QueryStream(sql, params);
+                let query = new QueryStream(sql, params);
                 pgStream = connection.query(query);
-                convertTypeFilter.on('error', (e)=> {
+                convertTypeFilter.on('error', (e) => {
                     logger.error(e);
                     logger.error(sql, util.inspect(params, false, null), connection ? connection.processID : null);
                 });
@@ -233,23 +235,23 @@ export class QueryAble {
             } else {
                 connection = await this.db.pool.connect();
                 logger.log(sql, util.inspect(params, false, null), connection.processID);
-                var query = new QueryStream(sql, params);
+                let query = new QueryStream(sql, params);
                 pgStream = connection.query(query);
-                pgStream.on('end',()=> {
+                pgStream.on('end', () => {
                     connection.release();
                     connection = null;
                 });
-                pgStream.on('error',(e)=> {
+                pgStream.on('error', (e) => {
                     connection.release();
                     connection = null;
                     logger.error(e);
                     logger.error(sql, util.inspect(params, false, null), connection ? connection.processID : null);
                 });
-                convertTypeFilter.on('close',()=> {
+                convertTypeFilter.on('close', () => {
                     if (connection) connection.release();
                     connection = null;
                 });
-                convertTypeFilter.on('error',(e)=> {
+                convertTypeFilter.on('error', (e) => {
                     if (connection) connection.release();
                     connection = null;
                     logger.error(e);
@@ -264,7 +266,7 @@ export class QueryAble {
     }
 
     /** @return one record's one field */
-    async queryOneField(sql: string, params?: any[]|{}, options?:SqlQueryOptions): Promise<any> {
+    async queryOneField(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<any> {
         let res = await this.query(sql, params, options);
         let fieldName = Object.keys(res[0])[0];
         if (res.length > 1) {
@@ -274,9 +276,9 @@ export class QueryAble {
     }
 
     /** @return one column for the matching records */
-    async queryOneColumn(sql: string, params?: any[]|{}, options?:SqlQueryOptions): Promise<any[]> {
+    async queryOneColumn(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<any[]> {
         let res = await this.query(sql, params, options);
         let fieldName = Object.keys(res[0])[0];
-        return res.map(r=>r[fieldName]);
+        return res.map(r => r[fieldName]);
     }
 }

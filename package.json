@@ -6,9 +6,9 @@
   "types": "lib/index.d.ts",
   "scripts": {
     "build": "tsc -p src/tsconfig.json && babel lib/*.js -d ./",
-    "build_v6": "tsc -p src/tsconfig.json ",
+    "build6": "tsc -p src/tsconfig.json ",
     "test": "node --harmony spec/run.js",
-    "test_v6": "node spec/run.js",
+    "test6": "node spec/run.js",
     "release_patch": "npm version patch; conventional-changelog -p angular -i CHANGELOG.md -s;"
   },
   "repository": {
@@ -24,9 +24,9 @@
     "pg"
   ],
   "dependencies": {
-    "lodash": "~3.10.1",
+    "lodash": "4",
     "moment": "^2.15.1",
-    "pg": "^6.0.3",
+    "pg": "7.3",
     "pg-query-stream": "^1.0.0",
     "through": "~2.3.8"
   },
