@@ -41,21 +41,6 @@ export declare class PgTable<T> extends QueryAble {
         schema: string;
     }, fieldTypes?: {});
     toString(): string;
-    /**
-     * If you dont want to use the result set the options.return to false
-     * by default it is true. Also can set it to the fields that need to be returned,
-     * e.g.:
-     *
-     * let res = await table.insert([{username:'anonymous'},{username:'anonymous2'}], {return:['id']})
-     * res; // [{id:1},{id:2}]
-     *
-     * let res = await table.insert({username:'anonymous'}, {return:false})
-     * res; // void
-     *
-     * let res = await table.insert({username:'anonymous'})
-     * res; // {id:1, name:'anonymous', created:'...'}
-     *
-     */
     insert(records: T[], options?: InsertOption): Promise<number>;
     insert(records: T, options?: InsertOption): Promise<number>;
     insertAndGet(records: T[], options?: InsertOption & Return): Promise<T[]>;

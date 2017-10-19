@@ -7,16 +7,6 @@ export declare enum FieldType {
     TIME = 2,
     TSVECTOR = 3,
 }
-/**
- * @property connectionString e.g.: "postgres://user@localhost/database"
- * @property user can be specified through PGHOST env variable
- * @property user can be specified through PGUSER env variable (defaults USER env var)
- * @property database can be specified through PGDATABASE env variable (defaults USER env var)
- * @property password can be specified through PGPASSWORD env variable
- * @property port can be specified through PGPORT env variable
- * @property idleTimeoutMillis how long a client is allowed to remain idle before being closed
- * @property skipUndefined if there is a undefined value in the condition, what should pogi do. Default is 'none', meaning raise error if a value is undefined.
- */
 export interface ConnectionOptions {
     host?: string;
     user?: string;
@@ -41,12 +31,6 @@ export interface ConnectionOptions {
     logger?: PgDbLogger;
     skipUndefined?: 'all' | 'select' | 'none';
 }
-/**
- * log will get 3 parameters:
- *    sql -> the query
- *    parameters -> parameters for the query
- *    poolId -> the id of the connection
- */
 export interface PgDbLogger {
     log: Function;
     error: Function;
@@ -75,7 +59,6 @@ export declare class PgDb extends QueryAble {
     postProcessResult: PostProcessResultFunc;
     private constructor();
     setPostProcessResult(f: (res: any[], fields: ResultFieldType[], logger: PgDbLogger) => void): void;
-    /** If planned to used as a static singleton */
     static getInstance(config: ConnectionOptions): Promise<PgDb>;
     close(): Promise<void>;
     static connect(config: ConnectionOptions): Promise<PgDb>;
@@ -84,9 +67,6 @@ export declare class PgDb extends QueryAble {
     private initSchemasAndTables();
     private setDefaultTablesAndFunctions();
     private initFieldTypes();
-    /**
-     * if schemaName is null, it will be applied for all schemas
-     */
     setTypeParser(typeName: string, parser: (string) => any, schemaName?: string): Promise<void>;
     setPgDbTypeParser(typeName: string, parser: (string) => any, schemaName?: string): Promise<void>;
     dedicatedConnectionBegin(): Promise<PgDb>;
