@@ -1,3 +1,13 @@
+<a name="2.3.5"></a>
+## [2.3.5](https://github.com/holdfenytolvaj/pogi/compare/v2.3.4...v2.3.5) (2017-10-20)
+
+
+### Bug Fixes
+
+* option is passed to pg connect by a copied  object not prototype ([7c5e186](https://github.com/holdfenytolvaj/pogi/commit/7c5e186))
+
+
+
 <a name="2.3.4"></a>
 ## [2.3.4](https://github.com/holdfenytolvaj/pogi/compare/v2.3.3...v2.3.4) (2017-10-19)
 
