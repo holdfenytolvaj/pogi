@@ -3,6 +3,7 @@ import {PgTable} from "./pgTable";
 import {PgSchema} from "./pgSchema";
 import * as PgConverters from "./pgConverters";
 import {pgUtils} from "./pgUtils";
+import * as _ from 'lodash';
 
 const pg = require('pg');
 const readline = require('readline');
@@ -213,10 +214,7 @@ export class PgDb extends QueryAble {
     }
 
     private async init(): Promise<PgDb> {
-        this.pool = new pg.Pool(Object.create(this.config, {
-            logger: {value: undefined},
-            skipUndefined: {value: undefined}
-        }));
+        this.pool = new pg.Pool(_.omit(this.config, ['logger','skipUndefined']));
         if (this.config.logger)
             this.setLogger(this.config.logger);
 

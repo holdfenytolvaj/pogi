@@ -102,15 +102,9 @@ describe("pgdb", () => {
     }));
 
     afterEach(w(async () => {
-        if (pgdb.pool._pendingQueue.length != 0) {
+        if (pgdb.pool.waitingCount != 0) {
             expect('Not all connection is released').toBeFalsy();
-            for (let connection of pgdb.pool._clients) {
-                await connection.query('ROLLBACK');
-                if (connection.release) {
-                    console.log('stuck connection:', connection.processID);
-                    connection.release();
-                }
-            }
+            await pgdb.pool.end();
         }
     }));
 
