@@ -4,6 +4,7 @@ import generateWhere from "./queryWhere";
 import {PgSchema} from "./pgSchema";
 import {pgUtils} from "./pgUtils";
 import * as _ from 'lodash';
+import * as stream from "stream";
 
 const util = require('util');
 
@@ -87,8 +88,8 @@ export class PgTable<T> extends QueryAble {
 
     async insertAndGet(records: T[], options?: InsertOption & Return): Promise<T[]>
     async insertAndGet(records: T, options?: InsertOption & Return): Promise<T>
-    async insertAndGet(records: any, options?: any): Promise<any> {
-        var returnSingle = false;
+    async insertAndGet(records: any, options?: InsertOption & Return): Promise<any> {
+        let returnSingle = false;
         options = options || {};
 
         if (!records) {
@@ -201,11 +202,10 @@ export class PgTable<T> extends QueryAble {
     }
 
     async find(conditions: { [k: string]: any }, options?: QueryOptions): Promise<T[]>
-    async find(conditions: { [k: string]: any }, options?: QueryOptions & Stream): Promise<{ on: any }>
+    async find(conditions: { [k: string]: any }, options?: QueryOptions & Stream): Promise<stream.Readable>
     async find(conditions: { [k: string]: any }, options?: any): Promise<any> {
         options = options || {};
         options.skipUndefined = options.skipUndefined === true || (options.skipUndefined === undefined && ['all', 'select'].indexOf(this.db.config.skipUndefined) > -1);
-
         let where = _.isEmpty(conditions) ? {
             where: " ",
             params: null
@@ -216,7 +216,7 @@ export class PgTable<T> extends QueryAble {
 
 
     async findWhere(where: string, params: any[] | {}, options?: QueryOptions): Promise<T[]>
-    async findWhere(where: string, params: any[] | {}, options?: QueryOptions & Stream): Promise<any> //Readable
+    async findWhere(where: string, params: any[] | {}, options?: QueryOptions & Stream): Promise<stream.Readable>
     async findWhere(where: string, params: any, options?: any): Promise<any> {
         options = options || {};
         let sql = `SELECT ${pgUtils.processQueryFields(options)} FROM ${this.qualifiedName} WHERE ${where} ${pgUtils.processQueryOptions(options)}`;
@@ -224,7 +224,7 @@ export class PgTable<T> extends QueryAble {
     }
 
     public async findAll(options?: QueryOptions): Promise<T[]>
-    public async findAll(options?: QueryOptions & Stream): Promise<any> //Readable
+    public async findAll(options?: QueryOptions & Stream): Promise<stream.Readable>
     public async findAll(options?: any): Promise<any> {
         options = options || {};
         let sql = `SELECT ${pgUtils.processQueryFields(options)} FROM ${this.qualifiedName} ${pgUtils.processQueryOptions(options)}`;

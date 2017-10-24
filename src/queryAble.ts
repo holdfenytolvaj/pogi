@@ -13,6 +13,8 @@ export interface QueryOptions {
     groupBy?: string | string[];//free text or column list
     fields?: string | string[];//free text or column list
     logger?: PgDbLogger;
+    forUpdate?: boolean;
+    distinct?: boolean;
     skipUndefined?: boolean;
 }
 
@@ -252,6 +254,19 @@ export class QueryAble {
             logger.error(sql, util.inspect(params, false, null), connection ? connection.processID : null);
             throw e;
         }
+    }
+
+    async queryOne(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<any> {
+        let res = await this.query(sql, params, options);
+        if (res.length > 1) {
+            throw new Error('More then one rows exists');
+        }
+        return res[0];
+    }
+
+    async queryFirst(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<any> {
+        let res = await this.query(sql, params, options);
+        return res[0];
     }
 
     /** @return one record's one field */

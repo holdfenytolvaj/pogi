@@ -12,14 +12,15 @@ export let pgUtils = {
     },
 
     processQueryFields(options: QueryOptions): string {
+        let s = options && options.distinct ? ' DISTINCT ' : ' ';
         if (options && options.fields) {
             if (Array.isArray(options.fields)) {
-                return ' ' + options.fields.map(pgUtils.quoteField).join(',');
+                return s + options.fields.map(pgUtils.quoteField).join(', ');
             } else {
-                return ' ' + options.fields;
+                return s + options.fields;
             }
         } else {
-            return ' *';
+            return s + ' *';
         }
     },
 
@@ -96,6 +97,9 @@ export let pgUtils = {
         }
         if (options.offset) {
             sql += util.format(' OFFSET %d', options.offset);
+        }
+        if (options.forUpdate){
+            sql += ' FOR UPDATE';
         }
         return sql;
     },

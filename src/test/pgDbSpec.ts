@@ -62,6 +62,7 @@ function parseComplexType(str) {
     return valList;
 }
 
+jasmine.DEFAULT_TIMEOUT_INTERVAL = 800000;
 
 describe("pgdb", () => {
     let pgdb: PgDb;
@@ -70,8 +71,6 @@ describe("pgdb", () => {
     let tableGroups: PgTable<any>;
 
     beforeAll(w(async () => {
-        jasmine.DEFAULT_TIMEOUT_INTERVAL = 800000;
-
         /**
          * Using environment variables, e.g.
          * PGUSER (defaults USER env var, so optional)
@@ -767,9 +766,46 @@ describe("pgdb", () => {
         let list = ["'A'", '"A"', '//', '\\', '""', "''", '--', '/*', '<!--'];
         await table.insert({name: 'A', textList: list});
         let rec: any = await table.findOne({name: 'A'});
-        console.log(list + '\n' + rec.textList);
+        // console.log(list + '\n' + rec.textList);
         let isDifferent = list.some((v, i) => rec.textList[i] !== v);
         expect(isDifferent).toBeFalsy();
+    }));
+
+    it("Testing distinct", w(async () => {
+        await table.insert({name: 'A', aCategory: 'A'});
+        await table.insert({name: 'B', aCategory: 'A'});
+        let recs = await table.find({aCategory: 'A'}, {fields: ['aCategory'], distinct: true});
+        expect(recs.length).toEqual(1);
+    }));
+
+    it("Testing queryOne", w(async () => {
+        await table.insert({name: 'A', aCategory: 'A'});
+        await table.insert({name: 'B', aCategory: 'A'});
+        try {
+            let recs = await table.queryOne(`SELECT * FROM ${table} WHERE "aCategory" = 'A'`);
+            expect(false).toBeTruthy();
+        } catch (e) {
+            expect('' + e).toEqual("Error: More then one rows exists");
+        }
+    }));
+    it("Testing queryFirst", w(async () => {
+        await table.insert({name: 'A', aCategory: 'A'});
+        await table.insert({name: 'B', aCategory: 'A'});
+        let rec = await table.queryFirst(`SELECT * FROM ${table} WHERE "aCategory" = 'A'`);
+        expect(rec.aCategory).toEqual('A');
+    }));
+
+    it("Testing forUpdate", w(async () => {
+        await table.insert({name: 'A', aCategory: 'A'});
+        let pgdb1 = await table.db.transactionBegin();
+        await pgdb1.tables['users'].find({aCategory: 'A'},{forUpdate: true});
+        let p = table.update({aCategory: 'A'}, {name: 'C'});
+        await new Promise(resolve => setTimeout(resolve, 500));
+        await pgdb1.tables['users'].update({aCategory: 'A'}, {name: 'B'});
+        await pgdb1.transactionCommit();
+        await p;
+        let rec = await table.findFirst({aCategory: 'A'});
+        expect(rec.name).toEqual('C');
     }));
 
 });

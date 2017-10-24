@@ -14,10 +14,12 @@ interface QueryOptions {
     limit?:number;
     offset?: number;
     orderBy?: string|string[]|{[fieldName:string]:'asc'|'desc'};//free text or column list
-    groupBy?:string|string[];//free text or column list
-    fields?: string|string[];//free text or column list
-    skipUndefined?:boolean; //if there is an undefined value in the conditions, shall it be skipped. Default raise error.
+    groupBy?:string|string[]; //free text or column list
+    fields?: string|string[]; //free text or column list
+    skipUndefined?:boolean;   //if there is an undefined value in the conditions, shall it be skipped. Default raise error.
     logger?:PgDbLogger;
+    distinct?: boolean;       // SELECT DISTINCT statement
+    forUpdate?: boolean;      // FOR UPDATE statement
 }
 ```
 where orderBy/groupBy/fields can be either an array (in that case will get quotation if needed) 

@@ -87,6 +87,19 @@ Executes an arbitrary sql string with parameters / named parameters.
 let res1 = await schema.query('SELECT MAX(point) from game1.scores WHERE name=$1 ', ['player1']);
 let res2 = await schema.query('SELECT MAX(point) from !:schema.scores WHERE name=:name ', {schema:'game1', name:'player1'});
 ```
+---
+##queryFirst
+<span class="def"><span class="func">queryFirst</span>(sql:<span class="type">string</span>, params?:<span class="type">any[]|{}</span>, options?:<span class="type">SqlQueryOptions</span>):Promise&lt;<span class="type">any</span>&gt;</span>
+<a name="query"></a>
+
+Executes an arbitrary sql string with parameters / named parameters. Return the first record. 
+
+---
+##queryOne
+<span class="def"><span class="func">query</span>(sql:<span class="type">string</span>, params?:<span class="type">any[]|{}</span>, options?:<span class="type">SqlQueryOptions</span>):Promise&lt;<span class="type">any</span>&gt;</span>
+<a name="query"></a>
+ 
+Executes an arbitrary sql string with parameters / named parameters. Return the first record, throw Error if there are more. 
 
 ---
 ## queryOneField
