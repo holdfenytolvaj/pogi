@@ -5,6 +5,7 @@
 ### Features
 
 * add queryFirst, queryOne queries which return only one result ([dce7bad](https://github.com/holdfenytolvaj/pogi/commit/dce7bad))
+* add distinct, forUpdate as boolean query options ([dce7bad](https://github.com/holdfenytolvaj/pogi/commit/dce7bad))
 
 
 
