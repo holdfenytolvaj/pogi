@@ -1,6 +1,8 @@
+/// <reference types="node" />
 import { QueryAble, QueryOptions } from "./queryAble";
 import { PgDb, FieldType, PgDbLogger } from "./pgDb";
 import { PgSchema } from "./pgSchema";
+import * as stream from "stream";
 export interface InsertOption {
     logger?: PgDbLogger;
 }
@@ -83,13 +85,11 @@ export declare class PgTable<T> extends QueryAble {
     }, options?: QueryOptions): Promise<T[]>;
     find(conditions: {
         [k: string]: any;
-    }, options?: QueryOptions & Stream): Promise<{
-        on: any;
-    }>;
+    }, options?: QueryOptions & Stream): Promise<stream.Readable>;
     findWhere(where: string, params: any[] | {}, options?: QueryOptions): Promise<T[]>;
-    findWhere(where: string, params: any[] | {}, options?: QueryOptions & Stream): Promise<any>;
+    findWhere(where: string, params: any[] | {}, options?: QueryOptions & Stream): Promise<stream.Readable>;
     findAll(options?: QueryOptions): Promise<T[]>;
-    findAll(options?: QueryOptions & Stream): Promise<any>;
+    findAll(options?: QueryOptions & Stream): Promise<stream.Readable>;
     findOne(conditions: any, options?: QueryOptions): Promise<T>;
     findFirst(conditions: any, options?: QueryOptions): Promise<T>;
     count(conditions?: {}, options?: CountOption): Promise<number>;
