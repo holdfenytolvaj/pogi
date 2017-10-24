@@ -10,7 +10,9 @@
     "test": "node --harmony spec/run.js",
     "test6": "node spec/run.js",
     "semantic-release": "semantic-release pre && npm publish && semantic-release post",
-    "release_patch": "npm version patch; conventional-changelog -p angular -i CHANGELOG.md -s -r2; git add --all ./; git commit -m\"chore:generate changelog\"; git push; npm publish"
+    "release_patch": "npm version patch; conventional-changelog -p angular -i CHANGELOG.md -s -r2; git add --all ./; git commit -m\"chore:generate changelog\"; git push; npm publish",
+    "release_minor": "npm version minor; conventional-changelog -p angular -i CHANGELOG.md -s -r2; git add --all ./; git commit -m\"chore:generate changelog\"; git push; npm publish",
+    "release_major": "npm version minor; conventional-changelog -p angular -i CHANGELOG.md -s -r2; git add --all ./; git commit -m\"chore:generate changelog\"; git push; npm publish"
   },
   "repository": {
     "type": "git",
