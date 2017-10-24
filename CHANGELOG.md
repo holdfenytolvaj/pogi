@@ -1,3 +1,13 @@
+<a name="2.4.0"></a>
+# [2.4.0](https://github.com/holdfenytolvaj/pogi/compare/v2.3.5...v2.4.0) (2017-10-24)
+
+
+### Features
+
+* add queryFirst, queryOne queries which return only one result ([dce7bad](https://github.com/holdfenytolvaj/pogi/commit/dce7bad))
+
+
+
 <a name="2.3.5"></a>
 ## [2.3.5](https://github.com/holdfenytolvaj/pogi/compare/v2.3.4...v2.3.5) (2017-10-20)
 
