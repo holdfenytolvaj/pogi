@@ -31,7 +31,8 @@
     "moment": "^2.15.1",
     "pg": "7.3",
     "pg-query-stream": "^1.0.0",
-    "through": "~2.3.8"
+    "through": "~2.3.8",
+    "tslib": "^1.8.0"
   },
   "devDependencies": {
     "@types/jasmine": "~2.5.35",
