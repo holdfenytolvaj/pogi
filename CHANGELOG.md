@@ -1,3 +1,14 @@
+<a name="2.5.0"></a>
+# [2.5.0](https://github.com/holdfenytolvaj/pogi/compare/v2.4.0...v2.5.0) (2017-11-08)
+
+
+### Bug Fixes
+
+* add tslib to dependencies ([eb16ea4](https://github.com/holdfenytolvaj/pogi/commit/eb16ea4))
+* jsonb[] column parsing ([eafb0fd](https://github.com/holdfenytolvaj/pogi/commit/eafb0fd))
+
+
+
 <a name="2.4.0"></a>
 # [2.4.0](https://github.com/holdfenytolvaj/pogi/compare/v2.3.5...v2.4.0) (2017-10-24)
 
