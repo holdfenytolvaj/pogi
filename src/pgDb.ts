@@ -298,6 +298,7 @@ export class PgDb extends QueryAble {
         }
 
         for (let r of specialTypeFields.rows) {
+            // https://doxygen.postgresql.org/include_2catalog_2pg__type_8h_source.html
             switch (r.typid) {
                 case 114:  // json
                 case 3802: // jsonb
@@ -312,6 +313,13 @@ export class PgDb extends QueryAble {
                 case 1007: // integer[]  int4[]
                 case 1021: // real[] float4[]
                     pg.types.setTypeParser(r.typid, PgConverters.arraySplitToNum);
+                    break;
+                case 1009: // text[]
+                case 1015: // varchar[]
+                    pg.types.setTypeParser(r.typid, PgConverters.arraySplit);
+                    break;
+                case 3807:
+                    pg.types.setTypeParser(r.typid, PgConverters.arraySplitToJson);
                     break;
                 case 1016: // bigInt[] int8[]
                 case 1022: // double[] float8[]

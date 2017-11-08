@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS "users" (
     "aCategory" varchar,
 
 	"textList" text[],
+	"jsonbList" jsonb[],
 	"numberList" integer[], -- int4
 	"bigNumberList" bigInt[],  -- int8
 	"timestamptzList" timestamptz[],

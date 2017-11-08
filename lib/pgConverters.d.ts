@@ -4,3 +4,4 @@ export declare let arraySplitToNum: (val: any) => any;
 export declare let arraySplitToNumWithValidation: (val: any) => any;
 export declare let stringArrayToNumWithValidation: (val: any) => any;
 export declare let arraySplitToDate: (val: any) => any;
+export declare let arraySplitToJson: (str: any) => any[];

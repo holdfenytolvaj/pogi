@@ -4,15 +4,15 @@ import * as moment from 'moment';
 export let arraySplit = (str) => {
     if (str == "{}") return [];
     str = str.substring(1, str.length - 1); //cut off {}
-    let e = /(?:"((?:[^"]|\\")*)"|([^,"]*))(?:,|$)/g; //has to be mutable because of exec
+    let e = /(?:("(?:[^"\\]|\\.)*")|([^,"]*))(?:,|$)/g; //has to be mutable because of exec
     let valList = [];
     let parsingResult;
     do {
         parsingResult = e.exec(str);
         let valStr = (parsingResult[2] == 'NULL') ? null :
-            (parsingResult[1] == null ? parsingResult[2] : parsingResult[1].replace(/\\\\/g, '\\')).replace(/\\"/g,'"');
+            (parsingResult[1] == null ? parsingResult[2] : JSON.parse(parsingResult[1])); // for string parsing, escape \
         valList.push(valStr);
-    } while (parsingResult[0].substring(parsingResult[0].length - 1, parsingResult[0].length) == ',');
+    } while (e.lastIndex < str.length);
     return valList;
 };
 export let numWithValidation = val => {
@@ -26,4 +26,7 @@ export let arraySplitToNum = val => val == "{}" ? [] : val.substring(1, val.leng
 export let arraySplitToNumWithValidation = val => val == "{}" ? [] : val.substring(1, val.length - 1).split(',').map(numWithValidation);
 export let stringArrayToNumWithValidation = val => val.map(numWithValidation);
 export let arraySplitToDate = val => val == "{}" ? [] : val.substring(1, val.length - 1).split(',').map(d => moment(d.substring(1, d.length - 1)).toDate());
-
+export let arraySplitToJson = (str) => {
+    let vals = arraySplit(str);
+    return vals.map(s=> typeof s === 'string' ? JSON.parse(s) : s);
+};

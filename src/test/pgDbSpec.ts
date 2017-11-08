@@ -1,6 +1,7 @@
 /// <reference types="jasmine"/>
 import {PgDb} from "../pgDb";
 import {PgTable} from "../pgTable";
+import * as _ from 'lodash';
 
 const util = require('util');
 
@@ -763,11 +764,21 @@ describe("pgdb", () => {
     }));
 
     it("Testing text array parsing", w(async () => {
-        let list = ["'A'", '"A"', '//', '\\', '""', "''", '--', '/*', '<!--'];
+        let list = ["'A'", '"A"', 'normal','//', '\\', '""', "''", '--', '/*', '','<!--', JSON.stringify({a:1,b:"aprocska\"kalapocska'bennecsacskamacskamocska"})];
         await table.insert({name: 'A', textList: list});
         let rec: any = await table.findOne({name: 'A'});
-        // console.log(list + '\n' + rec.textList);
+        console.log(list + '\n' + rec.textList);
         let isDifferent = list.some((v, i) => rec.textList[i] !== v);
+        expect(isDifferent).toBeFalsy();
+    }));
+
+    it("Testing jsonb array parsing", w(async () => {
+        let list = [{"id":"fl1ace84f744","name":"Wire 2017-09-17 at 11.57.55.png","type":"image/png","path":"/data/files/fl1ace84f744/Wire 2017-09-17 at 11.57.55.png","title":"Wire 2017-09-17 at 11.57.55"}];
+        await table.insert({name: 'A', jsonbList: list});
+        let rec: any = await table.findOne({name: 'A'});
+        console.log('xxx',rec.jsonbList, typeof rec.jsonbList[0]);
+        console.log(JSON.stringify(list) + '\n' + JSON.stringify(rec.jsonbList));
+        let isDifferent = list.some((v, i) => !_.isEqual(rec.jsonbList[i] , v));
         expect(isDifferent).toBeFalsy();
     }));
 
