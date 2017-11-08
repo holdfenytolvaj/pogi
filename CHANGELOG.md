@@ -1,6 +1,6 @@
 <a name="2.5.1"></a>
 ## [2.5.1](https://github.com/holdfenytolvaj/pogi/compare/v2.5.0...v2.5.1) (2017-11-08)
-
+* Nothing changed, just scripts runs and runs
 
 
 <a name="2.5.0"></a>
