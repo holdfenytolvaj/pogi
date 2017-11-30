@@ -315,8 +315,8 @@ export class PgTable<T> extends QueryAble {
         if (!hasConditions || !_.isEmpty(conditions)) {
             let parsedWhere = generateWhere(conditions, this.fieldTypes, this.qualifiedName, parameters.length, options.skipUndefined);
             sql += parsedWhere.where;
+            parameters = parameters.concat(parsedWhere.params);
         }
-        parameters = parameters.concat(_.flatten(_.values(conditions).filter(v => v !== undefined)));
         return {sql, parameters};
     }
 

@@ -764,7 +764,10 @@ describe("pgdb", () => {
     }));
 
     it("Testing text array parsing", w(async () => {
-        let list = ["'A'", '"A"', 'normal','//', '\\', '""', "''", '--', '/*', '','<!--', JSON.stringify({a:1,b:"aprocska\"kalapocska'bennecsacskamacskamocska"})];
+        let list = ["'A'", '"A"', 'normal', '//', '\\', '""', "''", '--', '/*', '', '<!--', JSON.stringify({
+            a: 1,
+            b: "aprocska\"kalapocska'bennecsacskamacskamocska"
+        })];
         await table.insert({name: 'A', textList: list});
         let rec: any = await table.findOne({name: 'A'});
         console.log(list + '\n' + rec.textList);
@@ -773,12 +776,18 @@ describe("pgdb", () => {
     }));
 
     it("Testing jsonb array parsing", w(async () => {
-        let list = [{"id":"fl1ace84f744","name":"Wire 2017-09-17 at 11.57.55.png","type":"image/png","path":"/data/files/fl1ace84f744/Wire 2017-09-17 at 11.57.55.png","title":"Wire 2017-09-17 at 11.57.55"}];
+        let list = [{
+            "id": "fl1ace84f744",
+            "name": "Wire 2017-09-17 at 11.57.55.png",
+            "type": "image/png",
+            "path": "/data/files/fl1ace84f744/Wire 2017-09-17 at 11.57.55.png",
+            "title": "Wire 2017-09-17 at 11.57.55"
+        }];
         await table.insert({name: 'A', jsonbList: list});
         let rec: any = await table.findOne({name: 'A'});
-        console.log('xxx',rec.jsonbList, typeof rec.jsonbList[0]);
+        console.log('xxx', rec.jsonbList, typeof rec.jsonbList[0]);
         console.log(JSON.stringify(list) + '\n' + JSON.stringify(rec.jsonbList));
-        let isDifferent = list.some((v, i) => !_.isEqual(rec.jsonbList[i] , v));
+        let isDifferent = list.some((v, i) => !_.isEqual(rec.jsonbList[i], v));
         expect(isDifferent).toBeFalsy();
     }));
 
@@ -809,7 +818,7 @@ describe("pgdb", () => {
     it("Testing forUpdate", w(async () => {
         await table.insert({name: 'A', aCategory: 'A'});
         let pgdb1 = await table.db.transactionBegin();
-        await pgdb1.tables['users'].find({aCategory: 'A'},{forUpdate: true});
+        await pgdb1.tables['users'].find({aCategory: 'A'}, {forUpdate: true});
         let p = table.update({aCategory: 'A'}, {name: 'C'});
         await new Promise(resolve => setTimeout(resolve, 500));
         await pgdb1.tables['users'].update({aCategory: 'A'}, {name: 'B'});
@@ -817,6 +826,13 @@ describe("pgdb", () => {
         await p;
         let rec = await table.findFirst({aCategory: 'A'});
         expect(rec.name).toEqual('C');
+    }));
+
+    it("Testing update where something is null", w(async () => {
+        await table.insert({name: 'A', aCategory: 'A'});
+        await table.update({textList: null},{name: 'B'});
+        let rec = await table.findFirst({aCategory: 'A'});
+        expect(rec.name).toEqual('B');
     }));
 
 });
