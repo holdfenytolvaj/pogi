@@ -1,3 +1,13 @@
+<a name="2.5.2"></a>
+## [2.5.2](https://github.com/holdfenytolvaj/pogi/compare/v2.5.1...v2.5.2) (2017-11-30)
+
+
+### Bug Fixes
+
+* update query build did not handle properly null value on query ([0d84e61](https://github.com/holdfenytolvaj/pogi/commit/0d84e61))
+
+
+
 <a name="2.5.1"></a>
 ## [2.5.1](https://github.com/holdfenytolvaj/pogi/compare/v2.5.0...v2.5.1) (2017-11-08)
 * Nothing changed, just scripts runs and runs
