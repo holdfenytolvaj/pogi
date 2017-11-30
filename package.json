@@ -1,6 +1,6 @@
 {
   "name": "pogi",
-  "version": "2.5.1",
+  "version": "2.5.2",
   "description": "An easy db handler over pg.js (node-postgres)",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
