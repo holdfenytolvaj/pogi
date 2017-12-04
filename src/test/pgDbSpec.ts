@@ -764,7 +764,7 @@ describe("pgdb", () => {
     }));
 
     it("Testing text array parsing", w(async () => {
-        let list = ["'A'", '"A"', 'normal', '//', '\\', '""', "''", '--', '/*', '', '<!--', JSON.stringify({
+        let list = ["'A'", '"A"', 'normal', '//', '\\','\\\\\\"','\\\\"','\\"', '""', "''", '--', '/*', '', '<!--', JSON.stringify({
             a: 1,
             b: "aprocska\"kalapocska'bennecsacskamacskamocska"
         })];

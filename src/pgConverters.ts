@@ -10,7 +10,7 @@ export let arraySplit = (str) => {
     do {
         parsingResult = e.exec(str);
         let valStr = (parsingResult[2] == 'NULL') ? null :
-            (parsingResult[1] == null ? parsingResult[2] : JSON.parse(parsingResult[1])); // for string parsing, escape \
+            (parsingResult[1] == null ? parsingResult[2] : unescapeString(parsingResult[1])); // for string parsing, escape \
         valList.push(valStr);
     } while (e.lastIndex < str.length);
     return valList;
@@ -30,3 +30,9 @@ export let arraySplitToJson = (str) => {
     let vals = arraySplit(str);
     return vals.map(s=> typeof s === 'string' ? JSON.parse(s) : s);
 };
+
+function unescapeString(s) {
+    return s.slice(1, s.length - 1)    // cut the first and the last "
+        .replace(/\\"/g, '"')          // \" -> "
+        .replace(/\\\\/g, '\\')        // \\ -> \
+}
