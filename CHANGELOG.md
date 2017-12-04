@@ -1,3 +1,13 @@
+<a name="2.5.3"></a>
+## [2.5.3](https://github.com/holdfenytolvaj/pogi/compare/v2.5.2...v2.5.3) (2017-12-04)
+
+
+### Bug Fixes
+
+* array column parsing , JSON.parse do not handle correctly special characters ex: \ f (formfeed) ([c2a48dc](https://github.com/holdfenytolvaj/pogi/commit/c2a48dc))
+
+
+
 <a name="2.5.2"></a>
 ## [2.5.2](https://github.com/holdfenytolvaj/pogi/compare/v2.5.1...v2.5.2) (2017-11-30)
 
