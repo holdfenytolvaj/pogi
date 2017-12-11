@@ -11,7 +11,7 @@ import {PgTable} from "../pgTable";
             }
         }); //using PGUSER, PGPASSWORD + PGDATABASE env variables
 
-        console.log('import {PgDb, PgSchema, PgTable} from "pgdb";\n');
+        console.log('import {PgDb, PgSchema, PgTable} from "pogi";\n');
         console.log('export interface PgDbType extends PgDb {');
 
         for (let schemaName in pgdb.schemas) {
