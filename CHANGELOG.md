@@ -1,3 +1,8 @@
+<a name="2.5.5"></a>
+## [2.5.5](https://github.com/holdfenytolvaj/pogi/compare/v2.5.3...v2.5.5) (2017-12-12)
+
+
+
 <a name="2.5.3"></a>
 ## [2.5.3](https://github.com/holdfenytolvaj/pogi/compare/v2.5.2...v2.5.3) (2017-12-04)
 
