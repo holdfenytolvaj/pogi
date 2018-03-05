@@ -1,9 +1,9 @@
 # pogi
 > What is your dream?
 
-**pogi** is a wrapper over [pg.js](https://github.com/brianc/node-postgres) to make life easier.
-- it is not an over engineered ORM with new syntax to learn and with less functionality, 
-- it is not a simple prepared statements executor with a lot of boilerplate for queries 
+**pogi** is a wrapper over [pg.js](https://github.com/brianc/node-postgres) to use PostgreSQL easier.
+- it is not an over engineered ORM with new syntax to learn and with less functionality,
+- it is not a simple prepared statements executor with a lot of boilerplate for queries
 
 it is somewhere in between, around the _golden_ middle ground.
 
@@ -17,7 +17,7 @@ it is somewhere in between, around the _golden_ middle ground.
 - named parameters for queries
 - stream support
 
-so all the basics that you would expect in 2016.
+so all the basics that you would expect in 2018.
 
 ## Install
 ```js
@@ -50,12 +50,12 @@ let rows;
 //use the same operators as in postgre
 rows = await table.find({'name ~':'Jo.*',                                  //regexp
                          'jsoncolumn @>':{'dream':{'change':'the world'}}, //contains
-                         'arraycolumn @>':['up', 'down']});                //contains  
+                         'arraycolumn @>':['up', 'down']});                //contains
 
 //will be transformed to "select * from test.users where id in (1,2,3)"
 rows = await table.find({id:[1,2,3]});
 
-//easy fallback 
+//easy fallback
 rows = await table.findWhere('"happyWife"="happyLife" and name=:name', {name:'me'});
 
 //convenient functions
@@ -86,5 +86,5 @@ npm run test_v6
 ## Changelog
 [Changelog.md](CHANGELOG.md)
 
-## Handcrafted at 
+## Handcrafted at
 [www.labcup.net](http://www.labcup.net/)

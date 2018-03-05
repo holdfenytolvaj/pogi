@@ -1,7 +1,7 @@
 {
   "name": "pogi",
   "version": "2.5.5",
-  "description": "An easy db handler over pg.js (node-postgres)",
+  "description": "An easy PostgreSQL query handler on top of pg.js",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
@@ -20,7 +20,7 @@
   },
   "keywords": [
     "typescript",
-    "postgre sql",
+    "postgresql",
     "postgres",
     "postgre",
     "pgsql",
