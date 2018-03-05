@@ -235,8 +235,8 @@ export class PgDb extends QueryAble {
     }
 
     private async initSchemasAndTables() {
-        let schemasAndTables = await this.pool.query(LIST_SCHEMAS_TABLES);
-        let functions = await this.pool.query(GET_SCHEMAS_PROCEDURES);
+        let schemasAndTables = await this.query(LIST_SCHEMAS_TABLES);
+        let functions = await this.query(GET_SCHEMAS_PROCEDURES);
         this.defaultSchemas = PgConverters.arraySplit(await this.queryOneField(GET_CURRENT_SCHEMAS));
 
         let oldSchemaNames = Object.keys(this.schemas);
@@ -245,7 +245,7 @@ export class PgDb extends QueryAble {
                 delete this[sc];
         }
         this.schemas = {};
-        for (let r of schemasAndTables.rows) {
+        for (let r of schemasAndTables) {
             let schema = this.schemas[r.schema] = this.schemas[r.schema] || new PgSchema(this, r.schema);
             if (!(r.schema in this))
                 this[r.schema] = schema;
@@ -254,7 +254,7 @@ export class PgDb extends QueryAble {
                 schema[r.name] = schema.tables[r.name];
         }
 
-        for (let r of functions.rows) {
+        for (let r of functions) {
             let schema = this.schemas[r.schema] = this.schemas[r.schema] || new PgSchema(this, r.schema);
             if (!(r.schema in this))
                 this[r.schema] = schema;
@@ -284,10 +284,10 @@ export class PgDb extends QueryAble {
 
     private async initFieldTypes() {
         //--- init field types -------------------------------------------
-        let specialTypeFields: { rows: { schema_name: string, table_name: string, column_name: string, typid: number }[] }
-            = await this.pool.query(LIST_SPECIAL_TYPE_FIELDS);
+        let specialTypeFields: { schema_name: string, table_name: string, column_name: string, typid: number }[]
+            = await this.query(LIST_SPECIAL_TYPE_FIELDS);
 
-        for (let r of specialTypeFields.rows) {
+        for (let r of specialTypeFields) {
             if (this.schemas[r.schema_name][r.table_name]) {
                 this.schemas[r.schema_name][r.table_name].fieldTypes[r.column_name] =
                     ([3802, 114].indexOf(r.typid) > -1) ? FieldType.JSON :
@@ -297,7 +297,7 @@ export class PgDb extends QueryAble {
             }
         }
 
-        for (let r of specialTypeFields.rows) {
+        for (let r of specialTypeFields) {
             // https://doxygen.postgresql.org/include_2catalog_2pg__type_8h_source.html
             switch (r.typid) {
                 case 114:  // json
