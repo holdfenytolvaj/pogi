@@ -1,3 +1,13 @@
+<a name="2.5.6"></a>
+## [2.5.6](https://github.com/holdfenytolvaj/pogi/compare/v2.5.5...v2.5.6) (2018-03-05)
+
+
+### Bug Fixes
+
+* reload function should use transaction if it started to reload schema. ([d14c495](https://github.com/holdfenytolvaj/pogi/commit/d14c495))
+
+
+
 <a name="2.5.5"></a>
 ## [2.5.5](https://github.com/holdfenytolvaj/pogi/compare/v2.5.3...v2.5.5) (2017-12-12)
 * Nothing changed, just scripts runs and runs
