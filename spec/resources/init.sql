@@ -3,6 +3,7 @@ DROP FUNCTION IF EXISTS list_gold_users();
 DROP FUNCTION IF EXISTS increment();
 
 -- drop tables
+DROP VIEW IF EXISTS "users_view";
 DROP TABLE IF EXISTS "users";
 DROP TABLE IF EXISTS "groups";
 -- drop sequences
@@ -94,3 +95,5 @@ CREATE OR REPLACE FUNCTION LOWER(text[]) RETURNS text[] LANGUAGE SQL IMMUTABLE A
 $$
     SELECT array_agg(LOWER(value)) FROM unnest($1) value;
 $$;
+
+CREATE OR REPLACE VIEW users_view AS SELECT * FROM users;

@@ -68,7 +68,8 @@ jasmine.DEFAULT_TIMEOUT_INTERVAL = 800000;
 describe("pgdb", () => {
     let pgdb: PgDb;
     let schema = 'pgdb_test';
-    let table: PgTable<any>;
+    let tableUsers: PgTable<any>;
+    let viewUsers: PgTable<any>;
     let tableGroups: PgTable<any>;
 
     beforeAll(w(async () => {
@@ -92,12 +93,13 @@ describe("pgdb", () => {
         await pgdb.reload();
 
         pgdb.setLogger(console);
-        table = pgdb.schemas[schema]['users'];
+        tableUsers = pgdb.schemas[schema]['users'];
+        viewUsers = pgdb.schemas[schema]['users_view'];
         tableGroups = pgdb.schemas[schema]['groups'];
     }));
 
     beforeEach(w(async () => {
-        await table.delete({});
+        await tableUsers.delete({});
         await tableGroups.delete({});
     }));
 
@@ -109,9 +111,9 @@ describe("pgdb", () => {
     }));
 
     it("Exception on name collision", w(async () => {
-        await table.insert({name: 'A'});
+        await tableUsers.insert({name: 'A'});
         try {
-            await pgdb.query(`select u1.id, u2.id from ${table} u1 left join ${table} u2 ON true `);
+            await pgdb.query(`select u1.id, u2.id from ${tableUsers} u1 left join ${tableUsers} u2 ON true `);
             expect(false).toBeTruthy();
         } catch (e) {
             expect(/Name collision for the query, two or more fields have the same name./.test(e.message)).toBeTruthy();
@@ -122,7 +124,7 @@ describe("pgdb", () => {
     it("After adding parser should be able to parse complex type", w(async () => {
         await pgdb.setTypeParser('permissionForResourceType', (val) => parseComplexType(val));
         await pgdb.setTypeParser('_permissionForResourceType', (val) => val == "{}" ? [] : parseComplexTypeArray(val));
-        await table.insert({
+        await tableUsers.insert({
             name: 'Piszkos Fred',
             permission: "(read,book)",
             permissionList: [
@@ -133,7 +135,7 @@ describe("pgdb", () => {
                 '(,)',
                 '(write,null)'],
         });
-        let pf = await table.findOne({name: 'Piszkos Fred'});
+        let pf = await tableUsers.findOne({name: 'Piszkos Fred'});
         expect(pf.permission).toEqual(['read', 'book']);
         expect(pf.permissionList[0]).toEqual(['admin', 'chaos j ()",""j ,']);
         expect(pf.permissionList[1]).toEqual(['write', 'book']);
@@ -145,7 +147,7 @@ describe("pgdb", () => {
     }));
 
     it("Complex type could be easily read and converted to json", w(async () => {
-        await table.insert({
+        await tableUsers.insert({
             name: 'Elveszett cirkalo',
             permission: "(read,book)",
             permissionList: [
@@ -157,9 +159,9 @@ describe("pgdb", () => {
                 '(write,null)'],
         });
 
-        let res = await table.query(
+        let res = await tableUsers.query(
             `SELECT to_json(permission) perjson, to_json("permissionList") perlistjson
-             FROM ${table}
+             FROM ${tableUsers}
              WHERE name='Elveszett cirkalo' `);
         expect(res[0].perjson).toEqual({permission: 'read', resource: 'book'});
         expect(res[0].perlistjson).toEqual([
@@ -173,44 +175,44 @@ describe("pgdb", () => {
     }));
 
     it("List for a non array column in the condition should be converted to 'IN Array'", w(async () => {
-        await table.insert({name: 'Fulig Jimmy', favourites: ['sport']});
-        await table.insert({name: 'Vanek ur', favourites: ['sport', 'food']});
-        await table.insert({name: 'Gorcsev Ivan', favourites: ['tech', 'food']});
+        await tableUsers.insert({name: 'Fulig Jimmy', favourites: ['sport']});
+        await tableUsers.insert({name: 'Vanek ur', favourites: ['sport', 'food']});
+        await tableUsers.insert({name: 'Gorcsev Ivan', favourites: ['tech', 'food']});
 
-        let res1 = await table.findAll();
-        let res2 = await table.find({id: res1.map(e => e.id)});
+        let res1 = await tableUsers.findAll();
+        let res2 = await tableUsers.find({id: res1.map(e => e.id)});
         expect(res1.map(c => c.id)).toEqual(res2.map(c => c.id));
     }));
 
     it("Testing where function", w(async () => {
-        await table.insert({name: 'Fulig Jimmy', favourites: ['sport']});
-        await table.insert({name: 'Vanek ur', favourites: ['sport', 'food']});
-        await table.insert({name: 'Gorcsev Ivan', favourites: ['tech', 'food', 'sport']});
+        await tableUsers.insert({name: 'Fulig Jimmy', favourites: ['sport']});
+        await tableUsers.insert({name: 'Vanek ur', favourites: ['sport', 'food']});
+        await tableUsers.insert({name: 'Gorcsev Ivan', favourites: ['tech', 'food', 'sport']});
 
-        let res = await table.findWhere(':fav = ANY("favourites")', {fav: 'sport'});
+        let res = await tableUsers.findWhere(':fav = ANY("favourites")', {fav: 'sport'});
         expect(res.length).toEqual(3);
-        res = await table.findWhere(':fav = ANY("favourites")', {fav: 'food'});
+        res = await tableUsers.findWhere(':fav = ANY("favourites")', {fav: 'food'});
         expect(res.length).toEqual(2);
-        res = await table.findWhere(':fav = ANY("favourites")', {fav: 'tech'});
+        res = await tableUsers.findWhere(':fav = ANY("favourites")', {fav: 'tech'});
         expect(res.length).toEqual(1);
     }));
 
     it("Ignore field with undefined value if requested, but keep with null value", w(async () => {
-        await table.insert({name: 'A', numberList: [1, 2]});
+        await tableUsers.insert({name: 'A', numberList: [1, 2]});
 
-        let res = await table.find({name: undefined}, {skipUndefined: true});
+        let res = await tableUsers.find({name: undefined}, {skipUndefined: true});
         expect(res.length).toEqual(1);
 
-        res = await table.find({name: null}, {skipUndefined: true});
+        res = await tableUsers.find({name: null}, {skipUndefined: true});
         expect(res.length).toEqual(0);
 
-        let res2 = await table.updateAndGetOne({name: 'A'}, {
+        let res2 = await tableUsers.updateAndGetOne({name: 'A'}, {
             numberList: undefined,
             favourites: ['sport']
         }, {skipUndefined: true});
         expect(res2.numberList).toEqual([1, 2]);
 
-        res2 = await table.updateAndGetOne({
+        res2 = await tableUsers.updateAndGetOne({
             name: 'A',
             numberList: undefined
         }, {numberList: null}, {skipUndefined: true});
@@ -218,37 +220,37 @@ describe("pgdb", () => {
     }));
 
     it("Test return only column values ", w(async () => {
-        await table.insert({name: 'A', membership: 'gold'});
-        await table.insert({name: 'B', membership: 'gold'});
-        await table.insert({name: 'C', membership: 'bronze'});
+        await tableUsers.insert({name: 'A', membership: 'gold'});
+        await tableUsers.insert({name: 'B', membership: 'gold'});
+        await tableUsers.insert({name: 'C', membership: 'bronze'});
 
-        let res1 = await table.queryOneColumn("SELECT name || '_' || membership FROM " + table + " WHERE LENGTH(name)=1");
+        let res1 = await tableUsers.queryOneColumn("SELECT name || '_' || membership FROM " + tableUsers + " WHERE LENGTH(name)=1");
         expect(res1).toEqual(['A_gold', 'B_gold', 'C_bronze']);
     }));
 
     it("Test count ", w(async () => {
-        await table.insert({name: 'A', membership: 'gold'});
-        await table.insert({name: 'B', membership: 'gold'});
-        await table.insert({name: 'C', membership: 'bronze'});
+        await tableUsers.insert({name: 'A', membership: 'gold'});
+        await tableUsers.insert({name: 'B', membership: 'gold'});
+        await tableUsers.insert({name: 'C', membership: 'bronze'});
 
-        let res1 = await table.count({membership: 'gold'});
+        let res1 = await tableUsers.count({membership: 'gold'});
         expect(res1).toEqual(2);
     }));
 
     it("Test AND - OR ", w(async () => {
-        await table.insert({name: 'A', membership: 'gold', favourites: ['sport']});
-        await table.insert([
+        await tableUsers.insert({name: 'A', membership: 'gold', favourites: ['sport']});
+        await tableUsers.insert([
             {name: 'BC', membership: 'gold', favourites: ['sport']},
             {name: 'D', membership: 'bronze', favourites: ['tech']},
             {name: 'E', membership: 'bronze', favourites: ['tech', 'food']}
         ]);
 
         let res;
-        res = await table.find({'membership': "bronze", or: [{'name': 'BC'}, {favourites: 'food', name: 'E'}]});
+        res = await tableUsers.find({'membership': "bronze", or: [{'name': 'BC'}, {favourites: 'food', name: 'E'}]});
         expect(res.length).toEqual(1);
 
-        res = await table.find({name: 'A'});
-        res = await table.count({
+        res = await tableUsers.find({name: 'A'});
+        res = await tableUsers.count({
             and: [
                 {or: [{name: ['A', 'BC']}, {'updated >': res[0].updated}]},
                 {or: [{membership: 'bronze'}, {'favourites @>': ['food']}]}
@@ -258,7 +260,7 @@ describe("pgdb", () => {
     }));
 
     it("Test insert with switched fields", w(async () => {
-        await table.insert([{name: 'A', membership: 'gold'}, {membership: 'gold', name: 'B'}]);
+        await tableUsers.insert([{name: 'A', membership: 'gold'}, {membership: 'gold', name: 'B'}]);
 
         let res = await pgdb.query("SELECT count(*) FROM :!schema.:!table WHERE membership = :membership", {
             schema: schema,
@@ -269,9 +271,9 @@ describe("pgdb", () => {
     }));
 
     it("Test named parameters ", w(async () => {
-        await table.insert({name: 'A', membership: 'gold'});
-        await table.insert({name: 'B', membership: 'gold'});
-        await table.insert({name: 'C', membership: 'bronze'});
+        await tableUsers.insert({name: 'A', membership: 'gold'});
+        await tableUsers.insert({name: 'B', membership: 'gold'});
+        await tableUsers.insert({name: 'C', membership: 'bronze'});
 
         let res = await pgdb.query("SELECT count(*) FROM :!schema.:!table WHERE membership = :membership", {
             schema: schema,
@@ -281,26 +283,32 @@ describe("pgdb", () => {
         expect(res[0].count).toEqual(2);
     }));
 
-    it("text[]", w(async () => {
-        await table.insert({name: 'A', textList: ['good', 'better', 'best']});
-        let res = await table.findOne({name: 'A'});
+    it("Test users text[] behaviour.", w(async () => {
+        await tableUsers.insert({name: 'A', textList: ['good', 'better', 'best']});
+        let res = await tableUsers.findOne({name: 'A'});
+        expect(res.textList).toEqual(['good', 'better', 'best']);
+    }));
+
+    it("Test users_view text[] behaviour.", w(async () => {
+        await viewUsers.insert({name: 'A', textList: ['good', 'better', 'best']});
+        let res = await viewUsers.findOne({name: 'A'});
         expect(res.textList).toEqual(['good', 'better', 'best']);
     }));
 
     it("integer[]", w(async () => {
-        await table.insert({name: 'A', numberList: [1, 2, 3]});
-        let res = await table.findOne({name: 'A'});
+        await tableUsers.insert({name: 'A', numberList: [1, 2, 3]});
+        let res = await tableUsers.findOne({name: 'A'});
         expect(res.numberList).toEqual([1, 2, 3]);
     }));
 
     it("bigInt[]", w(async () => {
-        await table.insert({name: 'A', bigNumberList: [1, 2, 3]});
-        let res = await table.findOne({name: 'A'});
+        await tableUsers.insert({name: 'A', bigNumberList: [1, 2, 3]});
+        let res = await tableUsers.findOne({name: 'A'});
         expect(res.bigNumberList).toEqual([1, 2, 3]);
 
-        await table.insert({name: 'B', bigNumberList: [1, Number.MAX_SAFE_INTEGER + 10]});
+        await tableUsers.insert({name: 'B', bigNumberList: [1, Number.MAX_SAFE_INTEGER + 10]});
         try {
-            await table.findOne({name: 'B'});
+            await tableUsers.findOne({name: 'B'});
             expect(false).toBeTruthy();
         } catch (e) {
             expect(/Number can't be represented in javascript/.test(e.message)).toBeTruthy();
@@ -308,16 +316,16 @@ describe("pgdb", () => {
     }));
 
     it("bigInt[] cursor callback", w(async () => {
-        await table.insert({name: 'A', bigNumberList: [1, 2, 3]});
+        await tableUsers.insert({name: 'A', bigNumberList: [1, 2, 3]});
         let res;
-        await table.queryWithOnCursorCallback(`SELECT * FROM ${table}`, null, null, (rec) => {
+        await tableUsers.queryWithOnCursorCallback(`SELECT * FROM ${tableUsers}`, null, null, (rec) => {
             res = rec.bigNumberList;
         });
         expect(res).toEqual([1, 2, 3]);
 
-        await table.insert({name: 'B', bigNumberList: [1, Number.MAX_SAFE_INTEGER + 10]});
+        await tableUsers.insert({name: 'B', bigNumberList: [1, Number.MAX_SAFE_INTEGER + 10]});
         try {
-            await table.queryWithOnCursorCallback(`SELECT * FROM ${table}`, null, null, () => {
+            await tableUsers.queryWithOnCursorCallback(`SELECT * FROM ${tableUsers}`, null, null, () => {
             });
             expect(false).toBeTruthy();
         } catch (e) {
@@ -326,56 +334,56 @@ describe("pgdb", () => {
     }));
 
     it("timestamptz[]", w(async () => {
-        await table.insert({
+        await tableUsers.insert({
             name: 'A',
             timestamptzList: [new Date('2000-01-01 00:00:00').toISOString(), new Date('2001-01-01 00:00:00').toISOString()]
         });
-        let res = await table.findOne({name: 'A'});
+        let res = await tableUsers.findOne({name: 'A'});
         expect(res.timestamptzList[0]).toEqual(new Date('2000-01-01 00:00:00'));
         expect(res.timestamptzList[1]).toEqual(new Date('2001-01-01 00:00:00'));
         expect(res.timestamptzList.length).toEqual(2);
     }));
 
     it("timestamp and timestamptz", w(async () => {
-        await table.insert({
+        await tableUsers.insert({
             name: 'A',
             created: new Date('2000-01-01 00:00:00'),
             createdtz: new Date('2000-01-01 00:00:00')
         });
-        let res = await table.findOne({name: 'A'});
+        let res = await tableUsers.findOne({name: 'A'});
 
         expect(res.created).toEqual(new Date('2000-01-01 00:00:00'));
         expect(res.createdtz).toEqual(new Date('2000-01-01 00:00:00'));
 
-        res = await table.count({'created': new Date('2000-01-01 00:00:00')});
+        res = await tableUsers.count({'created': new Date('2000-01-01 00:00:00')});
         expect(res).toEqual(1);
 
-        res = await table.count({'createdtz': new Date('2000-01-01 00:00:00')});
+        res = await tableUsers.count({'createdtz': new Date('2000-01-01 00:00:00')});
         expect(res).toEqual(1);
 
         let d = new Date('2000-01-01 00:00:00').toISOString();
-        await table.query(`INSERT INTO ${table} (name, created, createdtz) values ('A2', '${d}'::timestamptz, '${d}'::timestamptz)`);
-        res = await table.findOne({name: 'A2'});
+        await tableUsers.query(`INSERT INTO ${tableUsers} (name, created, createdtz) values ('A2', '${d}'::timestamptz, '${d}'::timestamptz)`);
+        res = await tableUsers.findOne({name: 'A2'});
 
         expect(res.created).toEqual(new Date('2000-01-01 00:00:00'));
         expect(res.createdtz).toEqual(new Date('2000-01-01 00:00:00'));
 
-        res = await table.query(`SELECT * FROM ${table} WHERE name='A2' AND created='${d}'::timestamptz`);
+        res = await tableUsers.query(`SELECT * FROM ${tableUsers} WHERE name='A2' AND created='${d}'::timestamptz`);
         expect(res.length).toEqual(1);
 
-        res = await table.query(`SELECT * FROM ${table} WHERE name='A2' AND createdtz='${d}'::timestamptz`);
+        res = await tableUsers.query(`SELECT * FROM ${tableUsers} WHERE name='A2' AND createdtz='${d}'::timestamptz`);
         expect(res.length).toEqual(1);
     }));
 
     it("transaction - rollback", w(async () => {
-        await table.insert({name: 'A'});
+        await tableUsers.insert({name: 'A'});
         let res;
 
         let pgdbwt = await pgdb.transactionBegin();
         let tablewt = pgdbwt.schemas[schema]['users'];
         await tablewt.insert({name: 'B'});
 
-        res = await table.count();
+        res = await tableUsers.count();
         expect(res).toEqual(1);
 
         res = await tablewt.count();
@@ -383,7 +391,7 @@ describe("pgdb", () => {
 
         await pgdbwt.transactionRollback();
 
-        res = await table.findAll();
+        res = await tableUsers.findAll();
         expect(res.length).toEqual(1);
         expect(res[0].name).toEqual('A');
     }));
@@ -404,14 +412,14 @@ describe("pgdb", () => {
 
 
     it("transaction - commit", w(async () => {
-        await table.insert({name: 'A'});
+        await tableUsers.insert({name: 'A'});
 
         let pgdbwt = await pgdb.transactionBegin();
         let tablewt = <PgTable<any>>pgdbwt.schemas[schema]['users'];
         await tablewt.insert({name: 'B'});
 
         let res;
-        res = await table.findAll();
+        res = await tableUsers.findAll();
         expect(res.length).toEqual(1);
         expect(res[0].name).toEqual('A');
 
@@ -420,7 +428,7 @@ describe("pgdb", () => {
 
         await pgdbwt.transactionCommit();
 
-        res = await table.findAll();
+        res = await tableUsers.findAll();
         expect(res.length).toEqual(2);
         expect(res[0].name).toEqual('A');
         expect(res[1].name).toEqual('B');
@@ -438,17 +446,17 @@ describe("pgdb", () => {
             expect(/Number can't be represented in javascript/.test(e.message)).toBeTruthy();
             await pgdbwt.transactionRollback();
         }
-        let res = await table.count();
+        let res = await tableUsers.count();
         expect(res).toEqual(0);
 
     }));
 
     it("cursor with callback", w(async () => {
-        await table.insert({name: 'A', numberList: [1, 2, 3]});
-        await table.insert({name: 'B'});
-        let size = await table.count();
+        await tableUsers.insert({name: 'A', numberList: [1, 2, 3]});
+        await tableUsers.insert({name: 'B'});
+        let size = await tableUsers.count();
         let streamSize = 0;
-        await table.queryWithOnCursorCallback(`SELECT * FROM ${table}`, null, null, (r) => {
+        await tableUsers.queryWithOnCursorCallback(`SELECT * FROM ${tableUsers}`, null, null, (r) => {
             streamSize++;
             return true
         });
@@ -457,7 +465,7 @@ describe("pgdb", () => {
 
     it("stream - auto connection handling - normal", w(async () => {
         let counter = 0;
-        let stream = await table.queryAsStream(`SELECT * FROM generate_series(0, $1) num`, [1001]);
+        let stream = await tableUsers.queryAsStream(`SELECT * FROM generate_series(0, $1) num`, [1001]);
         stream.on('data', (c: any) => {
             if (c.num != counter) {
                 expect(false).toBeTruthy();
@@ -473,7 +481,7 @@ describe("pgdb", () => {
 
     it("stream - auto connection handling - early close", w(async () => {
         let counter = 0;
-        let stream = await table.queryAsStream(`SELECT * FROM generate_series(0,1002) num`);
+        let stream = await tableUsers.queryAsStream(`SELECT * FROM generate_series(0,1002) num`);
         await new Promise((resolve, reject) => {
             stream.on('end', resolve);
             stream.on('error', reject);
@@ -493,7 +501,7 @@ describe("pgdb", () => {
         let counter = 0;
         let stillSafe = Number.MAX_SAFE_INTEGER - 5;
         let wrongNum = Number.MAX_SAFE_INTEGER + 100;
-        let stream = await table.queryAsStream(`SELECT * FROM generate_series(${stillSafe}, ${wrongNum}) num`);
+        let stream = await tableUsers.queryAsStream(`SELECT * FROM generate_series(${stillSafe}, ${wrongNum}) num`);
         stream.on('data', (c: any) => {
             counter++;
         });
@@ -523,7 +531,7 @@ describe("pgdb", () => {
         expect(counter).toEqual(2);
         await pgdbwt.transactionRollback();
 
-        counter = await table.count();
+        counter = await tableUsers.count();
         expect(counter).toEqual(0);
     }));
 
@@ -554,7 +562,7 @@ describe("pgdb", () => {
         expect(counter).toEqual(4);
         await pgdbwt.transactionRollback();
 
-        counter = await table.count();
+        counter = await tableUsers.count();
         expect(counter).toEqual(0);
     }));
 
@@ -586,23 +594,23 @@ describe("pgdb", () => {
         expect(counter).toEqual(4);
         await pgdbwt.transactionRollback();
 
-        counter = await table.count();
+        counter = await tableUsers.count();
         expect(counter).toEqual(0);
     }));
 
     it("truncate", w(async () => {
-        await table.insert({name: 'A'});
-        await table.insert({name: 'B'});
+        await tableUsers.insert({name: 'A'});
+        await tableUsers.insert({name: 'B'});
 
-        await table.truncate();
-        let size = await table.count();
+        await tableUsers.truncate();
+        let size = await tableUsers.count();
         expect(size).toEqual(0);
     }));
 
     it("truncate + special types", w(async () => {
         await pgdb.setTypeParser('permissionForResourceType', (val) => parseComplexType(val));
         await pgdb.setTypeParser('_permissionForResourceType', (val) => val == "{}" ? [] : parseComplexTypeArray(val));
-        await table.insert({
+        await tableUsers.insert({
             name: 'Piszkos Fred',
             permission: "(read,book)",
             permissionList: [
@@ -614,9 +622,9 @@ describe("pgdb", () => {
                 '(write,null)'],
         });
 
-        await table.truncate();
+        await tableUsers.truncate();
 
-        await table.insert({
+        await tableUsers.insert({
             name: 'Piszkos Fred',
             permission: "(read,book)",
             permissionList: [
@@ -627,18 +635,18 @@ describe("pgdb", () => {
                 '(,)',
                 '(write,null)'],
         });
-        let pf = await table.findOne({name: 'Piszkos Fred'});
+        let pf = await tableUsers.findOne({name: 'Piszkos Fred'});
         expect(pf.permission).toEqual(['read', 'book']);
         expect(pf.permissionList[0]).toEqual(['admin', 'chaos j ()",""j ,']);
     }));
 
     it("truncate - cascade", w(async () => {
         let g = await tableGroups.insertAndGet({name: 'G'});
-        await table.insert({name: 'A', mainGroup: g.id});
-        await table.insert({name: 'B', mainGroup: g.id});
+        await tableUsers.insert({name: 'A', mainGroup: g.id});
+        await tableUsers.insert({name: 'B', mainGroup: g.id});
         await tableGroups.truncate({cascade: true, restartIdentity: true});
 
-        let size = await table.count();
+        let size = await tableUsers.count();
         expect(size).toEqual(0);
 
         let g2 = await tableGroups.insertAndGet({name: 'G'}, {return: ['id']});
@@ -646,30 +654,30 @@ describe("pgdb", () => {
     }));
 
     it("orderBy", w(async () => {
-        await table.insert({name: 'A', aCategory: 'A'});
-        await table.insert({name: 'B', aCategory: 'B'});
-        await table.insert({name: 'C', aCategory: 'C'});
-        await table.insert({name: 'A2', aCategory: 'A'});
-        await table.insert({name: 'B2', aCategory: 'B'});
-        await table.insert({name: 'C2', aCategory: 'C'});
+        await tableUsers.insert({name: 'A', aCategory: 'A'});
+        await tableUsers.insert({name: 'B', aCategory: 'B'});
+        await tableUsers.insert({name: 'C', aCategory: 'C'});
+        await tableUsers.insert({name: 'A2', aCategory: 'A'});
+        await tableUsers.insert({name: 'B2', aCategory: 'B'});
+        await tableUsers.insert({name: 'C2', aCategory: 'C'});
 
         let res;
-        res = await table.find({}, {orderBy: ['aCategory', 'name'], fields: ['name']});
+        res = await tableUsers.find({}, {orderBy: ['aCategory', 'name'], fields: ['name']});
         expect(res.map(v => v.name)).toEqual(['A', 'A2', 'B', 'B2', 'C', 'C2']);
 
-        res = await table.find({}, {orderBy: ['aCategory asc', 'name desc'], fields: ['name']});
+        res = await tableUsers.find({}, {orderBy: ['aCategory asc', 'name desc'], fields: ['name']});
         expect(res.map(v => v.name)).toEqual(['A2', 'A', 'B2', 'B', 'C2', 'C']);
 
-        res = await table.find({}, {orderBy: ['+aCategory', '-name'], fields: ['name']});
+        res = await tableUsers.find({}, {orderBy: ['+aCategory', '-name'], fields: ['name']});
         expect(res.map(v => v.name)).toEqual(['A2', 'A', 'B2', 'B', 'C2', 'C']);
 
-        res = await table.find({}, {orderBy: '"aCategory" asc, name desc', fields: ['name']});
+        res = await tableUsers.find({}, {orderBy: '"aCategory" asc, name desc', fields: ['name']});
         expect(res.map(v => v.name)).toEqual(['A2', 'A', 'B2', 'B', 'C2', 'C']);
     }));
 
     it("stored proc", w(async () => {
-        await table.insert({name: 'A', membership: 'gold'});
-        await table.insert({name: 'B', membership: 'gold'});
+        await tableUsers.insert({name: 'A', membership: 'gold'});
+        await tableUsers.insert({name: 'B', membership: 'gold'});
         expect(pgdb[schema].fn['list_gold_users']).toBeDefined();
         expect(pgdb.fn['increment']).toBeDefined();
         let s = await pgdb.run('select current_schema');
@@ -693,69 +701,69 @@ describe("pgdb", () => {
     }));
 
     it("select/update/delete should throw exception if the condition contains undefined value", w(async () => {
-        await table.insert({name: 'A', membership: 'gold'});
+        await tableUsers.insert({name: 'A', membership: 'gold'});
         let conditions = {name: 'A', membership: undefined};
 
         try {
-            await table.find(conditions);
+            await tableUsers.find(conditions);
             expect(false).toBeTruthy();
         } catch (e) {
             expect('' + e).toEqual('Error: Invalid conditions! Field value undefined: "membership". Either delete the field, set it to null or use the options.skipUndefined parameter.');
         }
-        let res = await table.find(conditions, {skipUndefined: true});
+        let res = await tableUsers.find(conditions, {skipUndefined: true});
         expect(res.length == 1).toBeTruthy();
 
         try {
-            await table.update(conditions, {name: 'B'});
+            await tableUsers.update(conditions, {name: 'B'});
             expect(false).toBeTruthy();
         } catch (e) {
             expect('' + e).toEqual('Error: Invalid conditions! Field value undefined: "membership". Either delete the field, set it to null or use the options.skipUndefined parameter.');
         }
-        await table.update(conditions, {name: 'B'}, {skipUndefined: true});
-        res = await table.find(conditions, {skipUndefined: true});
+        await tableUsers.update(conditions, {name: 'B'}, {skipUndefined: true});
+        res = await tableUsers.find(conditions, {skipUndefined: true});
         expect(res.length == 0).toBeTruthy();
 
         try {
             conditions.name = 'B';
-            await table.delete(conditions);
+            await tableUsers.delete(conditions);
             expect(false).toBeTruthy();
         } catch (e) {
             expect('' + e).toEqual('Error: Invalid conditions! Field value undefined: "membership". Either delete the field, set it to null or use the options.skipUndefined parameter.');
         }
-        await table.delete(conditions, {skipUndefined: true});
-        res = await table.findAll();
+        await tableUsers.delete(conditions, {skipUndefined: true});
+        res = await tableUsers.findAll();
         expect(res.length == 0).toBeTruthy();
 
     }));
 
     it("Testing deleteAndGet ", w(async () => {
-        await table.insert({name: 'A'});
-        let res = await table.deleteAndGetOne({name: 'A'});
+        await tableUsers.insert({name: 'A'});
+        let res = await tableUsers.deleteAndGetOne({name: 'A'});
         expect(res != null).toBeTruthy();
         expect(res.name == 'A').toBeTruthy();
 
-        let res2 = await table.deleteAndGetOne({name: 'A'});
+        let res2 = await tableUsers.deleteAndGetOne({name: 'A'});
         expect(res2 == null).toBeTruthy();
     }));
 
     it("Testing postprocess function", w(async () => {
-        await table.insert({name: 'A'});
+        await tableUsers.insert({name: 'A'});
 
         pgdb.setPostProcessResult((res, fields, logger) => {
             res[0].name = 'B';
         });
-        let res = await pgdb.query(`select * from ${table}`);
+        let res = await pgdb.query(`select * from ${tableUsers}`);
         expect(res[0].name == 'B').toBeTruthy();
-        res = await table.findAll();
+        res = await tableUsers.findAll();
         expect(res[0].name == 'B').toBeTruthy();
         pgdb.setPostProcessResult(null);
-        res = await table.findAll();
+        res = await tableUsers.findAll();
         expect(res[0].name == 'A').toBeTruthy();
     }));
 
     it("Testing deleteAndGet", w(async () => {
-        await table.insert([{name: 'A'}, {name: 'B'}]);
-        let res = await table.deleteAndGet({name: ['A', 'B']});
+        await tableUsers.insert([{name: 'A'}, {name: 'B'}]);
+        let res = await tableUsers.deleteAndGet({name: ['A', 'B']});
         expect(res.length == 2).toBeTruthy();
     }));
 
@@ -768,8 +776,8 @@ describe("pgdb", () => {
             a: 1,
             b: "aprocska\"kalapocska'bennecsacskamacskamocska"
         })];
-        await table.insert({name: 'A', textList: list});
-        let rec: any = await table.findOne({name: 'A'});
+        await tableUsers.insert({name: 'A', textList: list});
+        let rec: any = await tableUsers.findOne({name: 'A'});
         console.log(list + '\n' + rec.textList);
         let isDifferent = list.some((v, i) => rec.textList[i] !== v);
         expect(isDifferent).toBeFalsy();
@@ -783,8 +791,8 @@ describe("pgdb", () => {
             "path": "/data/files/fl1ace84f744/Wire 2017-09-17 at 11.57.55.png",
             "title": "Wire 2017-09-17 at 11.57.55"
         }];
-        await table.insert({name: 'A', jsonbList: list});
-        let rec: any = await table.findOne({name: 'A'});
+        await tableUsers.insert({name: 'A', jsonbList: list});
+        let rec: any = await tableUsers.findOne({name: 'A'});
         console.log('xxx', rec.jsonbList, typeof rec.jsonbList[0]);
         console.log(JSON.stringify(list) + '\n' + JSON.stringify(rec.jsonbList));
         let isDifferent = list.some((v, i) => !_.isEqual(rec.jsonbList[i], v));
@@ -792,46 +800,46 @@ describe("pgdb", () => {
     }));
 
     it("Testing distinct", w(async () => {
-        await table.insert({name: 'A', aCategory: 'A'});
-        await table.insert({name: 'B', aCategory: 'A'});
-        let recs = await table.find({aCategory: 'A'}, {fields: ['aCategory'], distinct: true});
+        await tableUsers.insert({name: 'A', aCategory: 'A'});
+        await tableUsers.insert({name: 'B', aCategory: 'A'});
+        let recs = await tableUsers.find({aCategory: 'A'}, {fields: ['aCategory'], distinct: true});
         expect(recs.length).toEqual(1);
     }));
 
     it("Testing queryOne", w(async () => {
-        await table.insert({name: 'A', aCategory: 'A'});
-        await table.insert({name: 'B', aCategory: 'A'});
+        await tableUsers.insert({name: 'A', aCategory: 'A'});
+        await tableUsers.insert({name: 'B', aCategory: 'A'});
         try {
-            let recs = await table.queryOne(`SELECT * FROM ${table} WHERE "aCategory" = 'A'`);
+            let recs = await tableUsers.queryOne(`SELECT * FROM ${tableUsers} WHERE "aCategory" = 'A'`);
             expect(false).toBeTruthy();
         } catch (e) {
             expect('' + e).toEqual("Error: More then one rows exists");
         }
     }));
     it("Testing queryFirst", w(async () => {
-        await table.insert({name: 'A', aCategory: 'A'});
-        await table.insert({name: 'B', aCategory: 'A'});
-        let rec = await table.queryFirst(`SELECT * FROM ${table} WHERE "aCategory" = 'A'`);
+        await tableUsers.insert({name: 'A', aCategory: 'A'});
+        await tableUsers.insert({name: 'B', aCategory: 'A'});
+        let rec = await tableUsers.queryFirst(`SELECT * FROM ${tableUsers} WHERE "aCategory" = 'A'`);
         expect(rec.aCategory).toEqual('A');
     }));
 
     it("Testing forUpdate", w(async () => {
-        await table.insert({name: 'A', aCategory: 'A'});
-        let pgdb1 = await table.db.transactionBegin();
+        await tableUsers.insert({name: 'A', aCategory: 'A'});
+        let pgdb1 = await tableUsers.db.transactionBegin();
         await pgdb1.tables['users'].find({aCategory: 'A'}, {forUpdate: true});
-        let p = table.update({aCategory: 'A'}, {name: 'C'});
+        let p = tableUsers.update({aCategory: 'A'}, {name: 'C'});
         await new Promise(resolve => setTimeout(resolve, 500));
         await pgdb1.tables['users'].update({aCategory: 'A'}, {name: 'B'});
         await pgdb1.transactionCommit();
         await p;
-        let rec = await table.findFirst({aCategory: 'A'});
+        let rec = await tableUsers.findFirst({aCategory: 'A'});
         expect(rec.name).toEqual('C');
     }));
 
     it("Testing update where something is null", w(async () => {
-        await table.insert({name: 'A', aCategory: 'A'});
-        await table.update({textList: null},{name: 'B'});
-        let rec = await table.findFirst({aCategory: 'A'});
+        await tableUsers.insert({name: 'A', aCategory: 'A'});
+        await tableUsers.update({textList: null},{name: 'B'});
+        let rec = await tableUsers.findFirst({aCategory: 'A'});
         expect(rec.name).toEqual('B');
     }));
 
