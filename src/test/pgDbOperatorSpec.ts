@@ -23,7 +23,8 @@ function w(func) {
 describe("pgdb", () => {
     let pgdb: PgDb;
     let schema = 'pgdb_test';
-    let table: PgTable<any>;
+    let tableUsers: PgTable<any>;
+    let viewUsers: PgTable<any>;
 
     beforeAll(w(async () => {
         jasmine.DEFAULT_TIMEOUT_INTERVAL = 800000;
@@ -39,7 +40,8 @@ describe("pgdb", () => {
         try {
             pgdb = await PgDb.connect({connectionString: "postgres://"});
         } catch (e) {
-            console.error("connection failed! Are you specified PGUSER/PGDATABASE/PGPASSWORD correctly?")
+            console.error("connection failed! Are you specified PGUSER/PGDATABASE/PGPASSWORD correctly?");
+            console.error(e);
             process.exit(1);
         }
         //await pgdb.run('DROP SCHEMA IF EXISTS "' + schema + '" CASCADE ');
@@ -48,43 +50,70 @@ describe("pgdb", () => {
         await pgdb.reload();
 
         pgdb.setLogger(console);
-        table = pgdb.schemas[schema]['users'];
+        tableUsers = pgdb.schemas[schema]['users'];
+        viewUsers = pgdb.schemas[schema]['users_view'];
 
         return Promise.resolve();
     }));
 
     beforeEach(w(async () => {
-        await table.run('DELETE FROM ' + table);
+        await tableUsers.run('DELETE FROM ' + tableUsers);
     }));
 
     it("Testing Array operators", w(async () => {
-        await table.insert({name: 'S', favourites: ['sport']});
-        await table.insert({name: 'SF', favourites: ['sport', 'food']});
-        await table.insert({name: 'TF', favourites: ['tech', 'food']});
+        await tableUsers.insert({name: 'S', favourites: ['sport']});
+        await tableUsers.insert({name: 'SF', favourites: ['sport', 'food']});
+        await tableUsers.insert({name: 'TF', favourites: ['tech', 'food']});
 
         let res;
 
-        res = await table.find({'favourites': 'sport'}, {fields: ['name']}); //=> 'sport' = ANY("favourites")
+        res = await tableUsers.find({'favourites': 'sport'}, {fields: ['name']}); //=> 'sport' = ANY("favourites")
         expect(res.map(r => r.name)).toEqual(['S', 'SF']);
 
-        res = await table.find({'favourites': ['sport', 'food']}, {fields: ['name']}); //=> favourites = '{sport,food}'
+        res = await tableUsers.find({'favourites': ['sport', 'food']}, {fields: ['name']}); //=> favourites = '{sport,food}'
         expect(res.map(r => r.name)).toEqual(['SF']);
 
-        res = await table.find({'favourites @>': ['sport']}); //contains
+        res = await tableUsers.find({'favourites @>': ['sport']}); //contains
         expect(res.map(r => r.name)).toEqual(['S', 'SF']);
 
-        res = await table.find({'favourites <@': ['sport', 'food', 'tech']});//contained by
+        res = await tableUsers.find({'favourites <@': ['sport', 'food', 'tech']});//contained by
         expect(res.map(r => r.name)).toEqual(['S', 'SF', 'TF']);
 
-        res = await table.find({'favourites &&': ['sport', 'music']});//overlap
+        res = await tableUsers.find({'favourites &&': ['sport', 'music']});//overlap
         expect(res.map(r => r.name)).toEqual(['S', 'SF']);
 
-        res = await table.find({'favourites !=': ['sport']});//
+        res = await tableUsers.find({'favourites !=': ['sport']});//
+        expect(res.map(r => r.name)).toEqual(['SF', 'TF']);
+    }));
+
+    it("Testing Array operators on view", w(async () => {
+        await viewUsers.insert({name: 'S', favourites: ['sport']});
+        await viewUsers.insert({name: 'SF', favourites: ['sport', 'food']});
+        await viewUsers.insert({name: 'TF', favourites: ['tech', 'food']});
+
+        let res;
+
+        res = await viewUsers.find({'favourites': 'sport'}, {fields: ['name']}); //=> 'sport' = ANY("favourites")
+        expect(res.map(r => r.name)).toEqual(['S', 'SF']);
+
+        res = await viewUsers.find({'favourites': ['sport', 'food']}, {fields: ['name']}); //=> favourites = '{sport,food}'
+        expect(res.map(r => r.name)).toEqual(['SF']);
+
+        res = await viewUsers.find({'favourites @>': ['sport']}); //contains
+        expect(res.map(r => r.name)).toEqual(['S', 'SF']);
+
+        res = await viewUsers.find({'favourites <@': ['sport', 'food', 'tech']});//contained by
+        expect(res.map(r => r.name)).toEqual(['S', 'SF', 'TF']);
+
+        res = await viewUsers.find({'favourites &&': ['sport', 'music']});//overlap
+        expect(res.map(r => r.name)).toEqual(['S', 'SF']);
+
+        res = await viewUsers.find({'favourites !=': ['sport']});//
         expect(res.map(r => r.name)).toEqual(['SF', 'TF']);
     }));
 
     it("Searching in elements in jsonList", w(async () => {
-        await table.insert({name: 'Medium and high risk', jsonList: [{risk: 'H'}, {risk: 'M'}]});
+        await tableUsers.insert({name: 'Medium and high risk', jsonList: [{risk: 'H'}, {risk: 'M'}]});
 
         let query1 = {
             or: [{'"jsonList" @>': [{"risk": "H"}]}, {'"jsonList" @>': [{"risk": "L"}]}]
@@ -97,28 +126,28 @@ describe("pgdb", () => {
         };
 
         let res;
-        res = await table.find(query1, {fields: ['name']});
+        res = await tableUsers.find(query1, {fields: ['name']});
         expect(res.map(r => r.name)).toEqual(['Medium and high risk']);
 
-        res = await table.find(query2, {fields: ['name']});
+        res = await tableUsers.find(query2, {fields: ['name']});
         expect(res.map(r => r.name)).toEqual(['Medium and high risk']);
 
-        res = await table.find(query3, {fields: ['name']});
+        res = await tableUsers.find(query3, {fields: ['name']});
         expect(res.map(r => r.name)).toEqual(['Medium and high risk']);
     }));
 
     it("Free text search", w(async () => {
-        await table.insert({name: 'Medium and high risk', jsonList: [{name: "The return of the Jedi"}]});
+        await tableUsers.insert({name: 'Medium and high risk', jsonList: [{name: "The return of the Jedi"}]});
 
         let res;
         for (let searchCol of ['"name"||"jsonList" @@', 'tsv @@']) {
-            res = await table.find({[searchCol]: 'risk & return'}, {fields: ['name']});
+            res = await tableUsers.find({[searchCol]: 'risk & return'}, {fields: ['name']});
             expect(res.map(r => r.name)).toEqual(['Medium and high risk']);
 
-            res = await table.find({[searchCol]: 'risk & future'}, {fields: ['name']});
+            res = await tableUsers.find({[searchCol]: 'risk & future'}, {fields: ['name']});
             expect(res.length).toEqual(0);
 
-            res = await table.find({
+            res = await tableUsers.find({
                 [searchCol]: {
                     lang: 'english',
                     query: 'risk & return'
@@ -130,156 +159,156 @@ describe("pgdb", () => {
 
     it("Testing Jsonb list selector operators", w(async () => {
         //@formatter:off
-        await table.insert({ name: 'Somebody',  jsonList: ['sport', 'season'] });
-        await table.insert({ name: 'Anybody',   jsonList: ['art', 'age'] });
-        await table.insert({ name: 'Nobody',    jsonList: ['neverending', 'nearby'] });
-        await table.insert({ name: 'Noone',     jsonList: null, });
-        await table.insert({ name: 'Anonymous', jsonList: [] });
-        await table.insert({ name: 'Obi1', jsonObject: {a:{b:3}}});
-        await table.insert({ name: 'Obi2', jsonObject: {a:{b:[3,4,5,6]}} });
+        await tableUsers.insert({ name: 'Somebody',  jsonList: ['sport', 'season'] });
+        await tableUsers.insert({ name: 'Anybody',   jsonList: ['art', 'age'] });
+        await tableUsers.insert({ name: 'Nobody',    jsonList: ['neverending', 'nearby'] });
+        await tableUsers.insert({ name: 'Noone',     jsonList: null, });
+        await tableUsers.insert({ name: 'Anonymous', jsonList: [] });
+        await tableUsers.insert({ name: 'Obi1', jsonObject: {a:{b:3}}});
+        await tableUsers.insert({ name: 'Obi2', jsonObject: {a:{b:[3,4,5,6]}} });
         //@formatter:on
 
         let res;
-        res = await table.find({'jsonList @>': ['sport']}, {fields: ['name']}); //=>
+        res = await tableUsers.find({'jsonList @>': ['sport']}, {fields: ['name']}); //=>
         expect(res.map(r => r.name)).toEqual(['Somebody']);
 
-        res = await table.find({'jsonList <@': ['sport', 'tech', 'season']}, {fields: ['name']}); //=>
+        res = await tableUsers.find({'jsonList <@': ['sport', 'tech', 'season']}, {fields: ['name']}); //=>
         expect(res.map(r => r.name)).toEqual(['Somebody', 'Anonymous']);
 
-        res = await table.find({'jsonList ?': 0}, {fields: ['name']}); //=> doesnt work
+        res = await tableUsers.find({'jsonList ?': 0}, {fields: ['name']}); //=> doesnt work
         expect(res.map(r => r.name)).toEqual([]);
 
-        res = await table.find({'jsonList ?': '0'}, {fields: ['name']}); //=> doesnt work
+        res = await tableUsers.find({'jsonList ?': '0'}, {fields: ['name']}); //=> doesnt work
         expect(res.map(r => r.name)).toEqual([]);
 
-        res = await table.find({'jsonObject -> a': {b: 3}}, {fields: ['name']});
+        res = await tableUsers.find({'jsonObject -> a': {b: 3}}, {fields: ['name']});
         expect(res.map(r => r.name)).toEqual(['Obi1']);
 
-        res = await table.find({"jsonObject -> 'a'": {b: 3}}, {fields: ['name']});
+        res = await tableUsers.find({"jsonObject -> 'a'": {b: 3}}, {fields: ['name']});
         expect(res.map(r => r.name)).toEqual(['Obi1']);
 
-        res = await table.find({'jsonList ->> 0': 'art'}, {fields: ['name']});
+        res = await tableUsers.find({'jsonList ->> 0': 'art'}, {fields: ['name']});
         expect(res.map(r => r.name)).toEqual(['Anybody']);
 
-        res = await table.find({'jsonObject ->> a': '{"b": 3}'}, {fields: ['name']}); //->> return as a text
+        res = await tableUsers.find({'jsonObject ->> a': '{"b": 3}'}, {fields: ['name']}); //->> return as a text
         expect(res.map(r => r.name)).toEqual(['Obi1']);
 
-        res = await table.find({"jsonObject ->> 'a'": '{"b": 3}'}, {fields: ['name']}); //->> return as a text
+        res = await tableUsers.find({"jsonObject ->> 'a'": '{"b": 3}'}, {fields: ['name']}); //->> return as a text
         expect(res.map(r => r.name)).toEqual(['Obi1']);
 
-        res = await table.find({"jsonList ->> '0'": 'art'}, {fields: ['name']}); //=> doesnt work
+        res = await tableUsers.find({"jsonList ->> '0'": 'art'}, {fields: ['name']}); //=> doesnt work
         expect(res.map(r => r.name)).toEqual([]);
 
-        res = await table.find({"jsonObject #> {a}": {b: 3}}, {fields: ['name']});
+        res = await tableUsers.find({"jsonObject #> {a}": {b: 3}}, {fields: ['name']});
         expect(res.map(r => r.name)).toEqual(['Obi1']);
 
-        res = await table.find({"jsonObject #>> {a}": '{"b": 3}'}, {fields: ['name']});
+        res = await tableUsers.find({"jsonObject #>> {a}": '{"b": 3}'}, {fields: ['name']});
         expect(res.map(r => r.name)).toEqual(['Obi1']);
 
-        res = await table.find({"jsonObject #>> {a,b}": 3}, {fields: ['name']});
+        res = await tableUsers.find({"jsonObject #>> {a,b}": 3}, {fields: ['name']});
         expect(res.map(r => r.name)).toEqual(['Obi1']);
 
-        res = await table.find({"jsonObject #>> {a,b,1}": 4}, {fields: ['name']});
+        res = await tableUsers.find({"jsonObject #>> {a,b,1}": 4}, {fields: ['name']});
         expect(res.map(r => r.name)).toEqual(['Obi2']);
-        res = await table.find({"jsonObject #>> {a,b,1}": '4'}, {fields: ['name']});
+        res = await tableUsers.find({"jsonObject #>> {a,b,1}": '4'}, {fields: ['name']});
         expect(res.map(r => r.name)).toEqual(['Obi2']);
     }));
 
     it("Testing Jsonb list update", w(async () => {
-        await table.insert({name: 'Somebody', jsonList: ['sport', 'season']});
-        await table.update({name: 'Somebody'}, {jsonList: [{name: 'sport'}, {name: 'season'}]});
+        await tableUsers.insert({name: 'Somebody', jsonList: ['sport', 'season']});
+        await tableUsers.update({name: 'Somebody'}, {jsonList: [{name: 'sport'}, {name: 'season'}]});
 
-        let res = await table.findAll();
+        let res = await tableUsers.findAll();
         expect(res.map(r => r.jsonList.map(e => e.name))[0]).toEqual(['sport', 'season']);
     }));
 
     it("Testing Jsonb list operators", w(async () => {
         //@formatter:off
-        await table.insert({ name: 'Somebody',  jsonObject: {realName: 'somebody', webpage: 's.com'} });
-        await table.insert({ name: 'Anybody',   jsonObject: {realName: 'anybody', webpage: 'a.com'} });
-        await table.insert({ name: 'Nobody',    jsonObject: {realName: 'nobody', email: 'nobody@nowhere.com'}});
-        await table.insert({ name: 'Noone',     jsonObject: null});
-        await table.insert({ name: 'Anonymous', jsonObject: {}});
+        await tableUsers.insert({ name: 'Somebody',  jsonObject: {realName: 'somebody', webpage: 's.com'} });
+        await tableUsers.insert({ name: 'Anybody',   jsonObject: {realName: 'anybody', webpage: 'a.com'} });
+        await tableUsers.insert({ name: 'Nobody',    jsonObject: {realName: 'nobody', email: 'nobody@nowhere.com'}});
+        await tableUsers.insert({ name: 'Noone',     jsonObject: null});
+        await tableUsers.insert({ name: 'Anonymous', jsonObject: {}});
         //@formatter:on
         let res;
 
-        res = await table.find({'jsonObject ?': 'email'}, {fields: ['name']}); //=> has the key ..
+        res = await tableUsers.find({'jsonObject ?': 'email'}, {fields: ['name']}); //=> has the key ..
         expect(res.map(r => r.name)).toEqual(['Nobody']);
 
-        res = await table.find({'jsonObject ?&': ['email', 'realName']}, {fields: ['name']}); //=> has all key ..
+        res = await tableUsers.find({'jsonObject ?&': ['email', 'realName']}, {fields: ['name']}); //=> has all key ..
         expect(res.map(r => r.name)).toEqual(['Nobody']);
 
-        res = await table.find({'jsonObject ?|': ['email', 'webpage']}, {fields: ['name']}); //=> has any of the key..
+        res = await tableUsers.find({'jsonObject ?|': ['email', 'webpage']}, {fields: ['name']}); //=> has any of the key..
         expect(res.map(r => r.name)).toEqual(['Somebody', 'Anybody', 'Nobody']);
 
-        res = await table.find({'jsonObject @>': {realName: 'somebody'}}, {fields: ['name']}); //=> contains substructure
+        res = await tableUsers.find({'jsonObject @>': {realName: 'somebody'}}, {fields: ['name']}); //=> contains substructure
         expect(res.map(r => r.name)).toEqual(['Somebody']);
 
-        res = await table.find({'jsonObject ->> realName': 'somebody'}, {fields: ['name']}); //=> has the key + equals to
+        res = await tableUsers.find({'jsonObject ->> realName': 'somebody'}, {fields: ['name']}); //=> has the key + equals to
         expect(res.map(r => r.name)).toEqual(['Somebody']);
 
-        res = await table.find({'jsonObject ->> \'realName\'': 'somebody'}, {fields: ['name']}); //=> has the key + equals to
+        res = await tableUsers.find({'jsonObject ->> \'realName\'': 'somebody'}, {fields: ['name']}); //=> has the key + equals to
         expect(res.map(r => r.name)).toEqual(['Somebody']);
 
-        res = await table.find({'"jsonObject" ->> \'realName\'': 'somebody'}, {fields: ['name']}); //=> has the key + equals to
+        res = await tableUsers.find({'"jsonObject" ->> \'realName\'': 'somebody'}, {fields: ['name']}); //=> has the key + equals to
         expect(res.map(r => r.name)).toEqual(['Somebody']);
 
-        res = await table.find({'jsonObject ->> realName': ['somebody', 'anybody']}, {fields: ['name']}); //=> has the key + in array
+        res = await tableUsers.find({'jsonObject ->> realName': ['somebody', 'anybody']}, {fields: ['name']}); //=> has the key + in array
         expect(res.map(r => r.name)).toEqual(['Somebody', 'Anybody']);
 
-        res = await table.find({'jsonObject ->> realName like': '%body'}, {fields: ['name']}); //=> has the key + like
+        res = await tableUsers.find({'jsonObject ->> realName like': '%body'}, {fields: ['name']}); //=> has the key + like
         expect(res.map(r => r.name)).toEqual(['Somebody', 'Anybody', 'Nobody']);
 
-        res = await table.find({'jsonObject ->> realName ~~': '%body'}, {fields: ['name']}); //=> has the key + like
+        res = await tableUsers.find({'jsonObject ->> realName ~~': '%body'}, {fields: ['name']}); //=> has the key + like
         expect(res.map(r => r.name)).toEqual(['Somebody', 'Anybody', 'Nobody']);
 
     }));
 
     it("Test deep jsonb @>", w(async () => {
         //@formatter:off
-        await table.insert({ name: 'Somebody', jsonObject: {service: {indexing: {by: [1, 2, 3]}, database: true}, paid: true}});
-        await table.insert({ name: 'Anybody',  jsonList: [{realName: 'anyone'}, {realName: 'anybody'}]});
+        await tableUsers.insert({ name: 'Somebody', jsonObject: {service: {indexing: {by: [1, 2, 3]}, database: true}, paid: true}});
+        await tableUsers.insert({ name: 'Anybody',  jsonList: [{realName: 'anyone'}, {realName: 'anybody'}]});
         //@formatter:on
 
         let res;
-        res = await table.find({'jsonObject @>': {service: {indexing: {by: [1]}}, paid: true}});
+        res = await tableUsers.find({'jsonObject @>': {service: {indexing: {by: [1]}}, paid: true}});
         expect(res.map(r => r.name)).toEqual(['Somebody']);
 
-        res = await table.find({'jsonList @>': [{realName: 'anybody'}]});
+        res = await tableUsers.find({'jsonList @>': [{realName: 'anybody'}]});
         expect(res.map(r => r.name)).toEqual(['Anybody']);
     }))
 
 
     it("Testing is (not) null", w(async () => {
-        await table.insert({name: 'Noone', jsonObject: null});
-        await table.insert({name: 'Anonymous', jsonObject: {}});
+        await tableUsers.insert({name: 'Noone', jsonObject: null});
+        await tableUsers.insert({name: 'Anonymous', jsonObject: {}});
 
         let count;
 
-        count = await table.count({'jsonObject !': null});
+        count = await tableUsers.count({'jsonObject !': null});
         expect(count).toEqual(1);
 
-        count = await table.count({'jsonObject': null});
+        count = await tableUsers.count({'jsonObject': null});
         expect(count).toEqual(1);
 
-        count = await table.count({});
+        count = await tableUsers.count({});
         expect(count).toEqual(2);
     }));
 
     it("Test regexp ~,~*,!~,!~*", w(async () => {
-        await table.insert({name: "All' o Phoibe"});
-        await table.insert({name: "I've got that tune"});
+        await tableUsers.insert({name: "All' o Phoibe"});
+        await tableUsers.insert({name: "I've got that tune"});
 
-        let res = await table.find({'name ~': "\\so\\s"});
+        let res = await tableUsers.find({'name ~': "\\so\\s"});
         expect(res.map(r => r.name)).toEqual(["All' o Phoibe"]);
 
-        res = await table.find({'name ~*': "\\sO\\s"});
+        res = await tableUsers.find({'name ~*': "\\sO\\s"});
         expect(res.map(r => r.name)).toEqual(["All' o Phoibe"]);
 
-        res = await table.find({'name !~': "\\so\\s"});
+        res = await tableUsers.find({'name !~': "\\so\\s"});
         expect(res.map(r => r.name)).toEqual(["I've got that tune"]);
 
-        res = await table.find({'name !~*': "\\sO\\s"});
+        res = await tableUsers.find({'name !~*': "\\sO\\s"});
         expect(res.map(r => r.name)).toEqual(["I've got that tune"]);
 
     }));
@@ -287,51 +316,51 @@ describe("pgdb", () => {
     it("Test regexp " +
         "~/~* ANY" +
         "!~/!~* ALL", w(async () => {
-        await table.insert({name: "All' o Phoibe"});
-        await table.insert({name: "I've got that tune"});
+        await tableUsers.insert({name: "All' o Phoibe"});
+        await tableUsers.insert({name: "I've got that tune"});
 
-        let res = await table.find({'name ~': ["\\so\\s", '\\d+']});
+        let res = await tableUsers.find({'name ~': ["\\so\\s", '\\d+']});
         expect(res.map(r => r.name)).toEqual(["All' o Phoibe"]);
 
-        res = await table.find({'name ~*': ["\\sO\\s", '\\d+']});
+        res = await tableUsers.find({'name ~*': ["\\sO\\s", '\\d+']});
         expect(res.map(r => r.name)).toEqual(["All' o Phoibe"]);
 
-        res = await table.find({'name !~': ["\\so\\s", '\\d+']});
+        res = await tableUsers.find({'name !~': ["\\so\\s", '\\d+']});
         expect(res.map(r => r.name)).toEqual(["I've got that tune"]);
 
-        res = await table.find({'name !~*': ["\\sO\\s", '\\d+']});
+        res = await tableUsers.find({'name !~*': ["\\sO\\s", '\\d+']});
         expect(res.map(r => r.name)).toEqual(["I've got that tune"]);
 
     }));
 
 
     it("Test like ~~, like, ~~*, ilike, !~~, not like, !~~*, not ilike", w(async () => {
-        await table.insert({name: 'Iced lemonade'});
-        await table.insert({name: 'Cucumber pear juice'});
+        await tableUsers.insert({name: 'Iced lemonade'});
+        await tableUsers.insert({name: 'Cucumber pear juice'});
         let res;
 
-        res = await table.find({'name ~~': '%lemon%'});
+        res = await tableUsers.find({'name ~~': '%lemon%'});
         expect(res.map(r => r.name)).toEqual(['Iced lemonade']);
 
-        res = await table.find({'name like': '%lemon%'});
+        res = await tableUsers.find({'name like': '%lemon%'});
         expect(res.map(r => r.name)).toEqual(['Iced lemonade']);
 
-        res = await table.find({'name ~~*': '%LEMON%'});
+        res = await tableUsers.find({'name ~~*': '%LEMON%'});
         expect(res.map(r => r.name)).toEqual(['Iced lemonade']);
 
-        res = await table.find({'name ilike': '%LEMON%'});
+        res = await tableUsers.find({'name ilike': '%LEMON%'});
         expect(res.map(r => r.name)).toEqual(['Iced lemonade']);
 
-        res = await table.find({'name !~~': '%lemon%'});
+        res = await tableUsers.find({'name !~~': '%lemon%'});
         expect(res.map(r => r.name)).toEqual(['Cucumber pear juice']);
 
-        res = await table.find({'name not like': '%lemon%'});
+        res = await tableUsers.find({'name not like': '%lemon%'});
         expect(res.map(r => r.name)).toEqual(['Cucumber pear juice']);
 
-        res = await table.find({'name !~~*': '%LEMON%'});
+        res = await tableUsers.find({'name !~~*': '%LEMON%'});
         expect(res.map(r => r.name)).toEqual(['Cucumber pear juice']);
 
-        res = await table.find({'name not ilike': '%LEMON%'});
+        res = await tableUsers.find({'name not ilike': '%LEMON%'});
         expect(res.map(r => r.name)).toEqual(['Cucumber pear juice']);
 
     }));
@@ -340,50 +369,50 @@ describe("pgdb", () => {
         "like/~~/ilike/~~* ANY(), " +
         "not like/!~~/not ilike/!~~* ALL()", w(async () => {
 
-        await table.insert({name: 'Iced lemonade'});
-        await table.insert({name: 'Cucumber pear juice'});
+        await tableUsers.insert({name: 'Iced lemonade'});
+        await tableUsers.insert({name: 'Cucumber pear juice'});
         let res;
 
-        res = await table.find({'name ~~': ['BB', '%lemon%']});
+        res = await tableUsers.find({'name ~~': ['BB', '%lemon%']});
         expect(res.map(r => r.name)).toEqual(['Iced lemonade']);
 
-        res = await table.find({'name like': ['BB', '%lemon%']});
+        res = await tableUsers.find({'name like': ['BB', '%lemon%']});
         expect(res.map(r => r.name)).toEqual(['Iced lemonade']);
 
-        res = await table.find({'name ~~*': ['bb', '%LEMON%']});
+        res = await tableUsers.find({'name ~~*': ['bb', '%LEMON%']});
         expect(res.map(r => r.name)).toEqual(['Iced lemonade']);
 
-        res = await table.find({'name ilike': ['bb', '%LEMON%']});
+        res = await tableUsers.find({'name ilike': ['bb', '%LEMON%']});
         expect(res.map(r => r.name)).toEqual(['Iced lemonade']);
 
-        res = await table.find({'name !~~': ['BB', '%lemon%']});
+        res = await tableUsers.find({'name !~~': ['BB', '%lemon%']});
         expect(res.map(r => r.name)).toEqual(['Cucumber pear juice']);
 
-        res = await table.find({'name not like': ['BB', '%lemon%']});
+        res = await tableUsers.find({'name not like': ['BB', '%lemon%']});
         expect(res.map(r => r.name)).toEqual(['Cucumber pear juice']);
 
-        res = await table.find({'name !~~*': ['bb', '%LEMON%']});
+        res = await tableUsers.find({'name !~~*': ['bb', '%LEMON%']});
         expect(res.map(r => r.name)).toEqual(['Cucumber pear juice']);
 
-        res = await table.find({'name not ilike': ['bb', '%LEMON%']});
+        res = await tableUsers.find({'name not ilike': ['bb', '%LEMON%']});
         expect(res.map(r => r.name)).toEqual(['Cucumber pear juice']);
     }));
 
     it("Special added operators =*, icontains", w(async () => {
-        await table.insert({name: 'Iced lemonade'});
-        await table.insert({name: 'Cucumber pear juice', textList: ['good', 'better', 'best']});
+        await tableUsers.insert({name: 'Iced lemonade'});
+        await tableUsers.insert({name: 'Cucumber pear juice', textList: ['good', 'better', 'best']});
         let res;
 
-        res = await table.find({'name =*': 'ICED LEMONADE'});
+        res = await tableUsers.find({'name =*': 'ICED LEMONADE'});
         expect(res.map(r => r.name)).toEqual(['Iced lemonade']);
 
-        res = await table.find({'textList icontains': 'GOOD'});
+        res = await tableUsers.find({'textList icontains': 'GOOD'});
         expect(res.map(r => r.name)).toEqual(['Cucumber pear juice']);
 
-        res = await table.find({'textList =*': 'GOOD'});
+        res = await tableUsers.find({'textList =*': 'GOOD'});
         expect(res.map(r => r.name)).toEqual(['Cucumber pear juice']);
 
-        res = await table.find({'textList &&*': ['GOOD', 'Bad']});
+        res = await tableUsers.find({'textList &&*': ['GOOD', 'Bad']});
         expect(res.map(r => r.name)).toEqual(['Cucumber pear juice']);
     }));
 

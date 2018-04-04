@@ -85,6 +85,7 @@ describe("pgdb", () => {
             pgdb = await PgDb.connect({connectionString: "postgres://"});
         } catch (e) {
             console.error("connection failed! Are you specified PGUSER/PGDATABASE/PGPASSWORD correctly?");
+            console.error(e);
             process.exit(1);
         }
         //await pgdb.run('DROP SCHEMA IF EXISTS "' + schema + '" CASCADE ');

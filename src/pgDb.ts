@@ -43,7 +43,7 @@ const GET_CURRENT_SCHEMAS = "SELECT current_schemas(false)";
  SELECT * FROM pg_catalog.pg_type t where t.typname like '%tz';
  SELECT t.oid FROM pg_catalog.pg_type t WHERE t.typname in ('timestamptz', 'timetz');
 
- reltoastrelid -> only incude the table columns (no seq/index)
+ reltype -> only include the table columns (this is zero for indexes)
  a.attndims>0  -> not reliable (truncate/create table like.. not set it correctly)
  */
 const LIST_SPECIAL_TYPE_FIELDS =
@@ -53,7 +53,7 @@ const LIST_SPECIAL_TYPE_FIELDS =
     JOIN pg_type t ON (a.atttypid = t.oid)
     JOIN pg_namespace c ON (b.relnamespace=c.oid) 
     WHERE (a.atttypid in (114, 3802, 1082, 1083, 1114, 1184, 1266, 3614) or t.typcategory='A') 
-    AND c.nspname not in ('pg_catalog','pg_constraint') and reltoastrelid>0`;
+    AND c.nspname not in ('pg_catalog', 'pg_constraint', 'information_schema') and reltype>0`;
 
 export enum FieldType {JSON, ARRAY, TIME, TSVECTOR}
 
@@ -288,6 +288,9 @@ export class PgDb extends QueryAble {
             = await this.query(LIST_SPECIAL_TYPE_FIELDS);
 
         for (let r of specialTypeFields) {
+            if (!this.schemas[r.schema_name]) {
+                throw new Error("Missing schema: " + r.schema_name);
+            }
             if (this.schemas[r.schema_name][r.table_name]) {
                 this.schemas[r.schema_name][r.table_name].fieldTypes[r.column_name] =
                     ([3802, 114].indexOf(r.typid) > -1) ? FieldType.JSON :
