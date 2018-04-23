@@ -1,11 +1,14 @@
 <a name="2.5.8"></a>
 ## [2.5.8](https://github.com/holdfenytolvaj/pogi/compare/v2.5.6...v2.5.8) (2018-04-23)
-
+* Nothing changed, just scripts runs and runs
 
 
 <a name="2.5.7"></a>
 ## [2.5.7](https://github.com/holdfenytolvaj/pogi/compare/v2.5.6...v2.5.7) (2018-04-23)
 
+### Bug Fixes
+
+* null item value handling on column type number[]
 
 
 <a name="2.5.6"></a>
@@ -24,7 +27,7 @@
 
 ## [2.5.4](https://github.com/holdfenytolvaj/pogi/compare/v2.5.3...v2.5.5) (2017-12-12)
 ### Bug Fixes
-* fix import statement 
+* fix import statement
 
 <a name="2.5.3"></a>
 ## [2.5.3](https://github.com/holdfenytolvaj/pogi/compare/v2.5.2...v2.5.3) (2017-12-04)
