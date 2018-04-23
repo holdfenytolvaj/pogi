@@ -293,6 +293,12 @@ describe("pgdb", () => {
         expect(res.numberList).toEqual([1, 2, 3]);
     }));
 
+    it("integer[]", w(async () => {
+        await table.insert({name: 'A', numberList: [null, 1, 2, 3]});
+        let res = await table.findOne({name: 'A'});
+        expect(res.numberList).toEqual([null, 1, 2, 3]);
+    }));
+
     it("bigInt[]", w(async () => {
         await table.insert({name: 'A', bigNumberList: [1, 2, 3]});
         let res = await table.findOne({name: 'A'});
@@ -764,7 +770,7 @@ describe("pgdb", () => {
     }));
 
     it("Testing text array parsing", w(async () => {
-        let list = ["'A'", '"A"', 'normal', '//', '\\','\\\\\\"','\\\\"','\\"', '""', "''", '--', '/*', '', '<!--', JSON.stringify({
+        let list = ["'A'", '"A"', 'normal', '//', '\\', '\\\\\\"', '\\\\"', '\\"', '""', "''", '--', '/*', '', '<!--', JSON.stringify({
             a: 1,
             b: "aprocska\"kalapocska'bennecsacskamacskamocska"
         })];
@@ -830,7 +836,7 @@ describe("pgdb", () => {
 
     it("Testing update where something is null", w(async () => {
         await table.insert({name: 'A', aCategory: 'A'});
-        await table.update({textList: null},{name: 'B'});
+        await table.update({textList: null}, {name: 'B'});
         let rec = await table.findFirst({aCategory: 'A'});
         expect(rec.name).toEqual('B');
     }));
