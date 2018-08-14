@@ -4,10 +4,9 @@ import {PgSchema} from "./pgSchema";
 import * as PgConverters from "./pgConverters";
 import {pgUtils} from "./pgUtils";
 import * as _ from 'lodash';
-
-const pg = require('pg');
-const readline = require('readline');
-const fs = require('fs');
+import * as pg from 'pg';
+import * as readline from 'readline';
+import * as fs from 'fs';
 
 const CONNECTION_URL_REGEXP = /^postgres:\/\/(?:([^:]+)(?::([^@]*))?@)?([^\/:]+)?(?::([^\/]+))?\/(.*)$/;
 const SQL_TOKENIZER_REGEXP = /''|'|""|"|;|\$|--|(.+?)/g;
@@ -126,9 +125,9 @@ export class PgDb extends QueryAble {
     tables: { [name: string]: PgTable<any> } = {};
     fn: { [name: string]: (...any) => any } = {};
     [name: string]: any | PgSchema;
-    /*protected*/
+    /* protected */
     pgdbTypeParsers = {};
-    /*protected*/
+    /* protected */
     postProcessResult: PostProcessResultFunc;
 
     private constructor(pgdb: { defaultSchemas?, config?, schemas?, pool?, pgdbTypeParsers?, getLogger?: () => any, postProcessResult?: PostProcessResultFunc } = {}) {

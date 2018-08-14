@@ -841,4 +841,20 @@ describe("pgdb", () => {
         expect(rec.name).toEqual('B');
     }));
 
+    it("Testing query with array equals", w(async () => {
+        await table.insert({ name: 'A', aCategory: 'A' });
+        await table.insert({ name: 'B', aCategory: 'A' });
+        await table.insert({ name: 'C', aCategory: 'A' });
+        let recs = await table.find({ name: ['A','B'] });
+        expect(recs.length).toEqual(2);
+    }));
+
+    it("Testing query with array not equals", w(async () => {
+        await table.insert({ name: 'A', aCategory: 'A' });
+        await table.insert({ name: 'B', aCategory: 'A' });
+        await table.insert({ name: 'C', aCategory: 'A' });
+        let recs = await table.find({ '"name" !=': ['A', 'B'] });
+        expect(recs.length).toEqual(1);
+    }));
+
 });

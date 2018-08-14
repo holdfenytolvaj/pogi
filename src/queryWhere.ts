@@ -117,13 +117,11 @@ function handleArrayValue(result, fieldAndOperator, value, fieldTypes: { [index:
         return result;
     }
     else if ((!fieldType || fieldType == FieldType.TIME) &&
-        ['=', '<>', 'IN', 'NOT IN'].indexOf(fieldAndOperator.operator) != -1) {
-        let arrayConditions = [];
-        if (fieldAndOperator.operator === '=') {
-            fieldAndOperator.operator = 'IN';
-        }
-        else if (fieldAndOperator.operator === '<>') {
-            fieldAndOperator.operator = 'NOT IN';
+        ['=', '<>', 'IN', 'NOT IN'].includes(fieldAndOperator.operator)) {
+        if (fieldAndOperator.operator === '=' || fieldAndOperator.operator === 'IN') {
+            fieldAndOperator.operator = '= ANY';
+        } else {
+            fieldAndOperator.operator = '<> ALL';
         }
 
         if (value.length === 0) {  // avoid empty "[NOT] IN ()"
@@ -131,13 +129,11 @@ function handleArrayValue(result, fieldAndOperator, value, fieldTypes: { [index:
             //return result;
         }
 
-        value.forEach(v => {
-            result.params.push((fieldType == FieldType.TIME && !(value instanceof Date)) ? new Date(v) : v);
-            arrayConditions.push(util.format("$%s", result.params.length + result.offset));
-        });
-
-        value = util.format('(%s)', arrayConditions.join(', '));
-        result.predicates.push(util.format('%s %s %s', fieldAndOperator.quotedField, fieldAndOperator.operator, value));
+        result.params.push(value
+            .map(v => (fieldType == FieldType.TIME && !(value instanceof Date)) ? new Date(v) : v)
+        );
+        value = util.format("$%s", result.params.length + result.offset);
+        result.predicates.push(util.format('%s %s (%s)', fieldAndOperator.quotedField, fieldAndOperator.operator, value));
         return result;
     }
     else if (!fieldType && ['LIKE', 'ILIKE', 'SIMILAR TO', '~', '~*'].indexOf(fieldAndOperator.operator) != -1) {
