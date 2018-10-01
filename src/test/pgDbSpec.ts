@@ -857,4 +857,14 @@ describe("pgdb", () => {
         expect(recs.length).toEqual(1);
     }));
 
+    it("Testing empty result with one field", w(async () => {
+        let recs = await table.queryOneColumn(`select name from ${table}`);
+        expect(recs.length).toEqual(0);
+    }));
+
+    it("Testing empty result with one column", w(async () => {
+        let rec = await table.queryOneField(`select name from ${table}`);
+        expect(rec).toEqual(null);
+    }));
+
 });

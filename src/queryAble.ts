@@ -272,6 +272,9 @@ export class QueryAble {
     /** @return one record's one field */
     async queryOneField(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<any> {
         let res = await this.query(sql, params, options);
+        if (!res.length) {
+            return null;
+        }
         let fieldName = Object.keys(res[0])[0];
         if (res.length > 1) {
             throw Error('More then one field exists!');
@@ -282,6 +285,9 @@ export class QueryAble {
     /** @return one column for the matching records */
     async queryOneColumn(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<any[]> {
         let res = await this.query(sql, params, options);
+        if (!res.length) {
+            return [];
+        }
         let fieldName = Object.keys(res[0])[0];
         return res.map(r => r[fieldName]);
     }
