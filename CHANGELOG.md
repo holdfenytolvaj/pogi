@@ -1,3 +1,13 @@
+<a name="2.5.11"></a>
+## [2.5.11](https://github.com/holdfenytolvaj/pogi/compare/v2.5.10...v2.5.11) (2018-10-01)
+
+
+### Bug Fixes
+
+* queryOneField and queryOneColumn maybe fall if no result found ([3395951](https://github.com/holdfenytolvaj/pogi/commit/3395951))
+
+
+
 <a name="2.5.10"></a>
 ## [2.5.10](https://github.com/holdfenytolvaj/pogi/compare/v2.5.9...v2.5.10) (2018-08-14)
  * use different syntax for array query to avoid long sql (so instead of "field IN ($1, $2, $3)" where $1 $2 $3 are values use "field =ANY $1" where $1 is an array). There is no speed difference
