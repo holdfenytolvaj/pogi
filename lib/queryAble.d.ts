@@ -1,4 +1,3 @@
-/// <reference types="node" />
 import { PgDbLogger } from "./pgDb";
 import * as stream from "stream";
 export interface QueryOptions {

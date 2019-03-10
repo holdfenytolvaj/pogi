@@ -1,4 +1,3 @@
-/// <reference types="node" />
 import { QueryAble, QueryOptions } from "./queryAble";
 import { PgDb, FieldType, PgDbLogger } from "./pgDb";
 import { PgSchema } from "./pgSchema";
