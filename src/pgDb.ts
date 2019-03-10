@@ -7,25 +7,33 @@ import * as _ from 'lodash';
 import * as pg from 'pg';
 import * as readline from 'readline';
 import * as fs from 'fs';
+import {sprintf} from 'extsprintf';
+
 
 const CONNECTION_URL_REGEXP = /^postgres:\/\/(?:([^:]+)(?::([^@]*))?@)?([^\/:]+)?(?::([^\/]+))?\/(.*)$/;
 const SQL_TOKENIZER_REGEXP = /''|'|""|"|;|\$|--|(.+?)/g;
 const SQL_$_ESCAPE_REGEXP = /\$[^$]*\$/g;
 
-const LIST_SCHEMAS_TABLES = "SELECT table_schema as schema, table_name as name FROM information_schema.tables WHERE table_schema NOT IN ('pg_catalog', 'information_schema')";
+/** looks like we only get back those that we have access to */
+const LIST_SCHEMAS_TABLES =
+    `SELECT table_schema as schema, table_name as name 
+     FROM information_schema.tables 
+     WHERE table_schema NOT IN ('pg_catalog', 'pg_constraint', 'information_schema')`;
 const GET_OID_FOR_COLUMN_TYPE_FOR_SCHEMA = "SELECT t.oid FROM pg_catalog.pg_type t, pg_namespace n WHERE typname=:typeName and n.oid=t.typnamespace and n.nspname=:schemaName;";
 const GET_OID_FOR_COLUMN_TYPE = "SELECT t.oid FROM pg_catalog.pg_type t WHERE typname=:typeName";
-const GET_SCHEMAS_PROCEDURES = `select
+
+/** looks like we only get back those that we have access to */
+const GET_SCHEMAS_PROCEDURES = `SELECT
     n.nspname as "schema",
     p.proname as "name",
     (not p.proretset) as "return_single_row",
     (t.typtype in ('b', 'd', 'e', 'r')) as "return_single_value"
-from pg_proc p
+FROM pg_proc p
      inner join pg_namespace n on (p.pronamespace = n.oid)
      inner join pg_type t on (p.prorettype = t.oid)
      left outer join pg_trigger tr on (tr.tgfoid = p.oid)
-where n.nspname not in ('pg_catalog','information_schema')
-  and tr.oid is null;`;
+WHERE n.nspname NOT IN ('pg_catalog', 'pg_constraint', 'information_schema')
+  AND tr.oid is null;`;
 const GET_CURRENT_SCHEMAS = "SELECT current_schemas(false)";
 //const LIST_ARRAY_TYPE_FIELDS = 'SELECT a.atttypid as oid FROM pg_attribute a WHERE a.attndims>0 AND a.atttypid>200000';
 //const LIST_ARRAY_TYPE_FIELDS = 'SELECT a.atttypid as type_oid FROM pg_attribute a WHERE a.tttypid in (1005,1007,1016,1021,1022) OR (a.attndims>0 AND a.atttypid>200000)';
@@ -45,14 +53,18 @@ const GET_CURRENT_SCHEMAS = "SELECT current_schemas(false)";
  reltype -> only include the table columns (this is zero for indexes)
  a.attndims>0  -> not reliable (truncate/create table like.. not set it correctly)
  */
+/** We get back fields as well that we don't have access to, thus we need to filter those schemas that we have permission for
+ * ... TODO check it for tables */
 const LIST_SPECIAL_TYPE_FIELDS =
     `SELECT c.nspname as schema_name, b.relname as table_name, a.attname as column_name, a.atttypid as typid 
     FROM pg_attribute a 
     JOIN pg_class b ON (a.attrelid = b.oid)
     JOIN pg_type t ON (a.atttypid = t.oid)
     JOIN pg_namespace c ON (b.relnamespace=c.oid) 
-    WHERE (a.atttypid in (114, 3802, 1082, 1083, 1114, 1184, 1266, 3614) or t.typcategory='A') 
-    AND c.nspname not in ('pg_catalog', 'pg_constraint', 'information_schema') and reltype>0`;
+    WHERE (a.atttypid in (114, 3802, 1082, 1083, 1114, 1184, 1266, 3614) or t.typcategory='A')
+    AND reltype>0
+    AND c.nspname in (%s) `;
+//AND c.nspname not in ('pg_catalog', 'pg_constraint', 'information_schema')
 
 export enum FieldType {JSON, ARRAY, TIME, TSVECTOR}
 
@@ -236,6 +248,7 @@ export class PgDb extends QueryAble {
     private async initSchemasAndTables() {
         let schemasAndTables = await this.query(LIST_SCHEMAS_TABLES);
         let functions = await this.query(GET_SCHEMAS_PROCEDURES);
+
         this.defaultSchemas = PgConverters.arraySplit(await this.queryOneField(GET_CURRENT_SCHEMAS));
 
         let oldSchemaNames = Object.keys(this.schemas);
@@ -283,13 +296,17 @@ export class PgDb extends QueryAble {
 
     private async initFieldTypes() {
         //--- init field types -------------------------------------------
+        let schemaNames =  "'" + Object.keys(this.schemas).join("', '") + "'";
+        if (schemaNames == "''") {
+            throw new Error("No readable schema found");
+        }
+        let q = sprintf(LIST_SPECIAL_TYPE_FIELDS, schemaNames);
+        console.log("GGG");
+        console.log(q);
         let specialTypeFields: { schema_name: string, table_name: string, column_name: string, typid: number }[]
-            = await this.query(LIST_SPECIAL_TYPE_FIELDS);
+            = await this.query(q);
 
         for (let r of specialTypeFields) {
-            if (!this.schemas[r.schema_name]) {
-                throw new Error("Missing schema: " + r.schema_name);
-            }
             if (this.schemas[r.schema_name][r.table_name]) {
                 this.schemas[r.schema_name][r.table_name].fieldTypes[r.column_name] =
                     ([3802, 114].indexOf(r.typid) > -1) ? FieldType.JSON :

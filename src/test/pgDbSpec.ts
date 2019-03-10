@@ -68,6 +68,7 @@ jasmine.DEFAULT_TIMEOUT_INTERVAL = 800000;
 describe("pgdb", () => {
     let pgdb: PgDb;
     let schema = 'pgdb_test';
+    let hiddenSchema = 'pgdb_test_hidden';
     let table: PgTable<any>;
     let tableGroups: PgTable<any>;
 
@@ -86,6 +87,15 @@ describe("pgdb", () => {
             console.error("connection failed! Are you specified PGUSER/PGDATABASE/PGPASSWORD correctly?");
             process.exit(1);
         }
+
+        //create schema without access rights
+        let current_role = await pgdb.queryOneField('SELECT current_role');
+
+        await pgdb.run('CREATE SCHEMA IF NOT EXISTS "' + hiddenSchema + '"');
+        await pgdb.run('GRANT ALL ON SCHEMA "' + hiddenSchema + '" TO "' + current_role + '"');
+        await pgdb.execute('spec/resources/init.sql', (cmd) => cmd.replace(/__SCHEMA__/g, '"' + hiddenSchema + '"'));
+        await pgdb.run('REVOKE ALL ON SCHEMA "' + hiddenSchema + '" FROM "' + current_role + '" CASCADE');
+
         //await pgdb.run('DROP SCHEMA IF EXISTS "' + schema + '" CASCADE ');
         await pgdb.run('CREATE SCHEMA IF NOT EXISTS "' + schema + '"');
         await pgdb.execute('spec/resources/init.sql', (cmd) => cmd.replace(/__SCHEMA__/g, '"' + schema + '"'));
@@ -396,12 +406,12 @@ describe("pgdb", () => {
 
     it("transaction should keep the table definitions", w(async () => {
         const pgDB = pgdb; //= await PgDb.connect({connectionString: "postgres://"});
-        const dPgDb = await pgDB.transactionBegin();
+        const pgDBTrans = await pgDB.transactionBegin();
 
         let list1 = Object.keys(pgDB.tables);
-        let list2 = Object.keys(dPgDb.tables);
+        let list2 = Object.keys(pgDBTrans.tables);
 
-        await dPgDb.transactionCommit();
+        await pgDBTrans.transactionCommit();
 
         expect(list1.length).toEqual(list2.length);
         expect(list1.length > 0).toBeTruthy();

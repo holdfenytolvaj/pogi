@@ -9,18 +9,18 @@ DROP TABLE IF EXISTS "groups";
 -- drop sequences
 DROP SEQUENCE IF EXISTS "users_id_seq";
 -- drop types
-DROP TYPE IF EXISTS "membershipType";
-DROP TYPE IF EXISTS "categoryType";
-DROP TYPE IF EXISTS "permissionForResourceType";
-DROP TYPE IF EXISTS "permissionType";
+DROP TYPE IF EXISTS __SCHEMA__."membershipType";
+DROP TYPE IF EXISTS __SCHEMA__."categoryType";
+DROP TYPE IF EXISTS __SCHEMA__."permissionForResourceType";
+DROP TYPE IF EXISTS __SCHEMA__."permissionType";
 
 DROP FUNCTION IF EXISTS update_tsv();
 
 
-CREATE TYPE "membershipType" AS ENUM ('bronze', 'silver', 'gold');
-CREATE TYPE "categoryType" AS ENUM ('sport', 'food', 'tech', 'music');
-CREATE TYPE "permissionType" AS ENUM ('read', 'write', 'admin');
-CREATE TYPE "permissionForResourceType" AS (
+CREATE TYPE __SCHEMA__."membershipType" AS ENUM ('bronze', 'silver', 'gold');
+CREATE TYPE __SCHEMA__."categoryType" AS ENUM ('sport', 'food', 'tech', 'music');
+CREATE TYPE __SCHEMA__."permissionType" AS ENUM ('read', 'write', 'admin');
+CREATE TYPE __SCHEMA__."permissionForResourceType" AS (
     "permission"    "permissionType",
     "resource"      "text"
 );
