@@ -7,7 +7,6 @@ import * as _ from 'lodash';
 import * as pg from 'pg';
 import * as readline from 'readline';
 import * as fs from 'fs';
-import {sprintf} from 'extsprintf';
 
 
 const CONNECTION_URL_REGEXP = /^postgres:\/\/(?:([^:]+)(?::([^@]*))?@)?([^\/:]+)?(?::([^\/]+))?\/(.*)$/;
@@ -62,8 +61,7 @@ const LIST_SPECIAL_TYPE_FIELDS =
     JOIN pg_type t ON (a.atttypid = t.oid)
     JOIN pg_namespace c ON (b.relnamespace=c.oid) 
     WHERE (a.atttypid in (114, 3802, 1082, 1083, 1114, 1184, 1266, 3614) or t.typcategory='A')
-    AND reltype>0
-    AND c.nspname in (%s) `;
+    AND reltype>0 `;
 //AND c.nspname not in ('pg_catalog', 'pg_constraint', 'information_schema')
 
 export enum FieldType {JSON, ARRAY, TIME, TSVECTOR}
@@ -297,14 +295,11 @@ export class PgDb extends QueryAble {
     private async initFieldTypes() {
         //--- init field types -------------------------------------------
         let schemaNames =  "'" + Object.keys(this.schemas).join("', '") + "'";
-        if (schemaNames == "''") {
+        if (schemaNames=="''") {
             throw new Error("No readable schema found");
         }
-        let q = sprintf(LIST_SPECIAL_TYPE_FIELDS, schemaNames);
-        console.log("GGG");
-        console.log(q);
         let specialTypeFields: { schema_name: string, table_name: string, column_name: string, typid: number }[]
-            = await this.query(q);
+            = await this.query(LIST_SPECIAL_TYPE_FIELDS + ' AND c.nspname in (' + schemaNames + ')');
 
         for (let r of specialTypeFields) {
             if (this.schemas[r.schema_name][r.table_name]) {
