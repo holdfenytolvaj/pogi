@@ -36,12 +36,18 @@ pgdb.setLogger(console);
 
 Returns true if the active connection has transaction ongoing. (Does not detect timeouts.)
 
-#Functions - async
+# Functions - async
+
 ## connect
 <span style="color:darkorange;">static</span> <span class="def"><span class="func">connect</span>(config:<span class="type">ConnectionOptions</span>):Promise&lt;<span class="type">PgDb</span>&gt;</span>
 
 see [connection](/connection) section
 
+---
+## close
+<span style="color:darkorange;">static</span> <span class="def"><span class="func">close</span>():Promise&lt;<span class="type">void</span>&gt;</span>
+
+Close connection, useful for exiting/teardown code.
 
 ---
 ## dedicatedConnectionBegin
