@@ -1,6 +1,6 @@
 {
   "name": "pogi",
-  "version": "2.5.14",
+  "version": "2.5.15",
   "description": "An easy PostgreSQL query handler on top of pg.js",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -26,7 +26,9 @@
     "pg"
   ],
   "dependencies": {
+    "handlebars": "^4.1.2",
     "lodash": "4",
+    "minimatch": "^3.0.4",
     "moment": "^2.15.1",
     "pg": "7.3",
     "pg-query-stream": "^1.0.0",

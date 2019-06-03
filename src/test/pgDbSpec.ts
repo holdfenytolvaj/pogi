@@ -205,6 +205,53 @@ describe("pgdb", () => {
         expect(res.length).toEqual(1);
     }));
 
+    it("Upsert - with column names", w(async () => {
+        await table.upsert({name: 'Fulig Jimmy', textList: ['hiking']}, ['name']);
+        let res = await table.findWhere(':fav = ANY("textList")', {fav: 'hiking'});
+        expect(res.length).toEqual(1);
+        
+        await table.upsert({name: 'Fulig Jimmy', textList: ['biking']}, ['name']);
+        res = await table.findWhere(':fav = ANY("textList")', {fav: 'hiking'});
+        expect(res.length).toEqual(0);
+
+        res = await table.findWhere(':fav = ANY("textList")', {fav: 'biking'});
+        expect(res.length).toEqual(1);
+    }));
+
+    it("Upsert - with primary key", w(async () => {
+        await table.upsert({id: 1, name: 'Fulig Jimmy', textList: ['hiking']});
+        let res = await table.findWhere(':fav = ANY("textList")', {fav: 'hiking'});
+        expect(res.length).toEqual(1);
+        
+        await table.upsert({id: 1, name: 'Fulig Jimmy', textList: ['biking']});
+        res = await table.findWhere(':fav = ANY("textList")', {fav: 'hiking'});
+        expect(res.length).toEqual(0);
+
+        res = await table.findWhere(':fav = ANY("textList")', {fav: 'biking'});
+        expect(res.length).toEqual(1);
+    }));
+
+    it("Upsert - with constraint name", w(async () => {
+        await table.upsert({name: 'Fulig Jimmy', textList: ['hiking']}, "users_name_key");
+        let res = await table.findWhere(':fav = ANY("textList")', {fav: 'hiking'});
+        expect(res.length).toEqual(1);
+        
+        await table.upsert({name: 'Fulig Jimmy', textList: ['biking']}, "users_name_key");
+        res = await table.findWhere(':fav = ANY("textList")', {fav: 'hiking'});
+        expect(res.length).toEqual(0);
+
+        res = await table.findWhere(':fav = ANY("textList")', {fav: 'biking'});
+        expect(res.length).toEqual(1);
+    }));
+
+    it("UpsertAndGet - with constraint name", w(async () => {
+        let res = await table.upsertAndGet({name: 'Fulig Jimmy', textList: ['hiking']}, "users_name_key");
+        expect(res.textList).toEqual(['hiking']);
+        
+        res = await table.upsertAndGet({name: 'Fulig Jimmy', textList: ['biking']}, "users_name_key");
+        expect(res.textList).toEqual(['biking']);
+    }));
+
     it("Ignore field with undefined value if requested, but keep with null value", w(async () => {
         await table.insert({name: 'A', numberList: [1, 2]});
 

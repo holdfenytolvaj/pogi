@@ -38,13 +38,15 @@ export interface TruncateOptions {
 
 export class PgTable<T> extends QueryAble {
     qualifiedName: string;
+    pkey: string;
     db: PgDb;
     fieldTypes: { [index: string]: FieldType }; //written directly
 
-    constructor(public schema: PgSchema, protected desc: { name: string, pk: string, schema: string }, fieldTypes = {}) {
+    constructor(public schema: PgSchema, protected desc: { name: string, pkey?:string, schema: string }, fieldTypes = {}) {
         super();
         this.db = schema.db;
         this.qualifiedName = util.format('"%s"."%s"', desc.schema, desc.name);
+        this.pkey = desc.pkey || desc.name + "_pkey"; //poor man's pkey (could be queried by why?)
         this.fieldTypes = fieldTypes;
     }
 
@@ -103,14 +105,7 @@ export class PgTable<T> extends QueryAble {
 
         let {sql, parameters} = this.getInsertQuery(records);
 
-        if (options.return && Array.isArray(options.return)) {
-            if (options.return.length == 0) {
-            } else {
-                sql += " RETURNING " + options.return.map(pgUtils.quoteField).join(',');
-            }
-        } else {
-            sql += " RETURNING *";
-        }
+        sql += " RETURNING " + (options && options.return && Array.isArray(options.return) ? options.return.map(pgUtils.quoteField).join(',') : '*');
 
         let result = await this.query(sql, parameters, {logger: options.logger});
         if (options.return && options.return.length == 0) {
@@ -152,6 +147,44 @@ export class PgTable<T> extends QueryAble {
         return this.query(sql, parameters, options);
     };
 
+    /**
+     * columnsOrConstraintName is by default the primary key
+     */
+    async upsert(record: T, columnsOrConstraintName?:string, options?: UpdateDeleteOption): Promise<number> 
+    async upsert(record: T, columnsOrConstraintName?:string[], options?: UpdateDeleteOption): Promise<number> 
+    async upsert(record: T, columnsOrConstraintName?:any, options?: UpdateDeleteOption): Promise<number> {
+        options = options || {};
+        if (!record) {
+            throw new Error("insert should be called with data");
+        }
+
+        let {sql, parameters} = this.getUpsertQuery(record, columnsOrConstraintName);
+        sql = "WITH __RESULT as ( " + sql + " RETURNING 1) SELECT SUM(1) FROM __RESULT";
+        let result = await this.query(sql, parameters, {logger: options.logger});
+        return result[0].sum;
+    };
+
+    /**
+     * columnsOrConstraintName is by default the primary key
+     */
+    async upsertAndGet(record: T, columnsOrConstraintName?:string, options?: UpdateDeleteOption & Return): Promise<T> 
+    async upsertAndGet(record: T, columnsOrConstraintName?:string[], options?: UpdateDeleteOption & Return): Promise<T> 
+    async upsertAndGet(record: T, columnsOrConstraintName?:any, options?: UpdateDeleteOption & Return): Promise<T> {
+        options = options || {};
+        if (!record) {
+            throw new Error("insert should be called with data");
+        }
+
+        let {sql, parameters} = this.getUpsertQuery(record, columnsOrConstraintName);
+        sql += " RETURNING " + (options && options.return && Array.isArray(options.return) ? options.return.map(pgUtils.quoteField).join(',') : '*');
+
+        let result = await this.query(sql, parameters, {logger: options.logger});
+
+        if (options.return && options.return.length == 0) {
+            return <T>{};
+        }
+        return result[0];
+    }; 
 
     async delete(conditions: { [k: string]: any }, options?: UpdateDeleteOption): Promise<number> {
         let {sql, parameters} = this.getDeleteQuery(conditions, options);
@@ -289,6 +322,21 @@ export class PgTable<T> extends QueryAble {
 
     }
 
+    protected getUpdateSetSnipplet(fields: { [k: string]: any }, parameters?:any[] ): { snipplet: string, parameters: any[] } {
+        let params = parameters || [];
+        let f = [];
+        let seed = params.length;
+
+        _.each(fields, (value, fieldName) => {
+            if (value === undefined) return;
+
+            f.push(util.format('%s = $%s', pgUtils.quoteField(fieldName), (++seed)));
+            params.push(pgUtils.transformInsertUpdateParams(value, this.fieldTypes[fieldName]));
+        });
+
+        return {snipplet: f.join(', '), parameters: params};
+    }
+
     protected getUpdateQuery(conditions: { [k: string]: any }, fields: { [k: string]: any }, options?: UpdateDeleteOption): { sql: string, parameters: any[] } {
         options = options || {};
         options.skipUndefined = options.skipUndefined === true || (options.skipUndefined === undefined && this.db.config.skipUndefined === 'all');
@@ -299,24 +347,38 @@ export class PgTable<T> extends QueryAble {
             throw new Error('Missing fields for update');
         }
 
-        let parameters = [];
-        let f = [];
-        let seed = 0;
-
-        _.each(fields, (value, fieldName) => {
-            if (value === undefined) return;
-
-            f.push(util.format('%s = $%s', pgUtils.quoteField(fieldName), (++seed)));
-            parameters.push(pgUtils.transformInsertUpdateParams(value, this.fieldTypes[fieldName]));
-        });
-
-        let sql = util.format("UPDATE %s SET %s", this.qualifiedName, f.join(', '));
+        let {snipplet, parameters} = this.getUpdateSetSnipplet(fields);
+        let sql = util.format("UPDATE %s SET %s", this.qualifiedName, snipplet);
 
         if (!hasConditions || !_.isEmpty(conditions)) {
             let parsedWhere = generateWhere(conditions, this.fieldTypes, this.qualifiedName, parameters.length, options.skipUndefined);
             sql += parsedWhere.where;
             parameters = parameters.concat(parsedWhere.params);
         }
+        return {sql, parameters};
+    }
+
+    protected getUpsertQuery(record: T, columnsOrConstraintName?: string, options?: UpdateDeleteOption): { sql: string, parameters: any[] }
+    protected getUpsertQuery(record: T, columnsOrConstraintName?: string[], options?: UpdateDeleteOption): { sql: string, parameters: any[] }
+    protected getUpsertQuery(record: T, columnsOrConstraintName?: any, options?: UpdateDeleteOption): { sql: string, parameters: any[] } {
+        options = options || {};
+        options.skipUndefined = options.skipUndefined === true || (options.skipUndefined === undefined && this.db.config.skipUndefined === 'all');
+        columnsOrConstraintName = columnsOrConstraintName || this.pkey;
+
+        if (_.isEmpty(record)) {
+            throw new Error('Missing fields for upsert');
+        }
+
+        let insert = this.getInsertQuery([record]);
+        let {snipplet, parameters} = this.getUpdateSetSnipplet(record, insert.parameters);
+        let sql = insert.sql;
+
+        if (Array.isArray(columnsOrConstraintName)) {
+            sql += " ON CONFLICT (" + columnsOrConstraintName.map(c=>pgUtils.quoteField(c)).join(', ') + ") DO UPDATE SET " + snipplet;
+        } else {
+            sql += " ON CONFLICT ON CONSTRAINT " + util.format('"%s"', columnsOrConstraintName) + " DO UPDATE SET " + snipplet;
+        }
+        
         return {sql, parameters};
     }
 

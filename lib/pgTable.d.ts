@@ -28,17 +28,18 @@ export declare class PgTable<T> extends QueryAble {
     schema: PgSchema;
     protected desc: {
         name: string;
-        pk: string;
+        pkey?: string;
         schema: string;
     };
     qualifiedName: string;
+    pkey: string;
     db: PgDb;
     fieldTypes: {
         [index: string]: FieldType;
     };
     constructor(schema: PgSchema, desc: {
         name: string;
-        pk: string;
+        pkey?: string;
         schema: string;
     }, fieldTypes?: {});
     toString(): string;
@@ -66,6 +67,10 @@ export declare class PgTable<T> extends QueryAble {
     }, fields: {
         [k: string]: any;
     }, options?: UpdateDeleteOption & Return): Promise<T[]>;
+    upsert(record: T, columnsOrConstraintName?: string, options?: UpdateDeleteOption): Promise<number>;
+    upsert(record: T, columnsOrConstraintName?: string[], options?: UpdateDeleteOption): Promise<number>;
+    upsertAndGet(record: T, columnsOrConstraintName?: string, options?: UpdateDeleteOption & Return): Promise<T>;
+    upsertAndGet(record: T, columnsOrConstraintName?: string[], options?: UpdateDeleteOption & Return): Promise<T>;
     delete(conditions: {
         [k: string]: any;
     }, options?: UpdateDeleteOption): Promise<number>;
@@ -94,11 +99,25 @@ export declare class PgTable<T> extends QueryAble {
     count(conditions?: {}, options?: CountOption): Promise<number>;
     findOneFieldOnly(conditions: any, field: string, options?: QueryOptions): Promise<any>;
     private getInsertQuery(records);
+    protected getUpdateSetSnipplet(fields: {
+        [k: string]: any;
+    }, parameters?: any[]): {
+        snipplet: string;
+        parameters: any[];
+    };
     protected getUpdateQuery(conditions: {
         [k: string]: any;
     }, fields: {
         [k: string]: any;
     }, options?: UpdateDeleteOption): {
+        sql: string;
+        parameters: any[];
+    };
+    protected getUpsertQuery(record: T, columnsOrConstraintName?: string, options?: UpdateDeleteOption): {
+        sql: string;
+        parameters: any[];
+    };
+    protected getUpsertQuery(record: T, columnsOrConstraintName?: string[], options?: UpdateDeleteOption): {
         sql: string;
         parameters: any[];
     };
