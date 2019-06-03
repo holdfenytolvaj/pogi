@@ -5,10 +5,9 @@
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
-    "build": "tsc -p src/tsconfig.json && babel lib/*.js -d ./",
-    "build6": "tsc -p src/tsconfig.json ",
-    "test": "node --harmony spec/run.js",
-    "test6": "node spec/run.js",
+    "build": "tsc -p src/tsconfig.json",
+    "test": "node spec/run.js",
+    "test_debug": "node --inspect-brk=9229 spec/run.js",
     "semantic-release": "semantic-release pre && npm publish && semantic-release post",
     "release_patch": "npm version patch; conventional-changelog -p angular -i CHANGELOG.md -s -r2; git add --all ./; git commit -m\"chore:generate changelog\"; git push; npm publish",
     "release_minor": "npm version minor; conventional-changelog -p angular -i CHANGELOG.md -s -r2; git add --all ./; git commit -m\"chore:generate changelog\"; git push; npm publish",

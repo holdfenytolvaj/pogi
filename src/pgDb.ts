@@ -296,7 +296,8 @@ export class PgDb extends QueryAble {
         //--- init field types -------------------------------------------
         let schemaNames =  "'" + Object.keys(this.schemas).join("', '") + "'";
         if (schemaNames=="''") {
-            throw new Error("No readable schema found");
+            this.getLogger(true).error("No readable schema found!");
+            return;
         }
         let specialTypeFields: { schema_name: string, table_name: string, column_name: string, typid: number }[]
             = await this.query(LIST_SPECIAL_TYPE_FIELDS + ' AND c.nspname in (' + schemaNames + ')');
