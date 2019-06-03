@@ -21,6 +21,12 @@ export interface UpdateDeleteOption {
     logger?: PgDbLogger;
 }
 
+export interface UpsertOption {
+    constraint?: string,
+    columns?: string[],
+    logger?: PgDbLogger;
+}
+
 export interface CountOption {
     skipUndefined?: boolean;
     logger?: PgDbLogger;
@@ -150,15 +156,13 @@ export class PgTable<T> extends QueryAble {
     /**
      * columnsOrConstraintName is by default the primary key
      */
-    async upsert(record: T, columnsOrConstraintName?:string, options?: UpdateDeleteOption): Promise<number> 
-    async upsert(record: T, columnsOrConstraintName?:string[], options?: UpdateDeleteOption): Promise<number> 
-    async upsert(record: T, columnsOrConstraintName?:any, options?: UpdateDeleteOption): Promise<number> {
+    async upsert(record: T, options?: UpsertOption): Promise<number> {
         options = options || {};
         if (!record) {
             throw new Error("insert should be called with data");
         }
 
-        let {sql, parameters} = this.getUpsertQuery(record, columnsOrConstraintName);
+        let {sql, parameters} = this.getUpsertQuery(record, options);
         sql = "WITH __RESULT as ( " + sql + " RETURNING 1) SELECT SUM(1) FROM __RESULT";
         let result = await this.query(sql, parameters, {logger: options.logger});
         return result[0].sum;
@@ -167,15 +171,13 @@ export class PgTable<T> extends QueryAble {
     /**
      * columnsOrConstraintName is by default the primary key
      */
-    async upsertAndGet(record: T, columnsOrConstraintName?:string, options?: UpdateDeleteOption & Return): Promise<T> 
-    async upsertAndGet(record: T, columnsOrConstraintName?:string[], options?: UpdateDeleteOption & Return): Promise<T> 
-    async upsertAndGet(record: T, columnsOrConstraintName?:any, options?: UpdateDeleteOption & Return): Promise<T> {
+    async upsertAndGet(record: T, options?: UpsertOption & Return): Promise<T> {
         options = options || {};
         if (!record) {
             throw new Error("insert should be called with data");
         }
 
-        let {sql, parameters} = this.getUpsertQuery(record, columnsOrConstraintName);
+        let {sql, parameters} = this.getUpsertQuery(record, options);
         sql += " RETURNING " + (options && options.return && Array.isArray(options.return) ? options.return.map(pgUtils.quoteField).join(',') : '*');
 
         let result = await this.query(sql, parameters, {logger: options.logger});
@@ -358,13 +360,9 @@ export class PgTable<T> extends QueryAble {
         return {sql, parameters};
     }
 
-    protected getUpsertQuery(record: T, columnsOrConstraintName?: string, options?: UpdateDeleteOption): { sql: string, parameters: any[] }
-    protected getUpsertQuery(record: T, columnsOrConstraintName?: string[], options?: UpdateDeleteOption): { sql: string, parameters: any[] }
-    protected getUpsertQuery(record: T, columnsOrConstraintName?: any, options?: UpdateDeleteOption): { sql: string, parameters: any[] } {
+    protected getUpsertQuery(record: T, options?: UpsertOption): { sql: string, parameters: any[] } {
         options = options || {};
-        options.skipUndefined = options.skipUndefined === true || (options.skipUndefined === undefined && this.db.config.skipUndefined === 'all');
-        columnsOrConstraintName = columnsOrConstraintName || this.pkey;
-
+        
         if (_.isEmpty(record)) {
             throw new Error('Missing fields for upsert');
         }
@@ -373,10 +371,11 @@ export class PgTable<T> extends QueryAble {
         let {snipplet, parameters} = this.getUpdateSetSnipplet(record, insert.parameters);
         let sql = insert.sql;
 
-        if (Array.isArray(columnsOrConstraintName)) {
-            sql += " ON CONFLICT (" + columnsOrConstraintName.map(c=>pgUtils.quoteField(c)).join(', ') + ") DO UPDATE SET " + snipplet;
+        if (options.columns) {
+            sql += " ON CONFLICT (" + options.columns.map(c=>pgUtils.quoteField(c)).join(', ') + ") DO UPDATE SET " + snipplet;
         } else {
-            sql += " ON CONFLICT ON CONSTRAINT " + util.format('"%s"', columnsOrConstraintName) + " DO UPDATE SET " + snipplet;
+            let constraint = options.constraint || this.pkey;
+            sql += " ON CONFLICT ON CONSTRAINT " + util.format('"%s"', constraint) + " DO UPDATE SET " + snipplet;
         }
         
         return {sql, parameters};

@@ -206,11 +206,11 @@ describe("pgdb", () => {
     }));
 
     it("Upsert - with column names", w(async () => {
-        await table.upsert({name: 'Fulig Jimmy', textList: ['hiking']}, ['name']);
+        await table.upsert({name: 'Fulig Jimmy', textList: ['hiking']}, {columns: ['name']});
         let res = await table.findWhere(':fav = ANY("textList")', {fav: 'hiking'});
         expect(res.length).toEqual(1);
         
-        await table.upsert({name: 'Fulig Jimmy', textList: ['biking']}, ['name']);
+        await table.upsert({name: 'Fulig Jimmy', textList: ['biking']}, {columns: ['name']});
         res = await table.findWhere(':fav = ANY("textList")', {fav: 'hiking'});
         expect(res.length).toEqual(0);
 
@@ -232,11 +232,11 @@ describe("pgdb", () => {
     }));
 
     it("Upsert - with constraint name", w(async () => {
-        await table.upsert({name: 'Fulig Jimmy', textList: ['hiking']}, "users_name_key");
+        await table.upsert({name: 'Fulig Jimmy', textList: ['hiking']}, {constraint: "users_name_key"});
         let res = await table.findWhere(':fav = ANY("textList")', {fav: 'hiking'});
         expect(res.length).toEqual(1);
         
-        await table.upsert({name: 'Fulig Jimmy', textList: ['biking']}, "users_name_key");
+        await table.upsert({name: 'Fulig Jimmy', textList: ['biking']}, {constraint: "users_name_key"});
         res = await table.findWhere(':fav = ANY("textList")', {fav: 'hiking'});
         expect(res.length).toEqual(0);
 
@@ -245,10 +245,10 @@ describe("pgdb", () => {
     }));
 
     it("UpsertAndGet - with constraint name", w(async () => {
-        let res = await table.upsertAndGet({name: 'Fulig Jimmy', textList: ['hiking']}, "users_name_key");
+        let res = await table.upsertAndGet({name: 'Fulig Jimmy', textList: ['hiking']}, {constraint: "users_name_key"});
         expect(res.textList).toEqual(['hiking']);
         
-        res = await table.upsertAndGet({name: 'Fulig Jimmy', textList: ['biking']}, "users_name_key");
+        res = await table.upsertAndGet({name: 'Fulig Jimmy', textList: ['biking']}, {constraint: "users_name_key"});
         expect(res.textList).toEqual(['biking']);
     }));
 

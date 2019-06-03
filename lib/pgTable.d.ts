@@ -12,6 +12,11 @@ export interface UpdateDeleteOption {
     skipUndefined?: boolean;
     logger?: PgDbLogger;
 }
+export interface UpsertOption {
+    constraint?: string;
+    columns?: string[];
+    logger?: PgDbLogger;
+}
 export interface CountOption {
     skipUndefined?: boolean;
     logger?: PgDbLogger;
@@ -67,10 +72,8 @@ export declare class PgTable<T> extends QueryAble {
     }, fields: {
         [k: string]: any;
     }, options?: UpdateDeleteOption & Return): Promise<T[]>;
-    upsert(record: T, columnsOrConstraintName?: string, options?: UpdateDeleteOption): Promise<number>;
-    upsert(record: T, columnsOrConstraintName?: string[], options?: UpdateDeleteOption): Promise<number>;
-    upsertAndGet(record: T, columnsOrConstraintName?: string, options?: UpdateDeleteOption & Return): Promise<T>;
-    upsertAndGet(record: T, columnsOrConstraintName?: string[], options?: UpdateDeleteOption & Return): Promise<T>;
+    upsert(record: T, options?: UpsertOption): Promise<number>;
+    upsertAndGet(record: T, options?: UpsertOption & Return): Promise<T>;
     delete(conditions: {
         [k: string]: any;
     }, options?: UpdateDeleteOption): Promise<number>;
@@ -113,11 +116,7 @@ export declare class PgTable<T> extends QueryAble {
         sql: string;
         parameters: any[];
     };
-    protected getUpsertQuery(record: T, columnsOrConstraintName?: string, options?: UpdateDeleteOption): {
-        sql: string;
-        parameters: any[];
-    };
-    protected getUpsertQuery(record: T, columnsOrConstraintName?: string[], options?: UpdateDeleteOption): {
+    protected getUpsertQuery(record: T, options?: UpsertOption): {
         sql: string;
         parameters: any[];
     };
