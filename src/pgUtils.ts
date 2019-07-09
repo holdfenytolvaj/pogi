@@ -1,5 +1,6 @@
 import {QueryOptions, ResultFieldType, QueryAble} from "./queryAble";
 import {FieldType} from "./pgDb";
+import {PgDbLogger} from "./pgDbLogger";
 import * as _ from 'lodash';
 
 const util = require('util');
@@ -7,6 +8,11 @@ const NAMED_PARAMS_REGEXP = /(?:^|[^:]):(!?[a-zA-Z0-9_]+)/g;    // do not conver
 const ASC_DESC_REGEXP = /^([^" (]+)( asc| desc)?$/;
 
 export let pgUtils = {
+
+    logError(logger:PgDbLogger, sql:string, queryParams:any, connection) {
+        logger.error(sql, util.inspect(logger.paramSanitizer ? logger.paramSanitizer(queryParams) : queryParams, false, null), connection ? connection.processID : null);
+    },
+
     quoteField(f) {
         return f.indexOf('"') == -1 && f.indexOf('(') == -1 ? '"' + f + '"' : f;
     },

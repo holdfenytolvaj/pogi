@@ -1,6 +1,6 @@
 {
   "name": "pogi",
-  "version": "2.5.16",
+  "version": "2.6.1",
   "description": "An easy PostgreSQL query handler on top of pg.js",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -44,7 +44,7 @@
     "babel-preset-es2015": "~6.14.0",
     "jasmine": "~2.4.1",
     "semantic-release": "^8.2.0",
-    "typescript": "2.5"
+    "typescript": "^2.5.3"
   },
   "author": "Laszlo Radics<laszlo.radics@labcup.net>, Geza Radics<radicsge@protonmail.com>",
   "license": "MIT",

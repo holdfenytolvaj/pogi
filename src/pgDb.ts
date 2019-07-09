@@ -7,7 +7,8 @@ import * as _ from 'lodash';
 import * as pg from 'pg';
 import * as readline from 'readline';
 import * as fs from 'fs';
-
+import {PgDbLogger} from './pgDbLogger';
+import {ConnectionOptions} from './connectionOptions';
 
 const CONNECTION_URL_REGEXP = /^postgres:\/\/(?:([^:]+)(?::([^@]*))?@)?([^\/:]+)?(?::([^\/]+))?\/(.*)$/;
 const SQL_TOKENIZER_REGEXP = /''|'|""|"|;|\$|--|(.+?)/g;
@@ -66,56 +67,6 @@ const LIST_SPECIAL_TYPE_FIELDS =
 
 export enum FieldType {JSON, ARRAY, TIME, TSVECTOR}
 
-/**
- * @property connectionString e.g.: "postgres://user@localhost/database"
- * @property user can be specified through PGHOST env variable
- * @property user can be specified through PGUSER env variable (defaults USER env var)
- * @property database can be specified through PGDATABASE env variable (defaults USER env var)
- * @property password can be specified through PGPASSWORD env variable
- * @property port can be specified through PGPORT env variable
- * @property idleTimeoutMillis how long a client is allowed to remain idle before being closed
- * @property skipUndefined if there is a undefined value in the condition, what should pogi do. Default is 'none', meaning raise error if a value is undefined.
- */
-export interface ConnectionOptions {
-    host?: string; //host can be specified through PGHOST env variable (defaults USER env var)
-    user?: string; //user can be specified through PGUSER env variable (defaults USER env var)
-    database?: string; // can be specified through PGDATABASE env variable (defaults USER env var)
-    password?: string; // can be specified through PGPASSWORD env variable
-    port?: number; // can be specified through PGPORT env variable
-    poolSize?: number;
-
-    //number of rows to return at a time from a prepared statement's portal. 0 will return all rows at once
-    rows?: number;
-
-    min?: number; //set min pool size
-    max?: number; //set pool max size
-
-    binary?: boolean;
-    poolIdleTimeout?: number;
-    reapIntervalMillis?: number;
-    poolLog?: boolean;
-    client_encoding?: string;
-    ssl?: boolean | any; //| TlsOptions;
-    application_name?: string; //default:process.env.PGAPPNAME - name displayed in the pg_stat_activity view and included in CSV log entries
-    fallback_application_name?: string;
-    parseInputDatesAsUTC?: boolean;
-    connectionString?: string;
-    idleTimeoutMillis?: number; // how long a client is allowed to remain idle before being closed
-
-    logger?: PgDbLogger;
-    skipUndefined?: 'all' | 'select' | 'none'; // if there is a undefined value in the condition, what should pogi do. Default is 'none', meaning raise error if a value is undefined.
-}
-
-/**
- * log will get 3 parameters:
- *    sql -> the query
- *    parameters -> parameters for the query
- *    poolId -> the id of the connection
- */
-export interface PgDbLogger {
-    log: Function;
-    error: Function;
-}
 
 export type PostProcessResultFunc = (res: any[], fields: ResultFieldType[], logger: PgDbLogger) => void;
 
@@ -124,7 +75,7 @@ export class PgDb extends QueryAble {
     protected static instances: { [index: string]: Promise<PgDb> };
     /*protected*/
     pool;
-    protected connection;
+    connection;
     /*protected*/
     config: ConnectionOptions;
     /*protected*/

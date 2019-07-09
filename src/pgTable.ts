@@ -1,5 +1,6 @@
 import {QueryAble, QueryOptions} from "./queryAble";
-import {PgDb, FieldType, PgDbLogger} from "./pgDb";
+import {PgDb, FieldType} from "./pgDb";
+import {PgDbLogger} from "./pgDbLogger"
 import generateWhere from "./queryWhere";
 import {PgSchema} from "./pgSchema";
 import {pgUtils} from "./pgUtils";
@@ -269,6 +270,8 @@ export class PgTable<T> extends QueryAble {
     async findOne(conditions, options?: QueryOptions): Promise<T> {
         let res = await this.find(conditions, options);
         if (res.length > 1) {
+            let logger = (options && options.logger || this.getLogger(false));
+            pgUtils.logError(logger, this.qualifiedName, conditions, this.db.connection);            
             throw new Error('More then one rows exists');
         }
         return res[0];

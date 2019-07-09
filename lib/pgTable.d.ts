@@ -1,5 +1,6 @@
 import { QueryAble, QueryOptions } from "./queryAble";
-import { PgDb, FieldType, PgDbLogger } from "./pgDb";
+import { PgDb, FieldType } from "./pgDb";
+import { PgDbLogger } from "./pgDbLogger";
 import { PgSchema } from "./pgSchema";
 import * as stream from "stream";
 export interface InsertOption {

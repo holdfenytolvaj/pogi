@@ -1,4 +1,4 @@
-import { PgDbLogger } from "./pgDb";
+import { PgDbLogger } from "./pgDbLogger";
 import * as stream from "stream";
 export interface QueryOptions {
     limit?: number;

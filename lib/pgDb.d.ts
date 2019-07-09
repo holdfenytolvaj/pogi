@@ -1,39 +1,13 @@
 import { QueryAble, ResultFieldType } from "./queryAble";
 import { PgTable } from "./pgTable";
 import { PgSchema } from "./pgSchema";
+import { PgDbLogger } from './pgDbLogger';
+import { ConnectionOptions } from './connectionOptions';
 export declare enum FieldType {
     JSON = 0,
     ARRAY = 1,
     TIME = 2,
     TSVECTOR = 3,
-}
-export interface ConnectionOptions {
-    host?: string;
-    user?: string;
-    database?: string;
-    password?: string;
-    port?: number;
-    poolSize?: number;
-    rows?: number;
-    min?: number;
-    max?: number;
-    binary?: boolean;
-    poolIdleTimeout?: number;
-    reapIntervalMillis?: number;
-    poolLog?: boolean;
-    client_encoding?: string;
-    ssl?: boolean | any;
-    application_name?: string;
-    fallback_application_name?: string;
-    parseInputDatesAsUTC?: boolean;
-    connectionString?: string;
-    idleTimeoutMillis?: number;
-    logger?: PgDbLogger;
-    skipUndefined?: 'all' | 'select' | 'none';
-}
-export interface PgDbLogger {
-    log: Function;
-    error: Function;
 }
 export declare type PostProcessResultFunc = (res: any[], fields: ResultFieldType[], logger: PgDbLogger) => void;
 export declare class PgDb extends QueryAble {
@@ -41,7 +15,7 @@ export declare class PgDb extends QueryAble {
         [index: string]: Promise<PgDb>;
     };
     pool: any;
-    protected connection: any;
+    connection: any;
     config: ConnectionOptions;
     defaultSchemas: any;
     db: any;

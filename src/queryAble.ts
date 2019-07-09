@@ -1,4 +1,4 @@
-import {PgDbLogger} from "./pgDb";
+import {PgDbLogger} from "./pgDbLogger";
 import {pgUtils} from "./pgUtils";
 import * as stream from "stream";
 
@@ -45,9 +45,8 @@ export interface ResultType {
 }
 
 let defaultLogger = {
-    log: () => {
-    }, error: () => {
-    }
+    log:   () => {}, 
+    error: () => {}
 };
 
 export class QueryAble {
@@ -109,7 +108,8 @@ export class QueryAble {
 
                     return res.rows;
                 } catch (e) {
-                    logger.error(sql, util.inspect(params, false, null), connection ? connection.processID : null, e);
+                    logger.error(e);
+                    pgUtils.logError(logger, sql, params, connection);
                     try {
                         if (connection)
                             connection.release();
@@ -121,7 +121,7 @@ export class QueryAble {
                 }
             }
         } catch (e) {
-            logger.error(sql, util.inspect(params, false, null), connection ? connection.processID : null, e);
+            pgUtils.logError(logger, sql, params, connection);
             throw e;
         }
     }
@@ -195,7 +195,8 @@ export class QueryAble {
                 }
             }
         } catch (e) {
-            this.getLogger(true).error(sql, util.inspect(params, false, null), connection ? connection.processID : null);
+            let logger = this.getLogger(true);
+            pgUtils.logError(logger, sql, params, connection);
             throw e;
         }
     }
@@ -218,7 +219,7 @@ export class QueryAble {
         });
         convertTypeFilter.on('error', (e) => {
             logger.error(e);
-            logger.error(sql, util.inspect(params, false, null), connection ? connection.processID : null);
+            pgUtils.logError(logger, sql, params, connection);
         });
 
         try {
@@ -246,12 +247,12 @@ export class QueryAble {
                     if (connection) connection.release();
                     connection = null;
                     logger.error(e);
-                    logger.error(sql, util.inspect(params, false, null), connection ? connection.processID : null);
+                    pgUtils.logError(logger, sql, params, connection);
                 });
                 return pgStream.pipe(convertTypeFilter);
             }
         } catch (e) {
-            logger.error(sql, util.inspect(params, false, null), connection ? connection.processID : null);
+            pgUtils.logError(logger, sql, params, connection);
             throw e;
         }
     }
@@ -259,7 +260,9 @@ export class QueryAble {
     async queryOne(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<any> {
         let res = await this.query(sql, params, options);
         if (res.length > 1) {
-            throw new Error('More then one rows exists');
+            let logger = (options && options.logger || this.getLogger(false));
+            pgUtils.logError(logger, sql, params, this.db.connection);
+            throw Error('More then one rows exists');
         }
         return res[0];
     }
@@ -277,6 +280,8 @@ export class QueryAble {
         }
         let fieldName = Object.keys(res[0])[0];
         if (res.length > 1) {
+            let logger = (options && options.logger || this.getLogger(false));
+            pgUtils.logError(logger, sql, params, this.db.connection);
             throw Error('More then one field exists!');
         }
         return res.length == 1 ? res[0][fieldName] : null;
