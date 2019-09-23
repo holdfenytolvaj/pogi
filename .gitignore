@@ -1,4 +1,5 @@
 .idea
 .babelrc
+.history
 lib/test
 node_modules

@@ -30,6 +30,8 @@ import {PgDb} from "pogi";
     
     let res = await table.find({id: [1,2,3]});
     ...
+
+    pgdb.close(); //optional 
     
 })().catch(console.error)
 ```
