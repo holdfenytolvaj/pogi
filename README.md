@@ -67,7 +67,7 @@ power; //>9000
 ```
 
 ## It's not without pitfalls
-What is? It's just usually not written (definitely not in the front page), but see more in the [docs](http://pogi.readthedocs.io/en/latest/).
+What is? It's just usually not written (definitely not in the front page), but see more in the [docs](https://pogi.readthedocs.io/pitfalls/).
 I wish more project would be honest about it to save a lot of hours for others. If you find more,
 don't hesitate to tell us!
 
