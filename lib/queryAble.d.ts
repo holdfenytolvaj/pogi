@@ -1,3 +1,4 @@
+/// <reference types="node" />
 import { PgDbLogger } from "./pgDbLogger";
 import * as stream from "stream";
 export interface QueryOptions {
@@ -45,7 +46,7 @@ export declare class QueryAble {
     getLogger(useConsoleAsDefault?: boolean): any;
     run(sql: string): Promise<any[]>;
     query(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<any[]>;
-    queryWithOnCursorCallback(sql: string, params: any[] | {}, options: SqlQueryOptions, callback: (any) => any): Promise<void>;
+    queryWithOnCursorCallback(sql: string, params: any[] | {}, options: SqlQueryOptions, callback: (any: any) => any): Promise<void>;
     queryAsStream(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<stream.Readable>;
     queryOne(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<any>;
     queryFirst(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<any>;

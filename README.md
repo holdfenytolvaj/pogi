@@ -77,11 +77,6 @@ Ideas are welcome! To compile & test
 npm run build
 npm run test
 ```
-node v6+
-```js
-npm run build6
-npm run test6
-```
 
 ## Changelog
 [Changelog.md](CHANGELOG.md)

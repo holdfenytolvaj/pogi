@@ -1,3 +1,9 @@
+
+<a name="2.7.1"></a>
+## add more test and update packages
+
+[.. some missing update]
+
 <a name="2.5.11"></a>
 ## [2.5.11](https://github.com/holdfenytolvaj/pogi/compare/v2.5.10...v2.5.11) (2018-10-01)
 

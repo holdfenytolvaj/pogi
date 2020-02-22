@@ -7,7 +7,7 @@ export declare enum FieldType {
     JSON = 0,
     ARRAY = 1,
     TIME = 2,
-    TSVECTOR = 3,
+    TSVECTOR = 3
 }
 export declare type PostProcessResultFunc = (res: any[], fields: ResultFieldType[], logger: PgDbLogger) => void;
 export declare class PgDb extends QueryAble {
@@ -26,7 +26,7 @@ export declare class PgDb extends QueryAble {
         [name: string]: PgTable<any>;
     };
     fn: {
-        [name: string]: (...any) => any;
+        [name: string]: (...any: any[]) => any;
     };
     [name: string]: any | PgSchema;
     pgdbTypeParsers: {};
@@ -36,19 +36,19 @@ export declare class PgDb extends QueryAble {
     static getInstance(config: ConnectionOptions): Promise<PgDb>;
     close(): Promise<void>;
     static connect(config: ConnectionOptions): Promise<PgDb>;
-    private init();
+    private init;
     reload(): Promise<void>;
-    private initSchemasAndTables();
-    private setDefaultTablesAndFunctions();
-    private initFieldTypes();
-    setTypeParser(typeName: string, parser: (string) => any, schemaName?: string): Promise<void>;
-    setPgDbTypeParser(typeName: string, parser: (string) => any, schemaName?: string): Promise<void>;
+    private initSchemasAndTables;
+    private setDefaultTablesAndFunctions;
+    private initFieldTypes;
+    setTypeParser(typeName: string, parser: (string: any) => any, schemaName?: string): Promise<void>;
+    setPgDbTypeParser(typeName: string, parser: (string: any) => any, schemaName?: string): Promise<void>;
     dedicatedConnectionBegin(): Promise<PgDb>;
     dedicatedConnectionEnd(): Promise<PgDb>;
     transactionBegin(): Promise<PgDb>;
     transactionCommit(): Promise<PgDb>;
     transactionRollback(): Promise<PgDb>;
     isTransactionActive(): boolean;
-    execute(fileName: any, statementTransformerFunction?: (string) => string): Promise<void>;
+    execute(fileName: any, statementTransformerFunction?: (string: any) => string): Promise<void>;
 }
 export default PgDb;

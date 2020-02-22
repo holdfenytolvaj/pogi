@@ -165,10 +165,14 @@ describe("pgdb", () => {
         await tableUsers.insert({ name: 'Noone',     jsonList: null, });
         await tableUsers.insert({ name: 'Anonymous', jsonList: [] });
         await tableUsers.insert({ name: 'Obi1', jsonObject: {a:{b:3}}});
-        await tableUsers.insert({ name: 'Obi2', jsonObject: {a:{b:[3,4,5,6]}} });
+        await tableUsers.insert({ name: 'Obi2', jsonObject: {a:{b:[3,4,5,6]}, d:'c', g:'e' }});
         //@formatter:on
 
         let res;
+
+        res = await tableUsers.find({'"jsonObject" ?|': ['d', 'f']}, {fields: ['name']});
+        expect(res.map(r => r.name)).toEqual(['Obi2']);
+        
         res = await tableUsers.find({'jsonList @>': ['sport']}, {fields: ['name']}); //=>
         expect(res.map(r => r.name)).toEqual(['Somebody']);
 
@@ -210,6 +214,7 @@ describe("pgdb", () => {
 
         res = await tableUsers.find({"jsonObject #>> {a,b,1}": 4}, {fields: ['name']});
         expect(res.map(r => r.name)).toEqual(['Obi2']);
+
         res = await tableUsers.find({"jsonObject #>> {a,b,1}": '4'}, {fields: ['name']});
         expect(res.map(r => r.name)).toEqual(['Obi2']);
     }));

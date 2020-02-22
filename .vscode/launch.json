@@ -14,6 +14,22 @@
                 "run-script", "test_debug"
             ],
             "port": 9229
-        }
+        },
+        {
+			"name": "Run test",
+			"type": "node",
+			"request": "launch",
+			"cwd": "${workspaceFolder}",
+			"program": "${workspaceFolder}/spec/run.js",
+            "runtimeExecutable": "node",
+            "skipFiles": [
+				"fs.js",
+				"typescript.js",
+				"tslib.js",
+				"loader.js",
+				"loaders.js",
+				"helpers.js",
+			  ]
+		}
     ]
 }

@@ -1,3 +1,4 @@
+/// <reference types="node" />
 import { QueryAble, QueryOptions } from "./queryAble";
 import { PgDb, FieldType } from "./pgDb";
 import { PgDbLogger } from "./pgDbLogger";
@@ -102,7 +103,7 @@ export declare class PgTable<T> extends QueryAble {
     findFirst(conditions: any, options?: QueryOptions): Promise<T>;
     count(conditions?: {}, options?: CountOption): Promise<number>;
     findOneFieldOnly(conditions: any, field: string, options?: QueryOptions): Promise<any>;
-    private getInsertQuery(records);
+    private getInsertQuery;
     protected getUpdateSetSnipplet(fields: {
         [k: string]: any;
     }, parameters?: any[]): {
