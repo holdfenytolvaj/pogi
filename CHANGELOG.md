@@ -1,3 +1,5 @@
+<a name="2.7.2"></a>
+## add initial support for postgresl PUB/SUB
 
 <a name="2.7.1"></a>
 ## add more test and update packages
