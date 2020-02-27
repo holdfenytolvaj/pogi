@@ -4,7 +4,7 @@ declare const _default: {
         mutator: (s: string) => string;
         fieldMutator: (s: any) => any;
     };
-    icontains: {
+    'icontains': {
         operator: string;
         mutator: (s: any) => string;
     };
@@ -64,7 +64,7 @@ declare const _default: {
     '~~': {
         operator: string;
     };
-    like: {
+    'like': {
         operator: string;
     };
     '!~~': {
@@ -76,7 +76,7 @@ declare const _default: {
     '~~*': {
         operator: string;
     };
-    ilike: {
+    'ilike': {
         operator: string;
     };
     '!~~*': {

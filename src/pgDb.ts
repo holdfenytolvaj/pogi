@@ -1,14 +1,15 @@
-import {QueryAble, ResultFieldType} from "./queryAble";
-import {PgTable} from "./pgTable";
-import {PgSchema} from "./pgSchema";
+import { QueryAble, ResultFieldType } from "./queryAble";
+import { PgTable } from "./pgTable";
+import { PgSchema } from "./pgSchema";
 import * as PgConverters from "./pgConverters";
-import {pgUtils} from "./pgUtils";
+import { pgUtils } from "./pgUtils";
 import * as _ from 'lodash';
 import * as pg from 'pg';
 import * as readline from 'readline';
 import * as fs from 'fs';
 import {PgDbLogger} from './pgDbLogger';
 import {ConnectionOptions} from './connectionOptions';
+import * as EventEmitter from 'events';
 
 const CONNECTION_URL_REGEXP = /^postgres:\/\/(?:([^:]+)(?::([^@]*))?@)?([^\/:]+)?(?::([^\/]+))?\/(.*)$/;
 const SQL_TOKENIZER_REGEXP = /''|'|""|"|;|\$|--|(.+?)/g;
@@ -65,17 +66,25 @@ const LIST_SPECIAL_TYPE_FIELDS =
     AND reltype>0 `;
 //AND c.nspname not in ('pg_catalog', 'pg_constraint', 'information_schema')
 
-export enum FieldType {JSON, ARRAY, TIME, TSVECTOR}
+export enum FieldType { JSON, ARRAY, TIME, TSVECTOR }
 
 
 export type PostProcessResultFunc = (res: any[], fields: ResultFieldType[], logger: PgDbLogger) => void;
 
+/** LISTEN callback parameter */
+export interface Notification {
+    processId: number,
+    channel: string,
+    payload?: string
+}
 
 export class PgDb extends QueryAble {
     protected static instances: { [index: string]: Promise<PgDb> };
     /*protected*/
     pool;
     connection;
+
+    protected connectionForListen;
     /*protected*/
     config: ConnectionOptions;
     /*protected*/
@@ -142,7 +151,7 @@ export class PgDb extends QueryAble {
         if (PgDb.instances[connectionString]) {
             return PgDb.instances[connectionString];
         } else {
-            let pgdb = new PgDb({config: config});
+            let pgdb = new PgDb({ config: config });
             PgDb.instances[connectionString] = pgdb.init();
             return PgDb.instances[connectionString];
         }
@@ -169,12 +178,12 @@ export class PgDb extends QueryAble {
                 config.database = res[5];
             }
         }
-        let pgdb = new PgDb({config: config});
+        let pgdb = new PgDb({ config: config });
         return pgdb.init();
     }
 
     private async init(): Promise<PgDb> {
-        this.pool = new pg.Pool(_.omit(this.config, ['logger','skipUndefined']));
+        this.pool = new pg.Pool(_.omit(this.config, ['logger', 'skipUndefined']));
         if (this.config.logger)
             this.setLogger(this.config.logger);
 
@@ -298,7 +307,7 @@ export class PgDb extends QueryAble {
                 case 1270: // timetz[]
                     pg.types.setTypeParser(r.typid, PgConverters.arraySplitToDate);
                     break;
-                default :
+                default:
                     //best guess otherwise user need to specify
                     pg.types.setTypeParser(r.typid, PgConverters.arraySplit);
             }
@@ -317,11 +326,11 @@ export class PgDb extends QueryAble {
     async setTypeParser(typeName: string, parser: (string) => any, schemaName?: string): Promise<void> {
         try {
             if (schemaName) {
-                let oid = await this.queryOneField(GET_OID_FOR_COLUMN_TYPE_FOR_SCHEMA, {typeName, schemaName});
+                let oid = await this.queryOneField(GET_OID_FOR_COLUMN_TYPE_FOR_SCHEMA, { typeName, schemaName });
                 pg.types.setTypeParser(oid, parser);
                 delete this.pgdbTypeParsers[oid];
             } else {
-                let list = await this.queryOneColumn(GET_OID_FOR_COLUMN_TYPE, {typeName});
+                let list = await this.queryOneColumn(GET_OID_FOR_COLUMN_TYPE, { typeName });
                 list.forEach(oid => {
                     pg.types.setTypeParser(oid, parser);
                     delete this.pgdbTypeParsers[oid];
@@ -335,10 +344,10 @@ export class PgDb extends QueryAble {
     async setPgDbTypeParser(typeName: string, parser: (string) => any, schemaName?: string): Promise<void> {
         try {
             if (schemaName) {
-                let oid = await this.queryOneField(GET_OID_FOR_COLUMN_TYPE_FOR_SCHEMA, {typeName, schemaName});
+                let oid = await this.queryOneField(GET_OID_FOR_COLUMN_TYPE_FOR_SCHEMA, { typeName, schemaName });
                 this.pgdbTypeParsers[oid] = parser;
             } else {
-                let list = await this.queryOneColumn(GET_OID_FOR_COLUMN_TYPE, {typeName});
+                let list = await this.queryOneColumn(GET_OID_FOR_COLUMN_TYPE, { typeName });
                 list.forEach(oid => this.pgdbTypeParsers[oid] = parser);
             }
         } catch (e) {
@@ -347,13 +356,9 @@ export class PgDb extends QueryAble {
     }
 
     async dedicatedConnectionBegin(): Promise<PgDb> {
-        if (this.connection) {
-            return this;
-        } else {
-            let pgDb = new PgDb(this);
-            pgDb.connection = await this.pool.connect();
-            return pgDb;
-        }
+        let pgDb = new PgDb(this);
+        pgDb.connection = await this.pool.connect();
+        return pgDb;
     }
 
     async dedicatedConnectionEnd(): Promise<PgDb> {
@@ -365,7 +370,7 @@ export class PgDb extends QueryAble {
     }
 
     async transactionBegin(): Promise<PgDb> {
-        let pgDb = await this.dedicatedConnectionBegin();
+        let pgDb = this.connection ? this : await this.dedicatedConnectionBegin();
         await pgDb.query('BEGIN');
         return pgDb;
     }
@@ -520,6 +525,62 @@ export class PgDb extends QueryAble {
                 }
                 // console.log('connection released');
             });
+    }
+
+    private listeners = new EventEmitter();
+
+    /** 
+     * LISTEN to a channel for a NOTIFY (https://www.postgresql.org/docs/current/sql-listen.html)
+     * One connection will be dedicated for listening if there are any listeners.
+     * When there is no other callback for a channel, LISTEN command is executed
+     */
+    async listen(channel: string, callback: (notification:Notification) => void) {
+        if (!this.connectionForListen) {
+            this.connectionForListen = await this.pool.connect();
+            this.connectionForListen.on('notification', (notification: Notification) => this.listeners.emit(notification.channel, notification));
+        }
+        if (!this.listeners.listenerCount(channel)) {
+            await this.connectionForListen.query('LISTEN ' + channel);
+        }
+        this.listeners.on(channel, callback);
+    }
+
+    /**
+     * Remove a callback which listening on a channel
+     * When all callback is removed from a channel UNLISTEN command is executed
+     * When all callback is removed from all channel, dedicated connection is released
+     */
+    async unlisten(channel: string, callback?: (Notification) => void) {
+        if (!this.connectionForListen) {
+            this.listeners.removeAllListeners();
+            return;
+        }
+        if (callback) {
+            this.listeners.removeListener(channel, callback);
+        } else {
+            this.listeners.removeAllListeners(channel);
+        }
+
+        if (!this.listeners.listenerCount(channel)) {
+            await this.internalQuery({ connection: this.connectionForListen, sql: 'UNLISTEN ' + channel });
+        }
+        let allListeners = this.listeners.eventNames().reduce((sum, ename) => sum + this.listeners.listenerCount(ename), 0);
+        if (!allListeners && this.connectionForListen) {
+            this.connectionForListen.removeAllListeners('notification');
+            this.connectionForListen.release();
+            this.connectionForListen = null;
+        }
+    }
+
+    /**
+     * Notify a channel (https://www.postgresql.org/docs/current/sql-notify.html)
+     */
+    async notify(channel: string, payload?: string) {
+        let connection = this.connectionForListen || this.connection;
+        //let sql = 'NOTIFY ' + channel + ', :payload';
+        let sql = 'SELECT pg_notify(:channel, :payload)';
+        let params = { channel, payload };
+        return this.internalQuery({ connection, sql, params });
     }
 }
 

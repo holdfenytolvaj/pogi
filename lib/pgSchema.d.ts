@@ -9,7 +9,7 @@ export declare class PgSchema extends QueryAble {
         [name: string]: PgTable<any>;
     };
     fn: {
-        [name: string]: (...any: any[]) => any;
+        [name: string]: (...any) => any;
     };
     [name: string]: any | PgTable<any>;
     constructor(db: PgDb, schemaName: string);

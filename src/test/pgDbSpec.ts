@@ -924,4 +924,25 @@ describe("pgdb", () => {
         expect(rec).toEqual(null);
     }));
 
+    it("Testing NOTIFY and LISTEN (listen)", w(async () => {
+        let called = null;
+        let payload = 'hello';
+        
+        await table.db.listen('test_channel', (notification) => called = notification.payload);
+        await table.db.notify('test_channel', payload);
+
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        expect(called).toEqual(payload);
+    }));
+    
+    it("Testing NOTIFY and LISTEN (unlisten)", w(async () => {
+        let called = null;
+        let payload = 'hello';
+
+        await table.db.listen('test_channel', (notification) => called = notification.payload);
+        await table.db.unlisten('test_channel');
+        await table.db.notify('test_channel', payload);
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        expect(called).toEqual(null);
+    }));
 });

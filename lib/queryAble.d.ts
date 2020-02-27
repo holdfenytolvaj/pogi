@@ -46,7 +46,13 @@ export declare class QueryAble {
     getLogger(useConsoleAsDefault?: boolean): any;
     run(sql: string): Promise<any[]>;
     query(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<any[]>;
-    queryWithOnCursorCallback(sql: string, params: any[] | {}, options: SqlQueryOptions, callback: (any: any) => any): Promise<void>;
+    protected internalQuery(options: {
+        connection;
+        sql: string;
+        params?: any;
+        logger?;
+    }): Promise<any>;
+    queryWithOnCursorCallback(sql: string, params: any[] | {}, options: SqlQueryOptions, callback: (any) => any): Promise<void>;
     queryAsStream(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<stream.Readable>;
     queryOne(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<any>;
     queryFirst(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<any>;

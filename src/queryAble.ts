@@ -81,6 +81,13 @@ export class QueryAble {
     async query(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<any[]> {
         let connection = this.db.connection;
         let logger = (options && options.logger || this.getLogger(false));
+        return this.internalQuery({connection, sql, params, logger});
+    }
+
+    protected async internalQuery(options: { connection, sql: string, params?: any, logger? }) {
+        let { connection, sql, params, logger } = options;
+        logger = logger || this.getLogger(false);
+
         try {
             if (params && !Array.isArray(params)) {
                 let p = pgUtils.processNamedParams(sql, params);
