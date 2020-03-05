@@ -115,8 +115,7 @@ export class QueryAble {
 
                     return res.rows;
                 } catch (e) {
-                    logger.error(e);
-                    pgUtils.logError(logger, sql, params, connection);
+                    pgUtils.logError(logger, { error: e, sql, params, connection });
                     try {
                         if (connection)
                             connection.release();
@@ -128,7 +127,7 @@ export class QueryAble {
                 }
             }
         } catch (e) {
-            pgUtils.logError(logger, sql, params, connection);
+            pgUtils.logError(logger, { error: e, sql, params, connection });
             throw e;
         }
     }
@@ -203,7 +202,7 @@ export class QueryAble {
             }
         } catch (e) {
             let logger = this.getLogger(true);
-            pgUtils.logError(logger, sql, params, connection);
+            pgUtils.logError(logger, { error: e, sql, params, connection });
             throw e;
         }
     }
@@ -225,8 +224,7 @@ export class QueryAble {
             }
         });
         convertTypeFilter.on('error', (e) => {
-            logger.error(e);
-            pgUtils.logError(logger, sql, params, connection);
+            pgUtils.logError(logger, { error: e, sql, params, connection });
         });
 
         try {
@@ -251,15 +249,14 @@ export class QueryAble {
                     connection = null;
                 });
                 pgStream.on('error', (e) => {
+                    pgUtils.logError(logger, { error: e, sql, params, connection });
                     if (connection) connection.release();
                     connection = null;
-                    logger.error(e);
-                    pgUtils.logError(logger, sql, params, connection);
                 });
                 return pgStream.pipe(convertTypeFilter);
             }
         } catch (e) {
-            pgUtils.logError(logger, sql, params, connection);
+            pgUtils.logError(logger, { error: e, sql, params, connection });
             throw e;
         }
     }
@@ -268,8 +265,9 @@ export class QueryAble {
         let res = await this.query(sql, params, options);
         if (res.length > 1) {
             let logger = (options && options.logger || this.getLogger(false));
-            pgUtils.logError(logger, sql, params, this.db.connection);
-            throw Error('More then one rows exists');
+            let error = Error('More then one rows exists');
+            pgUtils.logError(logger, { error, sql, params, connection: this.db.connection });
+            throw error;
         }
         return res[0];
     }
@@ -288,8 +286,9 @@ export class QueryAble {
         let fieldName = Object.keys(res[0])[0];
         if (res.length > 1) {
             let logger = (options && options.logger || this.getLogger(false));
-            pgUtils.logError(logger, sql, params, this.db.connection);
-            throw Error('More then one field exists!');
+            let error = Error('More then one field exists!');
+            pgUtils.logError(logger, { error, sql, params, connection: this.db.connection });
+            throw error;
         }
         return res.length == 1 ? res[0][fieldName] : null;
     }

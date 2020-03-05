@@ -271,8 +271,9 @@ export class PgTable<T> extends QueryAble {
         let res = await this.find(conditions, options);
         if (res.length > 1) {
             let logger = (options && options.logger || this.getLogger(false));
-            pgUtils.logError(logger, this.qualifiedName, conditions, this.db.connection);            
-            throw new Error('More then one rows exists');
+            let error = new Error('More then one rows exists');
+            pgUtils.logError(logger, { error, sql:this.qualifiedName, params: conditions, connection: this.db.connection });
+            throw error;
         }
         return res[0];
     }

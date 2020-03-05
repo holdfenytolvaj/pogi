@@ -9,8 +9,9 @@ const ASC_DESC_REGEXP = /^([^" (]+)( asc| desc)?$/;
 
 export let pgUtils = {
 
-    logError(logger:PgDbLogger, sql:string, queryParams:any, connection) {
-        logger.error(sql, util.inspect(logger.paramSanitizer ? logger.paramSanitizer(queryParams) : queryParams, false, null), connection ? connection.processID : null);
+    logError(logger: PgDbLogger, options: { error?: string|Error, sql: string, params: any, connection }) {
+        let { error, sql, params, connection } = options;
+        logger.error(error, sql, util.inspect(logger.paramSanitizer ? logger.paramSanitizer(params) : params, false, null), connection ? connection.processID : null);
     },
 
     quoteField(f) {
