@@ -2,7 +2,12 @@ import { QueryOptions, ResultFieldType, QueryAble } from "./queryAble";
 import { FieldType } from "./pgDb";
 import { PgDbLogger } from "./pgDbLogger";
 export declare let pgUtils: {
-    logError(logger: PgDbLogger, sql: string, queryParams: any, connection: any): void;
+    logError(logger: PgDbLogger, options: {
+        error?: string | Error;
+        sql: string;
+        params: any;
+        connection: any;
+    }): void;
     quoteField(f: any): any;
     processQueryFields(options: QueryOptions): string;
     processNamedParams(sql: string, params: Object): {
