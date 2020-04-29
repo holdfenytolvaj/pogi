@@ -1,3 +1,17 @@
+# [2.8.0](https://github.com/holdfenytolvaj/pogi/compare/v2.5.11...v2.8.0) (2020-04-29)
+
+
+### Bug Fixes
+
+* execute (file) function do not start new dedicated connection when run in one, add support for /* */ comment ([d5a03d5](https://github.com/holdfenytolvaj/pogi/commit/d5a03d5))
+
+
+### Features
+
+* add notify and listen functions ([fb3318a](https://github.com/holdfenytolvaj/pogi/commit/fb3318a))
+
+
+
 <a name="2.7.2"></a>
 ## add initial support for postgresl PUB/SUB
 
