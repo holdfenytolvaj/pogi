@@ -55,7 +55,7 @@ export declare class PgDb extends QueryAble {
     transactionCommit(): Promise<PgDb>;
     transactionRollback(): Promise<PgDb>;
     isTransactionActive(): boolean;
-    execute(fileName: any, statementTransformerFunction?: (string) => string): Promise<void>;
+    execute(fileName: string, statementTransformerFunction?: (string) => string): Promise<void>;
     private listeners;
     listen(channel: string, callback: (notification: Notification) => void): Promise<void>;
     unlisten(channel: string, callback?: (Notification) => void): Promise<void>;

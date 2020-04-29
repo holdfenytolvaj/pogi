@@ -65,8 +65,9 @@ export class QueryAble {
         return this.logger || this.schema && this.schema.logger || this.db.logger || (useConsoleAsDefault ? console : defaultLogger);
     }
 
-    async run(sql: string): Promise<any[]> {
-        return this.query(sql);
+    /** alias to {@link query} */
+    async run(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<any[]> {
+        return this.query(sql, params, options);
     }
 
     /**

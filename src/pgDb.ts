@@ -12,7 +12,7 @@ import {ConnectionOptions} from './connectionOptions';
 import * as EventEmitter from 'events';
 
 const CONNECTION_URL_REGEXP = /^postgres:\/\/(?:([^:]+)(?::([^@]*))?@)?([^\/:]+)?(?::([^\/]+))?\/(.*)$/;
-const SQL_TOKENIZER_REGEXP = /''|'|""|"|;|\$|--|(.+?)/g;
+const SQL_TOKENIZER_REGEXP = /''|'|""|"|;|\$|--|\/\*|\*\/|(.+?)/g;
 const SQL_$_ESCAPE_REGEXP = /\$[^$]*\$/g;
 
 /** looks like we only get back those that we have access to */
@@ -389,9 +389,10 @@ export class PgDb extends QueryAble {
         return this.connection != null;
     }
 
-    async execute(fileName, statementTransformerFunction?: (string) => string): Promise<void> {
+    async execute(fileName: string, statementTransformerFunction?: (string) => string): Promise<void> {
         let isTransactionInPlace = this.isTransactionActive();
-        let pgdb = await this.dedicatedConnectionBegin();
+        // statements must be run in a dedicated connection
+        let pgdb = isTransactionInPlace ? this : await this.dedicatedConnectionBegin();
 
         /** run statements one after the other */
         let runStatementList = (statementList) => {
@@ -423,9 +424,9 @@ export class PgDb extends QueryAble {
         let lineCounter = 0;
         let promise = new Promise<void>((resolve, reject) => {
             let statementList = [];
-            let tmp = '', m;
+            let tmp = '', t: RegExpExecArray;
             let consumer;
-            let inQuotedString;
+            let inQuotedString:string;
             let rl = readline.createInterface({
                 input: fs.createReadStream(fileName),
                 terminal: false
@@ -433,15 +434,15 @@ export class PgDb extends QueryAble {
                 lineCounter++;
                 try {
                     //console.log('Line: ' + line);
-                    while (m = SQL_TOKENIZER_REGEXP.exec(line)) {
-                        if (m[0] == '"' || m[0] == "'") {
+                    while (t = SQL_TOKENIZER_REGEXP.exec(line)) {
+                        if (!inQuotedString && (t[0] == '"' || t[0] == "'") || inQuotedString == '"' || inQuotedString == "'") {
                             if (!inQuotedString) {
-                                inQuotedString = m[0];
-                            } else if (inQuotedString == m[0]) {
+                                inQuotedString = t[0];
+                            } else if (inQuotedString == t[0]) {
                                 inQuotedString = null;
                             }
-                            tmp += m[0];
-                        } else if (m[0] == '$' && (!inQuotedString || inQuotedString[0] == '$')) {
+                            tmp += t[0];
+                        } else if (!inQuotedString && t[0] == '$' || inQuotedString && inQuotedString[0] == '$') {
                             if (!inQuotedString) {
                                 let s = line.slice(SQL_TOKENIZER_REGEXP.lastIndex - 1);
                                 let token = s.match(SQL_$_ESCAPE_REGEXP);
@@ -452,12 +453,20 @@ export class PgDb extends QueryAble {
                                 SQL_TOKENIZER_REGEXP.lastIndex += inQuotedString.length - 1;
                                 tmp += inQuotedString;
                             } else {
-                                tmp += m[0];
+                                tmp += t[0];
                                 if (tmp.endsWith(inQuotedString)) {
                                     inQuotedString = null;
                                 }
                             }
-                        } else if (!inQuotedString && m[0] == ';') {
+                        } else if (!inQuotedString && t[0] == '/*' || inQuotedString == '/*') {
+                            if (!inQuotedString) {
+                                inQuotedString = t[0];
+                            } else if (t[0] == '*/') {
+                                inQuotedString = null;
+                            }
+                        } else if (!inQuotedString && t[0] == '--') {
+                            line = '';
+                        } else if (!inQuotedString && t[0] == ';') {
                             //console.log('push ' + tmp);
                             if (tmp.trim() != '') {
                                 statementList.push(tmp);
@@ -472,10 +481,8 @@ export class PgDb extends QueryAble {
                                 }
                             }
                             tmp = '';
-                        } else if (!inQuotedString && m[0].substring(0, 2) == '--') {
-                            line = '';
                         } else {
-                            tmp += m[0];
+                            tmp += t[0];
                         }
                     }
                     if (tmp && line) {

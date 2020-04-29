@@ -44,7 +44,7 @@ export declare class QueryAble {
     constructor();
     setLogger(logger: PgDbLogger): void;
     getLogger(useConsoleAsDefault?: boolean): any;
-    run(sql: string): Promise<any[]>;
+    run(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<any[]>;
     query(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<any[]>;
     protected internalQuery(options: {
         connection;
