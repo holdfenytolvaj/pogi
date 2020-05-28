@@ -452,6 +452,29 @@ describe("pgdb", () => {
         expect(res[0].name).toEqual('A');
     }));
 
+    it("transaction - savepoint - rollback", w(async () => {
+        let tr = await pgdb.transactionBegin();
+        let table = tr.schemas[schema]['users'];
+        await table.insert({ name: 'a' });
+
+        let res = await table.count();
+        expect(res).toEqual(1);
+
+        tr.savePoint('name');
+        await table.insert({ name: 'b' });
+        res = await table.count();
+        expect(res).toEqual(2);
+
+        await tr.transactionRollback({savePoint:'name'});
+
+        res = await table.count();
+        expect(res).toEqual(1);
+        await tr.transactionRollback();
+        res = await table.count();
+        expect(res).toEqual(0);
+
+    }));
+
     it("transaction should keep the table definitions", w(async () => {
         const pgDB = pgdb; //= await PgDb.connect({connectionString: "postgres://"});
         const pgDBTrans = await pgDB.transactionBegin();

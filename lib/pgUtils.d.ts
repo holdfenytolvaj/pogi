@@ -6,7 +6,7 @@ export declare let pgUtils: {
         error?: string | Error;
         sql: string;
         params: any;
-        connection: any;
+        connection;
     }): void;
     quoteField(f: any): any;
     processQueryFields(options: QueryOptions): string;

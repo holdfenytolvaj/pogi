@@ -68,6 +68,12 @@ const LIST_SPECIAL_TYPE_FIELDS =
 
 export enum FieldType { JSON, ARRAY, TIME, TSVECTOR }
 
+export enum TranzactionIsolationLevel {
+    serializable = 'SERIALIZABLE',
+    repeatableRead = 'REPEATABLE READ',
+    readCommitted = 'READ COMMITTED',
+    readUncommitted = 'READ UNCOMMITTED'
+}
 
 export type PostProcessResultFunc = (res: any[], fields: ResultFieldType[], logger: PgDbLogger) => void;
 
@@ -368,10 +374,49 @@ export class PgDb extends QueryAble {
         }
         return this;
     }
+    
+    /** 
+     * transaction save point
+     * https://www.postgresql.org/docs/current/sql-savepoint.html 
+     */
+    async savePoint(name: string): Promise<PgDb> {
+        if (this.isTransactionActive()) {
+            name = (name || '').replace(/"/g, '');
+            await this.query(`SAVEPOINT "${name}"`);
+        } else {
+            throw Error('No active transaction');
+        }
+        return this;
+    }
 
-    async transactionBegin(): Promise<PgDb> {
+    /** 
+     * "RELEASE SAVEPOINT" - remove transaction save point
+     * https://www.postgresql.org/docs/current/sql-savepoint.html 
+     */
+    async savePointRelease(name: string): Promise<PgDb> {
+        if (this.isTransactionActive()) {
+            name = (name || '').replace(/"/g, '');
+            await this.query(`RELEASE SAVEPOINT "${name}"`);
+        } else {
+            throw Error('No active transaction');
+        }
+        return this;
+    }
+
+    async transactionBegin(options?: { isolationLevel?: TranzactionIsolationLevel, deferrable?:boolean, readOnly?: boolean}): Promise<PgDb> {
         let pgDb = this.connection ? this : await this.dedicatedConnectionBegin();
-        await pgDb.query('BEGIN');
+        let q = 'BEGIN'
+        if (options?.isolationLevel) {
+            q += ' ISOLATION LEVEL ' + options.isolationLevel;
+        }
+        if (options?.readOnly) {
+            q += ' READ ONLY';
+        }
+        if (options?.deferrable) {
+            q += ' DEFERRABLE ';
+        }
+
+        await pgDb.query(q);
         return pgDb;
     }
 
@@ -380,9 +425,15 @@ export class PgDb extends QueryAble {
         return this.dedicatedConnectionEnd();
     }
 
-    async transactionRollback(): Promise<PgDb> {
-        await this.query('ROLLBACK');
-        return this.dedicatedConnectionEnd();
+    async transactionRollback(options?: { savePoint?: string }): Promise<PgDb> {
+        if (options?.savePoint) {
+            let name = (options.savePoint || '').replace(/"/g, '');
+            await this.query(`ROLLBACK TO SAVEPOINT "${name}"`);
+            return this;
+        } else {
+            await this.query('ROLLBACK');
+            return this.dedicatedConnectionEnd();
+        }
     }
 
     isTransactionActive(): boolean {

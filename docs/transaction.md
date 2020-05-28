@@ -24,12 +24,30 @@ active transaction can be tested with
         //...
     }
 ```
+## Savepoint transaction like a subtransaction
 
-##Dedicated connection
+```js
+    //connection with transaction
+    let pgdb_wt = await pgdb.transactionBegin();
+    // ... do some work
+    pgdb_wt = await pgdb.savePoint('import');
+    try {
+        //... do import
+        await pgdb_wt.transactionCommit();
+    } catch(e) {
+        // rollback to "import" savepoint
+        await pgdb_wt.transactionRollback({savepoint:'import'}); 
+    }
+    // transaction continue from "import" savepoint
+```
+
+See [Postgresql documentation](https://www.postgresql.org/docs/current/sql-savepoint.html)
+
+## Dedicated connection
 PgDb use connection pool, so it run every query in a random connection from the pool. Connection pool size can be set at connection time with "poolSize" attribute, see [connection](/connection).
 Sometimes single connection mode is desired (ex: execute an SQL file), or if you want to use variables, or set the `search_path`.
 It is posibble and its usage very similar to transactions. `dedicatedConnectionBegin()` will create a new PgDb instance which is now in a dedicated connection mode.
-All further query will be run in the same connection, no pool is used. Programmer responsibe to close dedicated connection with `dedicatedConnectionEnd()` to avoid leaking. 
+All further query will be run in the same connection, no pool is used. Programmer responsible to close dedicated connection with `dedicatedConnectionEnd()` to avoid leaking. 
 If closed, connection will get back to the pool and pgdb instance will work in pool mode.
 
 ```js

@@ -47,12 +47,12 @@ export declare class QueryAble {
     run(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<any[]>;
     query(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<any[]>;
     protected internalQuery(options: {
-        connection;
+        connection: any;
         sql: string;
         params?: any;
-        logger?;
+        logger?: any;
     }): Promise<any>;
-    queryWithOnCursorCallback(sql: string, params: any[] | {}, options: SqlQueryOptions, callback: (any) => any): Promise<void>;
+    queryWithOnCursorCallback(sql: string, params: any[] | {}, options: SqlQueryOptions, callback: (any: any) => any): Promise<void>;
     queryAsStream(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<stream.Readable>;
     queryOne(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<any>;
     queryFirst(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<any>;

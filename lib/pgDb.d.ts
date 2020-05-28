@@ -7,7 +7,13 @@ export declare enum FieldType {
     JSON = 0,
     ARRAY = 1,
     TIME = 2,
-    TSVECTOR = 3,
+    TSVECTOR = 3
+}
+export declare enum TranzactionIsolationLevel {
+    serializable = "SERIALIZABLE",
+    repeatableRead = "REPEATABLE READ",
+    readCommitted = "READ COMMITTED",
+    readUncommitted = "READ UNCOMMITTED"
 }
 export declare type PostProcessResultFunc = (res: any[], fields: ResultFieldType[], logger: PgDbLogger) => void;
 export interface Notification {
@@ -32,7 +38,7 @@ export declare class PgDb extends QueryAble {
         [name: string]: PgTable<any>;
     };
     fn: {
-        [name: string]: (...any) => any;
+        [name: string]: (...any: any[]) => any;
     };
     [name: string]: any | PgSchema;
     pgdbTypeParsers: {};
@@ -42,23 +48,31 @@ export declare class PgDb extends QueryAble {
     static getInstance(config: ConnectionOptions): Promise<PgDb>;
     close(): Promise<void>;
     static connect(config: ConnectionOptions): Promise<PgDb>;
-    private init();
+    private init;
     reload(): Promise<void>;
-    private initSchemasAndTables();
-    private setDefaultTablesAndFunctions();
-    private initFieldTypes();
-    setTypeParser(typeName: string, parser: (string) => any, schemaName?: string): Promise<void>;
-    setPgDbTypeParser(typeName: string, parser: (string) => any, schemaName?: string): Promise<void>;
+    private initSchemasAndTables;
+    private setDefaultTablesAndFunctions;
+    private initFieldTypes;
+    setTypeParser(typeName: string, parser: (string: any) => any, schemaName?: string): Promise<void>;
+    setPgDbTypeParser(typeName: string, parser: (string: any) => any, schemaName?: string): Promise<void>;
     dedicatedConnectionBegin(): Promise<PgDb>;
     dedicatedConnectionEnd(): Promise<PgDb>;
-    transactionBegin(): Promise<PgDb>;
+    savePoint(name: string): Promise<PgDb>;
+    savePointRelease(name: string): Promise<PgDb>;
+    transactionBegin(options?: {
+        isolationLevel?: TranzactionIsolationLevel;
+        deferrable?: boolean;
+        readOnly?: boolean;
+    }): Promise<PgDb>;
     transactionCommit(): Promise<PgDb>;
-    transactionRollback(): Promise<PgDb>;
+    transactionRollback(options?: {
+        savePoint: string;
+    }): Promise<PgDb>;
     isTransactionActive(): boolean;
-    execute(fileName: string, statementTransformerFunction?: (string) => string): Promise<void>;
+    execute(fileName: string, statementTransformerFunction?: (string: any) => string): Promise<void>;
     private listeners;
     listen(channel: string, callback: (notification: Notification) => void): Promise<void>;
-    unlisten(channel: string, callback?: (Notification) => void): Promise<void>;
+    unlisten(channel: string, callback?: (Notification: any) => void): Promise<void>;
     notify(channel: string, payload?: string): Promise<any>;
 }
 export default PgDb;
