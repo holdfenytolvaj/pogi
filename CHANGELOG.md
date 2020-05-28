@@ -1,5 +1,8 @@
 # [2.9.0](https://github.com/holdfenytolvaj/pogi/compare/v2.8.0...v2.9.0) (2020-05-28)
 
+### Features
+
+* more options to handle transaction,  savepoint support from API ([d5a88cb](https://github.com/holdfenytolvaj/pogi/commit/d5a88cb))
 
 
 # [2.8.0](https://github.com/holdfenytolvaj/pogi/compare/v2.5.11...v2.8.0) (2020-04-29)
