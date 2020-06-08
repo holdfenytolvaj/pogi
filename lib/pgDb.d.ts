@@ -66,7 +66,7 @@ export declare class PgDb extends QueryAble {
     }): Promise<PgDb>;
     transactionCommit(): Promise<PgDb>;
     transactionRollback(options?: {
-        savePoint: string;
+        savePoint?: string;
     }): Promise<PgDb>;
     isTransactionActive(): boolean;
     execute(fileName: string, statementTransformerFunction?: (string: any) => string): Promise<void>;
