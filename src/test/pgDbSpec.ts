@@ -969,4 +969,17 @@ describe("pgdb", () => {
         await new Promise((resolve) => setTimeout(resolve, 1000));
         expect(called).toEqual(null);
     }));
+
+    it("Testing Empty 'or' condition", w(async () => {
+        await table.insert({ name: 'A', aCategory: 'A' });
+        let recs = await table.find({ or:[] });
+        expect(recs.length).toEqual(1);
+    }));
+
+    it("Testing Empty 'and' condition", w(async () => {
+        await table.insert({ name: 'A', aCategory: 'A' });
+        let recs = await table.find({ and: [] });
+        expect(recs.length).toEqual(1);
+    }));
+
 });

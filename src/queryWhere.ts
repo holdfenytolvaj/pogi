@@ -81,11 +81,12 @@ function handleOrAnd(result, fieldAndOperator, value, fieldTypes: { [index: stri
     // join the compiled subgroup predicates with OR, encapsulate, and push the
     // complex predicate ("((x = $1 AND y = $2) OR (z = $3))") onto the result object
     result.params = result.params.concat(groupResult.params);
-
-    if (fieldAndOperator.field === 'and') {
-        result.predicates.push(util.format('(%s)', groupResult.predicates.join(' AND ')));
-    } else {
-        result.predicates.push(util.format('(%s)', groupResult.predicates.join(' OR ')));
+    if (groupResult.predicates.length) {
+        if (fieldAndOperator.field === 'and') {
+            result.predicates.push(util.format('(%s)', groupResult.predicates.join(' AND ')));
+        } else {
+            result.predicates.push(util.format('(%s)', groupResult.predicates.join(' OR ')));
+        }
     }
     return result;
 }
