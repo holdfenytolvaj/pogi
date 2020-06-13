@@ -1,14 +1,13 @@
 ## [2.9.2](https://github.com/holdfenytolvaj/pogi/compare/v2.9.1...v2.9.2) (2020-06-13)
 
-
-
-## [2.9.1](https://github.com/holdfenytolvaj/pogi/compare/v2.9.0...v2.9.1) (2020-06-13)
-
-
 ### Bug Fixes
 
 * handle empty 'and' and 'or' condition ([e49c416](https://github.com/holdfenytolvaj/pogi/commit/e49c416))
 
+## [2.9.1](https://github.com/holdfenytolvaj/pogi/compare/v2.9.0...v2.9.1) (2020-06-13)
+
+### Chore
+bump pg (8.2.1) and pg-query-stream (3.1.1) to support nodejs v14
 
 
 # [2.9.0](https://github.com/holdfenytolvaj/pogi/compare/v2.8.0...v2.9.0) (2020-05-28)
