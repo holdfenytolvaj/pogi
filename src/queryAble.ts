@@ -1,5 +1,5 @@
-import {PgDbLogger} from "./pgDbLogger";
-import {pgUtils} from "./pgUtils";
+import { PgDbLogger } from "./pgDbLogger";
+import { pgUtils } from "./pgUtils";
 import * as stream from "stream";
 
 const util = require('util');
@@ -50,8 +50,8 @@ export interface PgRowResult {
 }
 
 let defaultLogger = {
-    log:   () => {}, 
-    error: () => {}
+    log: () => { },
+    error: () => { }
 };
 
 export class QueryAble {
@@ -87,12 +87,12 @@ export class QueryAble {
     async query(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<any[]> {
         let connection = this.db.connection;
         let logger = (options && options.logger || this.getLogger(false));
-        return this.internalQuery({connection, sql, params, logger});
+        return this.internalQuery({ connection, sql, params, logger });
     }
 
     protected async internalQuery(options: { connection, sql: string, params?: any, logger?}): Promise<any[]>;
     protected async internalQuery(options: { connection, sql: string, params?: any, logger?, rowMode: true }): Promise<PgRowResult>;
-    protected async internalQuery(options: { connection, sql: string, params?: any, logger?, rowMode?:boolean }):Promise<any[]|PgRowResult> {
+    protected async internalQuery(options: { connection, sql: string, params?: any, logger?, rowMode?: boolean }): Promise<any[] | PgRowResult> {
         let { connection, sql, params, logger } = options;
         logger = logger || this.getLogger(false);
 
@@ -109,19 +109,19 @@ export class QueryAble {
                 pgUtils.postProcessResult(res.rows, res.fields, this.db.pgdbTypeParsers);
                 if (this.db.postProcessResult) this.db.postProcessResult(res.rows, res.fields, logger);
 
-                return options?.rowMode ? {columns: res.fields.map(f=>f.name), rows: res.rows} :res.rows;
+                return options?.rowMode ? { columns: (res.fields || []).map(f => f.name), rows: res.rows || [] } : res.rows;
             } else {
                 connection = await this.db.pool.connect();
                 logger.log('new connection', sql, util.inspect(params, false, null), connection.processID);
 
                 try {
-                    let res = await connection.query({ text: sql, values: params, rowMode: options?.rowMode ? 'array': undefined });
+                    let res = await connection.query({ text: sql, values: params, rowMode: options?.rowMode ? 'array' : undefined });
                     connection.release();
                     connection = null;
                     pgUtils.postProcessResult(res.rows, res.fields, this.db.pgdbTypeParsers);
                     if (this.db.postProcessResult) this.db.postProcessResult(res.rows, res.fields, logger);
 
-                    return options?.rowMode ? { columns: res.fields.map(f => f.name), rows: res.rows } : res.rows;
+                    return options?.rowMode ? { columns: (res.fields || []).map(f => f.name), rows: res.rows || [] } : res.rows;
                 } catch (e) {
                     pgUtils.logError(logger, { error: e, sql, params, connection });
                     try {
@@ -147,7 +147,7 @@ export class QueryAble {
     async queryAsRows(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<PgRowResult> {
         let connection = this.db.connection;
         let logger = (options && options.logger || this.getLogger(false));
-        return this.internalQuery({ connection, sql, params, logger, rowMode:true });
+        return this.internalQuery({ connection, sql, params, logger, rowMode: true });
     }
 
     /**
