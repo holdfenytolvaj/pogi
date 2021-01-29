@@ -39,7 +39,7 @@
     "@types/jasmine": "~2.5.35",
     "@types/node": "^11.15.7",
     "jasmine": "^3.5.0",
-    "semantic-release": "^8.2.0",
+    "semantic-release": "^17.2.3",
     "typescript": "^3.9.3"
   },
   "author": "Laszlo Radics<laszlo.radics@labcup.net>, Geza Radics<radicsge@protonmail.com>",
