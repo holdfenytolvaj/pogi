@@ -453,7 +453,7 @@ export class PgDb extends QueryAble {
                 let runStatement = () => {
                     //this.getLogger(true).log('commnads length', commands.length, i);
                     if (statementList.length == currentStatement) {
-                        resolve();
+                        resolve(undefined);
                     } else {
                         let statement = statementList[currentStatement++];
                         if (statementTransformerFunction) {

@@ -567,7 +567,7 @@ describe("pgdb", () => {
             stream.on('data', (c: any) => {
                 if (counter == 10) {
                     stream.emit('close', 'e');
-                    return resolve();
+                    return resolve(undefined);
                 }
                 counter++;
             });
@@ -630,7 +630,7 @@ describe("pgdb", () => {
             stream.on('data', (c: any) => {
                 if (counter == 2) {
                     stream.emit('close', 'e');
-                    return resolve();
+                    return resolve(undefined);
                 }
                 counter++;
             });
