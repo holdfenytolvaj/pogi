@@ -73,6 +73,6 @@ export declare class PgDb extends QueryAble {
     private listeners;
     listen(channel: string, callback: (notification: Notification) => void): Promise<void>;
     unlisten(channel: string, callback?: (Notification: any) => void): Promise<void>;
-    notify(channel: string, payload?: string): Promise<any>;
+    notify(channel: string, payload?: string): Promise<any[]>;
 }
 export default PgDb;

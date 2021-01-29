@@ -44,6 +44,11 @@ export interface ResultType {
     _getTypeParser: Function[]
 }
 
+export interface PgRowResult {
+    columns: string[],
+    rows: any[]
+}
+
 let defaultLogger = {
     log:   () => {}, 
     error: () => {}
@@ -85,7 +90,9 @@ export class QueryAble {
         return this.internalQuery({connection, sql, params, logger});
     }
 
-    protected async internalQuery(options: { connection, sql: string, params?: any, logger? }) {
+    protected async internalQuery(options: { connection, sql: string, params?: any, logger?}): Promise<any[]>;
+    protected async internalQuery(options: { connection, sql: string, params?: any, logger?, rowMode: true }): Promise<PgRowResult>;
+    protected async internalQuery(options: { connection, sql: string, params?: any, logger?, rowMode?:boolean }):Promise<any[]|PgRowResult> {
         let { connection, sql, params, logger } = options;
         logger = logger || this.getLogger(false);
 
@@ -98,23 +105,23 @@ export class QueryAble {
 
             if (connection) {
                 logger.log('reused connection', sql, util.inspect(params, false, null), connection.processID);
-                let res = await connection.query(sql, params);
+                let res = await connection.query({ text: sql, values: params, rowMode: options?.rowMode ? 'array' : undefined });
                 pgUtils.postProcessResult(res.rows, res.fields, this.db.pgdbTypeParsers);
                 if (this.db.postProcessResult) this.db.postProcessResult(res.rows, res.fields, logger);
 
-                return res.rows;
+                return options?.rowMode ? {columns: res.fields.map(f=>f.name), rows: res.rows} :res.rows;
             } else {
                 connection = await this.db.pool.connect();
                 logger.log('new connection', sql, util.inspect(params, false, null), connection.processID);
 
                 try {
-                    let res = await connection.query(sql, params);
+                    let res = await connection.query({ text: sql, values: params, rowMode: options?.rowMode ? 'array': undefined });
                     connection.release();
                     connection = null;
                     pgUtils.postProcessResult(res.rows, res.fields, this.db.pgdbTypeParsers);
                     if (this.db.postProcessResult) this.db.postProcessResult(res.rows, res.fields, logger);
 
-                    return res.rows;
+                    return options?.rowMode ? { columns: res.fields.map(f => f.name), rows: res.rows } : res.rows;
                 } catch (e) {
                     pgUtils.logError(logger, { error: e, sql, params, connection });
                     try {
@@ -131,6 +138,16 @@ export class QueryAble {
             pgUtils.logError(logger, { error: e, sql, params, connection });
             throw e;
         }
+    }
+
+    /**
+     * Same as query but response is two array: columns and rows and rows are arrays also not objects
+     * This is useful for queries which have colliding column names
+     */
+    async queryAsRows(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<PgRowResult> {
+        let connection = this.db.connection;
+        let logger = (options && options.logger || this.getLogger(false));
+        return this.internalQuery({ connection, sql, params, logger, rowMode:true });
     }
 
     /**

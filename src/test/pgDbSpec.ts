@@ -982,4 +982,13 @@ describe("pgdb", () => {
         expect(recs.length).toEqual(1);
     }));
 
+    it("Testing row mode", w(async () => {
+        await table.insert({ name: 'A', aCategory: 'A' });
+        let result = await table.queryAsRows(`select * from ${table}`);
+        expect(result.rows.length).toEqual(1);
+        expect(result.columns.includes('id'));
+        expect(result.columns.includes('name'));
+        expect(result.columns.includes('aCategory'));
+    }));
+
 });

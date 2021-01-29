@@ -122,14 +122,10 @@ export let pgUtils = {
             (param != null && fieldType == FieldType.TIME && !(param instanceof Date)) ? new Date(param) : param;
     },
 
-    postProcessResult(res: any[], fields: ResultFieldType[], pgdbTypeParsers: { [oid: number]: (string) => any }) {
+    postProcessResult(res: any[], fields: ResultFieldType[], pgdbTypeParsers: { [oid: number]: (s:string) => any }) {
         if (res) {
-            if (res[0]) {
-                let numberOfFields = 0;
-                for (let f in res[0]) {
-                    numberOfFields++;
-                }
-                if (numberOfFields != fields.length) {
+            if (res[0] && !Array.isArray(res[0])) {
+                if (Object.keys(res[0]).length != fields.length) {
                     throw Error("Name collision for the query, two or more fields have the same name.");
                 }
             }
@@ -137,12 +133,17 @@ export let pgUtils = {
         }
     },
 
-    convertTypes(res: any[], fields: ResultFieldType[], pgdbTypeParsers: { [oid: number]: (string) => any }) {
-        for (let field of fields) {
+    convertTypes(res: any[], fields: ResultFieldType[], pgdbTypeParsers: { [oid: number]: (s:string) => any }) {
+        let isArrayMode = Array.isArray(res[0]);
+        fields.forEach((field, i) => {
             if (pgdbTypeParsers[field.dataTypeID]) {
-                res.forEach(e => e[field.name] = e[field.name] == null ? null : pgdbTypeParsers[field.dataTypeID](e[field.name]));
+                if (isArrayMode) {
+                    res.forEach(e => e[i] = e[i] == null ? null : pgdbTypeParsers[field.dataTypeID](e[i]));
+                } else {
+                    res.forEach(e => e[field.name] = e[field.name] == null ? null : pgdbTypeParsers[field.dataTypeID](e[field.name]));
+                }
             }
-        }
+        });
     },
 
     createFunctionCaller(q: QueryAble, fn: { schema: string, name: string, return_single_row: boolean, return_single_value: boolean }) {

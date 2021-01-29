@@ -37,6 +37,10 @@ export interface ResultType {
     rowsAsArray: boolean;
     _getTypeParser: Function[];
 }
+export interface PgRowResult {
+    columns: string[];
+    rows: any[];
+}
 export declare class QueryAble {
     db: any;
     schema: any;
@@ -51,7 +55,15 @@ export declare class QueryAble {
         sql: string;
         params?: any;
         logger?: any;
-    }): Promise<any>;
+    }): Promise<any[]>;
+    protected internalQuery(options: {
+        connection: any;
+        sql: string;
+        params?: any;
+        logger?: any;
+        rowMode: true;
+    }): Promise<PgRowResult>;
+    queryAsRows(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<PgRowResult>;
     queryWithOnCursorCallback(sql: string, params: any[] | {}, options: SqlQueryOptions, callback: (any: any) => any): Promise<void>;
     queryAsStream(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<stream.Readable>;
     queryOne(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<any>;

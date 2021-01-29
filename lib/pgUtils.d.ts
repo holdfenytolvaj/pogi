@@ -17,10 +17,10 @@ export declare let pgUtils: {
     processQueryOptions(options: QueryOptions): string;
     transformInsertUpdateParams(param: any, fieldType: FieldType): any;
     postProcessResult(res: any[], fields: ResultFieldType[], pgdbTypeParsers: {
-        [oid: number]: (string: any) => any;
+        [oid: number]: (s: string) => any;
     }): void;
     convertTypes(res: any[], fields: ResultFieldType[], pgdbTypeParsers: {
-        [oid: number]: (string: any) => any;
+        [oid: number]: (s: string) => any;
     }): void;
     createFunctionCaller(q: QueryAble, fn: {
         schema: string;
