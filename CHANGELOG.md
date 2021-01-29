@@ -1,3 +1,21 @@
+## [2.10.1](https://github.com/holdfenytolvaj/pogi/compare/v2.10.0...v2.10.1) (2021-01-29)
+
+
+### Bug Fixes
+
+* Null pointer exception ([289e6f4](https://github.com/holdfenytolvaj/pogi/commit/289e6f4))
+
+
+
+# [2.10.0](https://github.com/holdfenytolvaj/pogi/compare/v2.9.2...v2.10.0) (2021-01-29)
+
+
+### Features
+
+* new query function queryAsRows which gives result as array instead of objects ([119aa73](https://github.com/holdfenytolvaj/pogi/commit/119aa73))
+
+
+
 # [2.10.0](https://github.com/holdfenytolvaj/pogi/compare/v2.9.2...v2.10.0) (2021-01-29)
 
 
