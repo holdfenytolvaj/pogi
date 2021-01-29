@@ -1,3 +1,12 @@
+# [2.10.0](https://github.com/holdfenytolvaj/pogi/compare/v2.9.2...v2.10.0) (2021-01-29)
+
+
+### Features
+
+* new query function queryAsRows which gives result as array instead of objects ([119aa73](https://github.com/holdfenytolvaj/pogi/commit/119aa73))
+
+
+
 ## [2.9.2](https://github.com/holdfenytolvaj/pogi/compare/v2.9.1...v2.9.2) (2020-06-13)
 
 ### Bug Fixes
