@@ -106,8 +106,8 @@ export class QueryAble {
             if (connection) {
                 logger.log('reused connection', sql, util.inspect(params, false, null), connection.processID);
                 let res = await connection.query({ text: sql, values: params, rowMode: options?.rowMode ? 'array' : undefined });
-                pgUtils.postProcessResult(res.rows, res.fields, this.db.pgdbTypeParsers);
-                if (this.db.postProcessResult) this.db.postProcessResult(res.rows, res.fields, logger);
+                await this.checkAndFixOids(connection, res.fields);
+                this.postProcessFields(res.rows, res.fields, logger);
 
                 return options?.rowMode ? { columns: (res.fields || []).map(f => f.name), rows: res.rows || [] } : res.rows;
             } else {
@@ -116,10 +116,10 @@ export class QueryAble {
 
                 try {
                     let res = await connection.query({ text: sql, values: params, rowMode: options?.rowMode ? 'array' : undefined });
+                    await this.checkAndFixOids(connection, res.fields);
                     connection.release();
                     connection = null;
-                    pgUtils.postProcessResult(res.rows, res.fields, this.db.pgdbTypeParsers);
-                    if (this.db.postProcessResult) this.db.postProcessResult(res.rows, res.fields, logger);
+                    this.postProcessFields(res.rows, res.fields, logger);
 
                     return options?.rowMode ? { columns: (res.fields || []).map(f => f.name), rows: res.rows || [] } : res.rows;
                 } catch (e) {
@@ -163,44 +163,52 @@ export class QueryAble {
                 params = p.params;
             }
 
-            if (connection) {
+            let queryInternal = async () => {
                 this.getLogger(false).log(sql, util.inspect(params, false, null), connection.processID);
+                let fieldsToFix: ResultFieldType[];
+                let isFirst = true;
+
                 let query = new QueryStream(sql, params);
                 let stream = connection.query(query);
                 await new Promise((resolve, reject) => {
                     stream.on('data', (res) => {
                         try {
                             let fields = stream._result && stream._result.fields || stream.cursor._result && stream.cursor._result.fields;
-                            pgUtils.postProcessResult([res], fields, this.db.pgdbTypeParsers);
-                            if (this.db.postProcessResult) this.db.postProcessResult([res], fields, this.getLogger(false));
+                            if (isFirst) {
+                                if (this.hasUnknownOids(fields)) {
+                                    fieldsToFix = fields;
+                                    stream.destroy();
+                                    return;
+                                }
+                                isFirst = false;
+                            }
+                            this.postProcessFields([res], fields, this.getLogger(false));
 
                             if (callback(res)) {
-                                stream.emit('close');
+                                stream.destroy();
                             }
                         } catch (e) {
                             reject(e);
                         }
                     });
 
-                    stream.on('end', resolve);
+                    stream.on('end', v => {
+                        resolve(v);
+                    });
                     stream.on('error', reject);
                 });
-
-            } else {
-                try {
-                    connection = await this.db.pool.connect();
-                    this.getLogger(false).log(sql, util.inspect(params, false, null), connection.processID);
-                    let query = new QueryStream(sql, params);
-                    let stream = connection.query(query);
+                if (fieldsToFix) {
+                    await this.checkAndFixOids(connection, fieldsToFix);
+                    query = new QueryStream(sql, params);
+                    stream = connection.query(query);
                     await new Promise((resolve, reject) => {
                         stream.on('data', (res) => {
                             try {
                                 let fields = stream._result && stream._result.fields || stream.cursor._result && stream.cursor._result.fields;
-                                pgUtils.postProcessResult([res], fields, this.db.pgdbTypeParsers);
-                                if (this.db.postProcessResult) this.db.postProcessResult([res], fields, this.getLogger(false));
+                                this.postProcessFields([res], fields, this.getLogger(false));
 
                                 if (callback(res)) {
-                                    stream.emit('close');
+                                    stream.destroy();
                                 }
                             } catch (e) {
                                 reject(e);
@@ -210,6 +218,15 @@ export class QueryAble {
                         stream.on('end', resolve);
                         stream.on('error', reject);
                     });
+                }
+            }
+
+            if (connection) {
+                await queryInternal();
+            } else {
+                try {
+                    connection = await this.db.pool.connect();
+                    await queryInternal();
                 } finally {
                     try {
                         connection.release();
@@ -229,12 +246,18 @@ export class QueryAble {
         let connection = this.db.connection;
         let logger = (options && options.logger || this.getLogger(false));
         let pgStream;
-        let pgdb = this.db;
+        let queriable = this;
+        let isFirst = true;
         let convertTypeFilter = through(function (data) {
             try {
                 let fields = pgStream._result && pgStream._result.fields || pgStream.cursor._result && pgStream.cursor._result.fields;
-                pgUtils.postProcessResult([data], fields, pgdb.pgdbTypeParsers);
-                if (pgdb.postProcessResult) pgdb.postProcessResult([data], fields, logger);
+                if (isFirst) {
+                    if (queriable.hasUnknownOids(fields)) {
+                        throw new Error('[337] Query returns fields with unknown oid.');
+                    }
+                    isFirst = false;
+                }
+                queriable.postProcessFields([data], fields, queriable.db.pgdbTypeParsers);
 
                 this.emit('data', data);
             } catch (err) {
@@ -319,5 +342,23 @@ export class QueryAble {
         }
         let fieldName = Object.keys(res[0])[0];
         return res.map(r => r[fieldName]);
+    }
+
+    private postProcessFields(rows: any[], fields: ResultFieldType[], logger) {
+        pgUtils.postProcessResult(rows, fields, this.db.pgdbTypeParsers);
+        if (this.db.postProcessResult) this.db.postProcessResult(rows, fields, logger);
+    }
+
+    private async checkAndFixOids(connection, fields: ResultFieldType[]) {
+        if (fields) {
+            let oidList = fields.map(field => field.dataTypeID);
+            return this.db.resetMissingParsers(connection, oidList);
+        }
+    }
+
+    private hasUnknownOids(fields: ResultFieldType[]): boolean {
+        let oidList = fields.map(field => field.dataTypeID);
+        let unknownOids = oidList.filter(oid => !this.db.knownOids[oid]);
+        return !!unknownOids.length;
     }
 }

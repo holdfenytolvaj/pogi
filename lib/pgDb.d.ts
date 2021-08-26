@@ -42,6 +42,7 @@ export declare class PgDb extends QueryAble {
     };
     [name: string]: any | PgSchema;
     pgdbTypeParsers: {};
+    knownOids: Record<number, boolean>;
     postProcessResult: PostProcessResultFunc;
     private constructor();
     setPostProcessResult(f: (res: any[], fields: ResultFieldType[], logger: PgDbLogger) => void): void;
@@ -55,6 +56,7 @@ export declare class PgDb extends QueryAble {
     private initFieldTypes;
     setTypeParser(typeName: string, parser: (string: any) => any, schemaName?: string): Promise<void>;
     setPgDbTypeParser(typeName: string, parser: (string: any) => any, schemaName?: string): Promise<void>;
+    resetMissingParsers(connection: any, oidList: number[]): Promise<void>;
     dedicatedConnectionBegin(): Promise<PgDb>;
     dedicatedConnectionEnd(): Promise<PgDb>;
     savePoint(name: string): Promise<PgDb>;

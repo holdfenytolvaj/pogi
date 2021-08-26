@@ -70,4 +70,7 @@ export declare class QueryAble {
     queryFirst(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<any>;
     queryOneField(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<any>;
     queryOneColumn(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<any[]>;
+    private postProcessFields;
+    private checkAndFixOids;
+    private hasUnknownOids;
 }

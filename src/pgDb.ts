@@ -7,8 +7,8 @@ import * as _ from 'lodash';
 import * as pg from 'pg';
 import * as readline from 'readline';
 import * as fs from 'fs';
-import {PgDbLogger} from './pgDbLogger';
-import {ConnectionOptions} from './connectionOptions';
+import { PgDbLogger } from './pgDbLogger';
+import { ConnectionOptions } from './connectionOptions';
 import * as EventEmitter from 'events';
 
 const CONNECTION_URL_REGEXP = /^postgres:\/\/(?:([^:]+)(?::([^@]*))?@)?([^\/:]+)?(?::([^\/]+))?\/(.*)$/;
@@ -104,15 +104,18 @@ export class PgDb extends QueryAble {
     /* protected */
     pgdbTypeParsers = {};
     /* protected */
+    knownOids: Record<number, boolean> = {};
+    /* protected */
     postProcessResult: PostProcessResultFunc;
 
-    private constructor(pgdb: { defaultSchemas?, config?, schemas?, pool?, pgdbTypeParsers?, getLogger?: () => any, postProcessResult?: PostProcessResultFunc } = {}) {
+    private constructor(pgdb: { defaultSchemas?, config?, schemas?, pool?, pgdbTypeParsers?, knownOids?, getLogger?: () => any, postProcessResult?: PostProcessResultFunc } = {}) {
         super();
         this.schemas = {};
         this.config = pgdb.config;
         this.pool = pgdb.pool;
         this.postProcessResult = pgdb.postProcessResult;
         this.pgdbTypeParsers = pgdb.pgdbTypeParsers || {};
+        this.knownOids = pgdb.knownOids || {};
         this.db = this;
         if (pgdb.getLogger) {
             this.setLogger(pgdb.getLogger());
@@ -213,7 +216,7 @@ export class PgDb extends QueryAble {
         let schemasAndTables = await this.query(LIST_SCHEMAS_TABLES);
         let functions = await this.query(GET_SCHEMAS_PROCEDURES);
 
-        this.defaultSchemas = PgConverters.arraySplit(await this.queryOneField(GET_CURRENT_SCHEMAS));
+        this.defaultSchemas = await this.queryOneField(GET_CURRENT_SCHEMAS);
 
         let oldSchemaNames = Object.keys(this.schemas);
         for (let sc of oldSchemaNames) {
@@ -260,8 +263,8 @@ export class PgDb extends QueryAble {
 
     private async initFieldTypes() {
         //--- init field types -------------------------------------------
-        let schemaNames =  "'" + Object.keys(this.schemas).join("', '") + "'";
-        if (schemaNames=="''") {
+        let schemaNames = "'" + Object.keys(this.schemas).join("', '") + "'";
+        if (schemaNames == "''") {
             this.getLogger(true).error("No readable schema found!");
             return;
         }
@@ -278,8 +281,62 @@ export class PgDb extends QueryAble {
             }
         }
 
+        // https://web.archive.org/web/20160613215445/https://doxygen.postgresql.org/include_2catalog_2pg__type_8h_source.html
+        // https://github.com/lib/pq/blob/master/oid/types.go
+
+        let builtInArrayTypeParsers: { oidList: number[], parser: (string) => any }[] = [
+            {
+                oidList: [
+                    1000 // bool[]
+                ],
+                parser: PgConverters.arraySplitToBool
+            },
+            {
+                oidList: [
+                    1005, // smallInt[] int2[] 
+                    1007, // integer[]  int4[]
+                    1021  // real[] float4[]
+                ],
+                parser: PgConverters.arraySplitToNum
+            },
+            {
+                oidList: [
+                    1009, // text[]
+                    1015  // varchar[]
+                ],
+                parser: PgConverters.arraySplit
+            },
+            {
+                oidList: [
+                    199, // json[]
+                    3807 // jsonb[]
+                ],
+                parser: PgConverters.arraySplitToJson
+            },
+            {
+                oidList: [
+                    1115, // timestamp[]
+                    1182, // date[]
+                    1183, // time[]
+                    1185, // timestamptz[]
+                    1270  // timetz[]
+                ],
+                parser: PgConverters.arraySplitToDate
+            }
+        ];
+
+        builtInArrayTypeParsers.forEach(parserObj => {
+            parserObj.oidList.forEach(oid => {
+                pg.types.setTypeParser(oid, parserObj.parser);
+                delete this.pgdbTypeParsers[oid];
+                this.knownOids[oid] = true;
+            });
+        });
+
         for (let r of specialTypeFields) {
-            // https://doxygen.postgresql.org/include_2catalog_2pg__type_8h_source.html
+            if (this.knownOids[r.typid] && !this.pgdbTypeParsers[r.typid]) {
+                continue;
+            }
             switch (r.typid) {
                 case 114:  // json
                 case 3802: // jsonb
@@ -290,32 +347,15 @@ export class PgDb extends QueryAble {
                 case 1266: // timetz
                 case 3614: // tsvector
                     break;
-                case 1005: // smallInt[] int2[]
-                case 1007: // integer[]  int4[]
-                case 1021: // real[] float4[]
-                    pg.types.setTypeParser(r.typid, PgConverters.arraySplitToNum);
-                    break;
-                case 1009: // text[]
-                case 1015: // varchar[]
-                    pg.types.setTypeParser(r.typid, PgConverters.arraySplit);
-                    break;
-                case 3807:
-                    pg.types.setTypeParser(r.typid, PgConverters.arraySplitToJson);
-                    break;
                 case 1016: // bigInt[] int8[]
                 case 1022: // double[] float8[]
                     //pg.types.setTypeParser(r.typid, arraySplitToNumWithValidation);
-                    break;
-                case 1115: // timestamp[]
-                case 1182: // date[]
-                case 1183: // time[]
-                case 1185: // timestamptz[]
-                case 1270: // timetz[]
-                    pg.types.setTypeParser(r.typid, PgConverters.arraySplitToDate);
+                    //delete this.pgdbTypeParsers[r.typid];
                     break;
                 default:
                     //best guess otherwise user need to specify
                     pg.types.setTypeParser(r.typid, PgConverters.arraySplit);
+                    delete this.pgdbTypeParsers[r.typid];
             }
         }
 
@@ -324,6 +364,18 @@ export class PgDb extends QueryAble {
         await this.setPgDbTypeParser('float8', PgConverters.numWithValidation); //float8 - 701
         await this.setPgDbTypeParser('_int8', PgConverters.stringArrayToNumWithValidation);
         await this.setPgDbTypeParser('_float8', PgConverters.stringArrayToNumWithValidation);
+
+        let allUsedTypeFields = await this.queryOneColumn(`
+            SELECT a.atttypid as typid
+            FROM pg_attribute a
+                JOIN pg_class b ON (a.attrelid = b.oid)
+                JOIN pg_type t ON (a.atttypid = t.oid)
+                JOIN pg_namespace c ON (b.relnamespace=c.oid)
+            WHERE
+                reltype>0 AND
+                c.nspname in (${schemaNames})`
+        );
+        allUsedTypeFields.forEach(oid => this.knownOids[oid] = true);
     }
 
     /**
@@ -335,11 +387,13 @@ export class PgDb extends QueryAble {
                 let oid = await this.queryOneField(GET_OID_FOR_COLUMN_TYPE_FOR_SCHEMA, { typeName, schemaName });
                 pg.types.setTypeParser(oid, parser);
                 delete this.pgdbTypeParsers[oid];
+                this.knownOids[oid] = true;
             } else {
                 let list = await this.queryOneColumn(GET_OID_FOR_COLUMN_TYPE, { typeName });
                 list.forEach(oid => {
                     pg.types.setTypeParser(oid, parser);
                     delete this.pgdbTypeParsers[oid];
+                    this.knownOids[oid] = true;
                 });
             }
         } catch (e) {
@@ -352,12 +406,33 @@ export class PgDb extends QueryAble {
             if (schemaName) {
                 let oid = await this.queryOneField(GET_OID_FOR_COLUMN_TYPE_FOR_SCHEMA, { typeName, schemaName });
                 this.pgdbTypeParsers[oid] = parser;
+                this.knownOids[oid] = true;
             } else {
                 let list = await this.queryOneColumn(GET_OID_FOR_COLUMN_TYPE, { typeName });
-                list.forEach(oid => this.pgdbTypeParsers[oid] = parser);
+                list.forEach(oid => {
+                    this.pgdbTypeParsers[oid] = parser;
+                    this.knownOids[oid] = true;
+                });
             }
         } catch (e) {
             throw Error('Not existing type: ' + typeName);
+        }
+    }
+
+    async resetMissingParsers(connection, oidList: number[]): Promise<void> {
+        let unknownOids = oidList.filter(oid => !this.knownOids[oid]);
+        if (unknownOids.length) {
+            let fieldsData = await connection.query(
+                `select oid, typcategory from pg_type where oid = ANY($1)`,
+                [unknownOids]
+            );
+
+            fieldsData.rows.forEach(fieldData => {
+                if (fieldData.typcategory == 'A') {
+                    this.pgdbTypeParsers[fieldData.oid] = PgConverters.arraySplit;
+                }
+                this.knownOids[fieldData.oid] = true;
+            });
         }
     }
 
@@ -374,7 +449,7 @@ export class PgDb extends QueryAble {
         }
         return this;
     }
-    
+
     /** 
      * transaction save point
      * https://www.postgresql.org/docs/current/sql-savepoint.html 
@@ -403,7 +478,7 @@ export class PgDb extends QueryAble {
         return this;
     }
 
-    async transactionBegin(options?: { isolationLevel?: TranzactionIsolationLevel, deferrable?:boolean, readOnly?: boolean}): Promise<PgDb> {
+    async transactionBegin(options?: { isolationLevel?: TranzactionIsolationLevel, deferrable?: boolean, readOnly?: boolean }): Promise<PgDb> {
         let pgDb = this.connection ? this : await this.dedicatedConnectionBegin();
         let q = 'BEGIN'
         if (options?.isolationLevel) {
@@ -477,7 +552,7 @@ export class PgDb extends QueryAble {
             let statementList = [];
             let tmp = '', t: RegExpExecArray;
             let consumer;
-            let inQuotedString:string;
+            let inQuotedString: string;
             let rl = readline.createInterface({
                 input: fs.createReadStream(fileName),
                 terminal: false
@@ -592,7 +667,7 @@ export class PgDb extends QueryAble {
      * One connection will be dedicated for listening if there are any listeners.
      * When there is no other callback for a channel, LISTEN command is executed
      */
-    async listen(channel: string, callback: (notification:Notification) => void) {
+    async listen(channel: string, callback: (notification: Notification) => void) {
         if (!this.connectionForListen) {
             this.connectionForListen = await this.pool.connect();
             this.connectionForListen.on('notification', (notification: Notification) => this.listeners.emit(notification.channel, notification));
