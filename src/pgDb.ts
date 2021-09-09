@@ -441,7 +441,7 @@ export class PgDb extends QueryAble {
         }
         let pgDb = new PgDb(this);
         pgDb.connection = await this.pool.connect();
-        pgDb.connection.on('error', () => { });
+        pgDb.connection.on('error', () => { }); //When there is an error, then the actual called query will throw exception
         return pgDb;
     }
 
@@ -758,6 +758,9 @@ export class PgDb extends QueryAble {
     }
 
     async runRestartConnectionForListen(): Promise<Error> {
+        if (!this._needToRestartConnectionForListen) {
+            return null;
+        }
         let errorResult: Error = null;
         if (!this.restartConnectionForListen) {
             this.restartConnectionForListen = (async () => {
@@ -795,11 +798,20 @@ export class PgDb extends QueryAble {
         return this._needToRestartConnectionForListen;
     }
 
+    private async tryToFixConnectionForListenActively() {
+        await new Promise(r => setTimeout(r, 1000));
+        let error = await this.runRestartConnectionForListen();
+        if (error) {
+            await this.tryToFixConnectionForListenActively();
+        }
+    }
+
     private async initConnectionForListen() {
         this.connectionForListen = await this.pool.connect();
         this.connectionForListen.on('notification', (notification: Notification) => this.listeners.emit(notification.channel, notification));
         this.connectionForListen.on('error', (e) => {
             this._needToRestartConnectionForListen = true;
+            this.tryToFixConnectionForListenActively();
         });
     }
 }

@@ -1386,6 +1386,23 @@ let notifyTests: TestDescriptor[] = [
             isTrue(i == 1);
             await db.unlisten('newChannel'); //To empty the queue
         }
+    },
+    {
+        name: 'notification 11 - automatic notification restart...',
+        fn: async (db: PgDb, isTrue: (value: boolean) => void) => {
+            let i = 0;
+            let fn1 = (notif: Notification) => { i += +notif.payload };
+            await db.listen('newChannel', fn1);
+            await postgresOff();
+            await postgresOn();
+            await asyncWaitMs(3000);
+            let db2 = await PgDb.connect({});
+            await db2.notify('newChannel', '1');
+            await db2.close();
+            await asyncWaitMs(1000);
+            isTrue(i == 1);
+            await db.unlisten('newChannel'); //To empty the queue
+        }
     }
 ];
 

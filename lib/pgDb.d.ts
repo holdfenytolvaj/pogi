@@ -80,6 +80,7 @@ export declare class PgDb extends QueryAble {
     notify(channel: string, payload?: string): Promise<any[]>;
     runRestartConnectionForListen(): Promise<Error>;
     needToFixConnectionForListen(): boolean;
+    private tryToFixConnectionForListenActively;
     private initConnectionForListen;
 }
 export default PgDb;
