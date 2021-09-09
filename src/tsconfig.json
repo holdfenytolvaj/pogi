@@ -27,6 +27,7 @@
     "index.ts",
     "test/pgDbOperatorSpec.ts",
     "test/pgDbSpec.ts",
+    "test/pgServiceRestartTest.ts",
     "bin/generateInterface.ts"
   ]
 }

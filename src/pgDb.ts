@@ -90,7 +90,6 @@ export class PgDb extends QueryAble {
     pool;
     connection;
 
-    protected connectionForListen;
     /*protected*/
     config: ConnectionOptions;
     /*protected*/
@@ -173,7 +172,7 @@ export class PgDb extends QueryAble {
                 delete PgDb.instances[cs];
             }
         }
-        await this.pool.end();
+        await this.pool.end((err: Error) => { });
     }
 
     static async connect(config: ConnectionOptions): Promise<PgDb> {
@@ -437,14 +436,22 @@ export class PgDb extends QueryAble {
     }
 
     async dedicatedConnectionBegin(): Promise<PgDb> {
+        if (this.needToFixConnectionForListen()) {
+            await this.runRestartConnectionForListen();
+        }
         let pgDb = new PgDb(this);
         pgDb.connection = await this.pool.connect();
+        pgDb.connection.on('error', () => { });
         return pgDb;
     }
 
     async dedicatedConnectionEnd(): Promise<PgDb> {
         if (this.connection) {
-            await this.connection.release();
+            try {
+                await this.connection.release();
+            } catch (err) {
+                this.getLogger().error('Error while dedicated connection end.', err);
+            }
             this.connection = null;
         }
         return this;
@@ -661,6 +668,9 @@ export class PgDb extends QueryAble {
     }
 
     private listeners = new EventEmitter();
+    private connectionForListen;
+    private _needToRestartConnectionForListen = false;
+    private restartConnectionForListen: Promise<Error> = null;
 
     /** 
      * LISTEN to a channel for a NOTIFY (https://www.postgresql.org/docs/current/sql-listen.html)
@@ -668,14 +678,27 @@ export class PgDb extends QueryAble {
      * When there is no other callback for a channel, LISTEN command is executed
      */
     async listen(channel: string, callback: (notification: Notification) => void) {
-        if (!this.connectionForListen) {
-            this.connectionForListen = await this.pool.connect();
-            this.connectionForListen.on('notification', (notification: Notification) => this.listeners.emit(notification.channel, notification));
+        let restartConnectionError: Error = null;
+        if (this.needToFixConnectionForListen()) {
+            restartConnectionError = await this.runRestartConnectionForListen();
         }
-        if (!this.listeners.listenerCount(channel)) {
-            await this.connectionForListen.query('LISTEN ' + channel);
+        if (this.listeners.listenerCount(channel)) {
+            this.listeners.on(channel, callback);
+        } else {
+            if (restartConnectionError) {
+                throw restartConnectionError;
+            }
+            try {
+                if (!this.connectionForListen) {
+                    await this.initConnectionForListen();
+                }
+                await this.connectionForListen.query(`LISTEN "${channel}"`);
+            } catch (err) {
+                this._needToRestartConnectionForListen = true;
+                throw err;
+            }
+            this.listeners.on(channel, callback);
         }
-        this.listeners.on(channel, callback);
     }
 
     /**
@@ -684,24 +707,28 @@ export class PgDb extends QueryAble {
      * When all callback is removed from all channel, dedicated connection is released
      */
     async unlisten(channel: string, callback?: (Notification) => void) {
-        if (!this.connectionForListen) {
-            this.listeners.removeAllListeners();
-            return;
+        let restartConnectionError: Error = null;
+        if (this.needToFixConnectionForListen()) {
+            restartConnectionError = await this.runRestartConnectionForListen();
         }
-        if (callback) {
+        if (callback && this.listeners.listenerCount(channel) > 1) {
             this.listeners.removeListener(channel, callback);
         } else {
+            if (restartConnectionError) {
+                throw restartConnectionError;
+            }
+            try {
+                await this.internalQuery({ connection: this.connectionForListen, sql: `UNLISTEN "${channel}"` });
+                if (this.listeners.eventNames().length == 1) {
+                    this.connectionForListen.removeAllListeners('notification');
+                    this.connectionForListen.release();
+                    this.connectionForListen = null;
+                }
+            } catch (err) {
+                this._needToRestartConnectionForListen = true;
+                throw err;
+            }
             this.listeners.removeAllListeners(channel);
-        }
-
-        if (!this.listeners.listenerCount(channel)) {
-            await this.internalQuery({ connection: this.connectionForListen, sql: 'UNLISTEN ' + channel });
-        }
-        let allListeners = this.listeners.eventNames().reduce((sum, ename) => sum + this.listeners.listenerCount(ename), 0);
-        if (!allListeners && this.connectionForListen) {
-            this.connectionForListen.removeAllListeners('notification');
-            this.connectionForListen.release();
-            this.connectionForListen = null;
         }
     }
 
@@ -709,11 +736,71 @@ export class PgDb extends QueryAble {
      * Notify a channel (https://www.postgresql.org/docs/current/sql-notify.html)
      */
     async notify(channel: string, payload?: string) {
+        if (this.needToFixConnectionForListen()) {
+            let restartConnectionError = await this.runRestartConnectionForListen();
+            if (restartConnectionError) {
+                throw restartConnectionError;
+            }
+        }
+        let hasConnectionForListen = !!this.connectionForListen;
         let connection = this.connectionForListen || this.connection;
         //let sql = 'NOTIFY ' + channel + ', :payload';
         let sql = 'SELECT pg_notify(:channel, :payload)';
         let params = { channel, payload };
-        return this.internalQuery({ connection, sql, params });
+        try {
+            return this.internalQuery({ connection, sql, params });
+        } catch (err) {
+            if (hasConnectionForListen) {
+                this._needToRestartConnectionForListen = true;
+            }
+            throw err;
+        }
+    }
+
+    async runRestartConnectionForListen(): Promise<Error> {
+        let errorResult: Error = null;
+        if (!this.restartConnectionForListen) {
+            this.restartConnectionForListen = (async () => {
+                let eventNames = this.listeners.eventNames();
+                try {
+                    await this.connectionForListen.release();
+                } catch (e) {
+                }
+                this.connectionForListen = null;
+                let error: Error;
+                if (eventNames.length) {
+                    try {
+                        await this.initConnectionForListen();
+                        for (let channel of eventNames) {
+                            await this.connectionForListen.query(`LISTEN "${channel as string}"`);
+                        }
+                    } catch (err) {
+                        error = err;
+                    }
+                }
+                return error;
+            })();
+            errorResult = await this.restartConnectionForListen;
+            this.restartConnectionForListen = null;
+        } else {
+            errorResult = await this.restartConnectionForListen;
+        }
+        if (!errorResult) {
+            this._needToRestartConnectionForListen = false;
+        }
+        return errorResult;
+    }
+
+    needToFixConnectionForListen(): boolean {
+        return this._needToRestartConnectionForListen;
+    }
+
+    private async initConnectionForListen() {
+        this.connectionForListen = await this.pool.connect();
+        this.connectionForListen.on('notification', (notification: Notification) => this.listeners.emit(notification.channel, notification));
+        this.connectionForListen.on('error', (e) => {
+            this._needToRestartConnectionForListen = true;
+        });
     }
 }
 

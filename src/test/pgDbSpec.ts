@@ -1063,8 +1063,8 @@ describe("pgdb", () => {
     it("Testing output formats of enum types - query", w(async () => {
         let pgdbwt = await pgdb.transactionBegin();
 
+        await pgdbwt.run(`DROP TYPE IF EXISTS ${schema}.mood CASCADE`);
         await pgdbwt.run(`DROP TABLE IF EXISTS ${schema}."enumTable"`);
-        await pgdbwt.run(`DROP TYPE IF EXISTS ${schema}.mood`);
         await pgdbwt.run(`CREATE TYPE ${schema}.mood AS ENUM ('sad', 'ok', 'happy')`);
         await pgdbwt.run(`CREATE TABLE ${schema}."enumTable" (m ${schema}.mood NULL)`);
         await pgdbwt.reload();
@@ -1083,27 +1083,66 @@ describe("pgdb", () => {
         await pgdbwt.transactionRollback();
     }));
 
-    it("Testing output formats of enum types - queryWithOnCursorCallback", w(async () => {
+    it("Testing output formats of enum types - queryWithOnCursorCallback without stop", w(async () => {
         let pgdbwt = await pgdb.transactionBegin();
 
+        await pgdbwt.run(`DROP TYPE IF EXISTS ${schema}.mood CASCADE`);
         await pgdbwt.run(`DROP TABLE IF EXISTS ${schema}."enumTable"`);
-        await pgdbwt.run(`DROP TYPE IF EXISTS ${schema}.mood`);
         await pgdbwt.run(`CREATE TYPE ${schema}.mood AS ENUM ('sad', 'ok', 'happy')`);
         await pgdbwt.run(`CREATE TABLE ${schema}."enumTable" (m ${schema}.mood NULL)`);
         await pgdbwt.reload();
         let table = pgdbwt.schemas[schema].tables["enumTable"];
-        await table.insert({ m: 'sad' });
+        await table.insert([{ m: 'sad' }, { m: 'sad' }]);
+        let counter = 0;
         await table.queryWithOnCursorCallback(`select * from ${schema}."enumTable"`, [], {}, (data) => {
             expect(data.m).toEqual('sad');
+            ++counter;
         });
+        expect(counter).toEqual(2);
 
         await pgdbwt.run(`
             CREATE TYPE ${schema}.mood_new AS ENUM ('sad', 'ok', 'happy', 'other');
             ALTER TABLE ${schema}."enumTable" ALTER COLUMN m TYPE ${schema}.mood_new USING m::text::${schema}.mood_new;
         `);
+        counter = 0;
         await table.queryWithOnCursorCallback(`select * from ${schema}."enumTable"`, [], {}, (data) => {
             expect(data.m).toEqual('sad');
+            ++counter;
         });
+        expect(counter).toEqual(2);
+
+        await pgdbwt.transactionRollback();
+    }));
+
+    it("Testing output formats of enum types - queryWithOnCursorCallback with stop", w(async () => {
+        let pgdbwt = await pgdb.transactionBegin();
+
+        await pgdbwt.run(`DROP TYPE IF EXISTS ${schema}.mood CASCADE`);
+        await pgdbwt.run(`DROP TABLE IF EXISTS ${schema}."enumTable"`);
+        await pgdbwt.run(`CREATE TYPE ${schema}.mood AS ENUM ('sad', 'ok', 'happy')`);
+        await pgdbwt.run(`CREATE TABLE ${schema}."enumTable" (m ${schema}.mood NULL)`);
+        await pgdbwt.reload();
+        let table = pgdbwt.schemas[schema].tables["enumTable"];
+        await table.insert([{ m: 'sad' }, { m: 'sad' }]);
+        let counter = 0;
+        await table.queryWithOnCursorCallback(`select * from ${schema}."enumTable"`, [], {}, (data) => {
+            expect(data.m).toEqual('sad');
+            ++counter;
+            return true;
+        });
+        expect(counter).toEqual(1);
+
+        await pgdbwt.run(`
+            CREATE TYPE ${schema}.mood_new AS ENUM ('sad', 'ok', 'happy', 'other');
+            ALTER TABLE ${schema}."enumTable" ALTER COLUMN m TYPE ${schema}.mood_new USING m::text::${schema}.mood_new;
+        `);
+        counter = 0;
+        await table.queryWithOnCursorCallback(`select * from ${schema}."enumTable"`, [], {}, (data) => {
+            expect(data.m).toEqual('sad');
+            ++counter;
+            return true;
+        });
+        expect(counter).toEqual(1);
 
         await pgdbwt.transactionRollback();
     }));
@@ -1111,8 +1150,8 @@ describe("pgdb", () => {
     it("Testing output formats of enum types - queryAsStream", w(async () => {
         let pgdbwt = await pgdb.transactionBegin();
 
+        await pgdbwt.run(`DROP TYPE IF EXISTS ${schema}.mood CASCADE`);
         await pgdbwt.run(`DROP TABLE IF EXISTS ${schema}."enumTable"`);
-        await pgdbwt.run(`DROP TYPE IF EXISTS ${schema}.mood`);
         await pgdbwt.run(`CREATE TYPE ${schema}.mood AS ENUM ('sad', 'ok', 'happy')`);
         await pgdbwt.run(`CREATE TABLE ${schema}."enumTable" (m ${schema}.mood NULL)`);
         await pgdbwt.reload();
@@ -1149,8 +1188,8 @@ describe("pgdb", () => {
     it("Testing output formats of enum array types - query", w(async () => {
         let pgdbwt = await pgdb.transactionBegin();
 
+        await pgdbwt.run(`DROP TYPE IF EXISTS ${schema}.mood CASCADE`);
         await pgdbwt.run(`DROP TABLE IF EXISTS ${schema}."enumArrayTable"`);
-        await pgdbwt.run(`DROP TYPE IF EXISTS ${schema}.mood`);
         await pgdbwt.run(`CREATE TYPE ${schema}.mood AS ENUM ('sad', 'ok', 'happy')`);
         await pgdbwt.run(`CREATE TABLE ${schema}."enumArrayTable" (m ${schema}.mood[] NULL)`);
         await pgdbwt.reload();
@@ -1169,27 +1208,66 @@ describe("pgdb", () => {
         await pgdbwt.transactionRollback();
     }));
 
-    it("Testing output formats of enum array types - queryWithOnCursorCallback", w(async () => {
+    it("Testing output formats of enum array types - queryWithOnCursorCallback without stop", w(async () => {
         let pgdbwt = await pgdb.transactionBegin();
 
+        await pgdbwt.run(`DROP TYPE IF EXISTS ${schema}.mood CASCADE`);
         await pgdbwt.run(`DROP TABLE IF EXISTS ${schema}."enumArrayTable"`);
-        await pgdbwt.run(`DROP TYPE IF EXISTS ${schema}.mood`);
         await pgdbwt.run(`CREATE TYPE ${schema}.mood AS ENUM ('sad', 'ok', 'happy')`);
         await pgdbwt.run(`CREATE TABLE ${schema}."enumArrayTable" (m ${schema}.mood[] NULL)`);
         await pgdbwt.reload();
         let table = pgdbwt.schemas[schema].tables["enumArrayTable"];
-        await table.insert({ m: ['sad', 'ok'] });
+        await table.insert([{ m: ['sad', 'ok'] }, { m: ['sad', 'ok'] }]);
+        let counter = 0;
         await table.queryWithOnCursorCallback(`select * from ${schema}."enumArrayTable"`, [], {}, (data) => {
             expect(data.m).toEqual(['sad', 'ok']);
+            ++counter;
         });
+        expect(counter).toEqual(2);
 
         await pgdbwt.run(`
             CREATE TYPE ${schema}.mood_new AS ENUM ('sad', 'ok', 'happy', 'other');
             ALTER TABLE ${schema}."enumArrayTable" ALTER COLUMN m TYPE ${schema}.mood_new[] USING m::text[]::${schema}.mood_new[];
         `);
+        counter = 0;
         await table.queryWithOnCursorCallback(`select * from ${schema}."enumArrayTable"`, [], {}, (data) => {
             expect(data.m).toEqual(['sad', 'ok']);
+            ++counter;
         });
+        expect(counter).toEqual(2);
+
+        await pgdbwt.transactionRollback();
+    }));
+
+    it("Testing output formats of enum array types - queryWithOnCursorCallback with stop", w(async () => {
+        let pgdbwt = await pgdb.transactionBegin();
+
+        await pgdbwt.run(`DROP TYPE IF EXISTS ${schema}.mood CASCADE`);
+        await pgdbwt.run(`DROP TABLE IF EXISTS ${schema}."enumArrayTable"`);
+        await pgdbwt.run(`CREATE TYPE ${schema}.mood AS ENUM ('sad', 'ok', 'happy')`);
+        await pgdbwt.run(`CREATE TABLE ${schema}."enumArrayTable" (m ${schema}.mood[] NULL)`);
+        await pgdbwt.reload();
+        let table = pgdbwt.schemas[schema].tables["enumArrayTable"];
+        await table.insert([{ m: ['sad', 'ok'] }, { m: ['sad', 'ok'] }]);
+        let counter = 0;
+        await table.queryWithOnCursorCallback(`select * from ${schema}."enumArrayTable"`, [], {}, (data) => {
+            expect(data.m).toEqual(['sad', 'ok']);
+            ++counter;
+            return true;
+        });
+        expect(counter).toEqual(1);
+
+        await pgdbwt.run(`
+            CREATE TYPE ${schema}.mood_new AS ENUM ('sad', 'ok', 'happy', 'other');
+            ALTER TABLE ${schema}."enumArrayTable" ALTER COLUMN m TYPE ${schema}.mood_new[] USING m::text[]::${schema}.mood_new[];
+        `);
+        counter = 0;
+        await table.queryWithOnCursorCallback(`select * from ${schema}."enumArrayTable"`, [], {}, (data) => {
+            expect(data.m).toEqual(['sad', 'ok']);
+            ++counter;
+            return true;
+        });
+        expect(counter).toEqual(1);
 
         await pgdbwt.transactionRollback();
     }));
@@ -1197,8 +1275,8 @@ describe("pgdb", () => {
     it("Testing output formats of enum array types - queryAsStream", w(async () => {
         let pgdbwt = await pgdb.transactionBegin();
 
+        await pgdbwt.run(`DROP TYPE IF EXISTS ${schema}.mood CASCADE`);
         await pgdbwt.run(`DROP TABLE IF EXISTS ${schema}."enumArrayTable"`);
-        await pgdbwt.run(`DROP TYPE IF EXISTS ${schema}.mood`);
         await pgdbwt.run(`CREATE TYPE ${schema}.mood AS ENUM ('sad', 'ok', 'happy')`);
         await pgdbwt.run(`CREATE TABLE ${schema}."enumArrayTable" (m ${schema}.mood[] NULL)`);
         await pgdbwt.reload();
@@ -1235,8 +1313,8 @@ describe("pgdb", () => {
     it("Testing output formats of enum array types - query on view", w(async () => {
         let pgdbwt = await pgdb.transactionBegin();
 
+        await pgdbwt.run(`DROP TYPE IF EXISTS ${schema}.mood CASCADE`);
         await pgdbwt.run(`DROP TABLE IF EXISTS ${schema}."enumArrayTable"`);
-        await pgdbwt.run(`DROP TYPE IF EXISTS ${schema}.mood`);
         await pgdbwt.run(`CREATE TYPE ${schema}.mood AS ENUM ('sad', 'ok', 'happy')`);
         await pgdbwt.run(`CREATE TABLE ${schema}."enumArrayTable" (m ${schema}.mood[] NULL)`);
         await pgdbwt.run(`CREATE VIEW ${schema}."enumArrayTableView" as select m from ${schema}."enumArrayTable"`);

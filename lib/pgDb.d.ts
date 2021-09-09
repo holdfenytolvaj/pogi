@@ -27,7 +27,6 @@ export declare class PgDb extends QueryAble {
     };
     pool: any;
     connection: any;
-    protected connectionForListen: any;
     config: ConnectionOptions;
     defaultSchemas: any;
     db: any;
@@ -73,8 +72,14 @@ export declare class PgDb extends QueryAble {
     isTransactionActive(): boolean;
     execute(fileName: string, statementTransformerFunction?: (string: any) => string): Promise<void>;
     private listeners;
+    private connectionForListen;
+    private _needToRestartConnectionForListen;
+    private restartConnectionForListen;
     listen(channel: string, callback: (notification: Notification) => void): Promise<void>;
     unlisten(channel: string, callback?: (Notification: any) => void): Promise<void>;
     notify(channel: string, payload?: string): Promise<any[]>;
+    runRestartConnectionForListen(): Promise<Error>;
+    needToFixConnectionForListen(): boolean;
+    private initConnectionForListen;
 }
 export default PgDb;
