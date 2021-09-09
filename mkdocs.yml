@@ -12,6 +12,7 @@ pages:
 - Mapping database types : mappingDatabaseTypes.md
 - Transaction : transaction.md
 - Stream : streams.md
+- Notification : notification.md
 - FAQ : faq.md
 - Known pitfalls : pitfalls.md
 - API :
