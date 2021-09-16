@@ -196,9 +196,9 @@ For example see the [transaction](/transaction) section.
 ## listen
 <span class="def"><span class="func">listen</span>(channel:<span class="type">string</span>, callback:<span class="type">(Notification)=&gt;void)</span>;</>
 
-Creates a new dedicated connection for listeners (if it not exists), and sets a callback for the channel.
+Creates a new dedicated connection for listeners (if it doesn't exists), and sets a callback for the channel.
 It is possible to set multiple callbacks for one channel.
-If there will be a notification from the database, the callback will run.
+If there will be a notification from the database, the callback will be executed.
 For example see the [notification](/notification) section.
 
 ---

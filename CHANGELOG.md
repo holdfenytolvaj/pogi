@@ -1,3 +1,14 @@
+# [2.11.0](https://github.com/holdfenytolvaj/pogi/compare/v2.10.0...v2.11.0) (2021-09-16)
+
+### Features
+
+- documentation on postgres-notifications
+([427119b](https://github.com/holdfenytolvaj/pogi/commit/427119baa3ffd8a19dc5ba5084e08ab7e2a4c395))
+- automatic restart upon disconnected connection ([2bc777a](https://github.com/holdfenytolvaj/pogi/commit/2bc777ace4b88c2890b80e4090f3733137b89ef5))
+- automatic recognition of changed enum ([5af7146](https://github.com/holdfenytolvaj/pogi/commit/5af7146d727f0344e3411a2f9df1f02afbf998b2),[bfaedd5](https://github.com/holdfenytolvaj/pogi/commit/bfaedd5a10810623d27be010e338abe324155494))
+
+### Bug Fixes
+
 ## [2.10.2](https://github.com/holdfenytolvaj/pogi/compare/v2.10.0...v2.10.2) (2021-01-29)
 
 

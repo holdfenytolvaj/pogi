@@ -16,4 +16,4 @@ as simple as:
 See [Postgresql documentation](https://www.postgresql.org/docs/current/sql-notify.html)
 
 ## Some comments
-Notification listeners uses a dedicated connection. When the postgresql server restarts, some notifications will not be received, but the connection and the listeners will be re-created.
+Notification listeners uses a dedicated connection. If e.g. the postgresql server restarts, some notifications might not be received, but the connection and the listeners will be re-created.
