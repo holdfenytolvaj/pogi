@@ -191,3 +191,28 @@ For example see the [transaction](/transaction) section.
 If the PgDb instance has dedicated connection mode and has transaction it will rolls back, otherwise do nothing.
 Returns with PgDb instance (with pool connections mode) where no transaction is taking place.
 For example see the [transaction](/transaction) section. 
+
+---
+## listen
+<span class="def"><span class="func">listen</span>(channel:<span class="type">string</span>, callback:<span class="type">(Notification)=&gt;void)</span>;</>
+
+Creates a new dedicated connection for listeners (if it not exists), and sets a callback for the channel.
+It is possible to set multiple callbacks for one channel.
+If there will be a notification from the database, the callback will run.
+For example see the [notification](/notification) section.
+
+---
+## unlisten
+<span class="def"><span class="func">unlisten</span>(channel:<span class="type">string</span>, callback?:<span class="type">(Notification)=&gt;void)</span>;</>
+
+Removes a listener. If callback parameter is set, only the given callback will be removed.
+If callback parameter is not set, all callbacks will be removed from the channel.
+If it was the last channel, the dedicated connection for listeners will be released.
+For example see the [notification](/notification) section.
+
+---
+## notify
+<span class="def"><span class="func">notify</span>(channel:<span class="type">string</span>, payload?:<span class="type">string</span>;</>
+
+Send a notification via postgresql.
+For example see the [notification](/notification) section.

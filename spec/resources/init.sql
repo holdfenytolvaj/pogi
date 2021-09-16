@@ -6,6 +6,7 @@ DROP FUNCTION IF EXISTS increment();
 DROP VIEW IF EXISTS "users_view";
 DROP TABLE IF EXISTS "users";
 DROP TABLE IF EXISTS "groups";
+DROP TABLE IF EXISTS "types";
 -- drop sequences
 DROP SEQUENCE IF EXISTS "users_id_seq";
 -- drop types
@@ -55,6 +56,28 @@ CREATE TABLE IF NOT EXISTS "users" (
 	"updated" timestamp with time zone,
 	"created" timestamp,
 	"createdtz" timestamptz
+);
+
+CREATE TABLE IF NOT EXISTS "types" (
+	"text" varchar,
+	"int" integer,
+	"bigInt" bigInt,
+	"real" real,
+	"double" float8,
+	"bool" boolean,
+	"json" json,
+	"jsonB" jsonb,
+	"timestamptz" timestamptz,
+
+	"arrayText" varchar[],
+	"arrayInt" integer[],
+	"arrayBigInt" bigInt[],
+	"arrayReal" real[],
+	"arrayDouble" float8[],
+	"arrayBool" boolean[],
+	"arrayJson" json[],
+	"arrayJsonB" jsonb[],
+	"arrayTimestamptz" timestamptz[]
 );
 
 

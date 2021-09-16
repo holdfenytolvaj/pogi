@@ -1,6 +1,6 @@
 /// <reference types="jasmine"/>
-import {PgDb} from "../pgDb";
-import {PgTable} from "../pgTable";
+import { PgDb } from "../pgDb";
+import { PgTable } from "../pgTable";
 import * as _ from 'lodash';
 
 const util = require('util');
@@ -71,6 +71,7 @@ describe("pgdb", () => {
     let hiddenSchema = 'pgdb_test_hidden';
     let table: PgTable<any>;
     let tableGroups: PgTable<any>;
+    let tableTypes: PgTable<any>;
 
     beforeAll(w(async () => {
         /**
@@ -82,7 +83,7 @@ describe("pgdb", () => {
          * etc...
          */
         try {
-            pgdb = await PgDb.connect({connectionString: "postgres://"});
+            pgdb = await PgDb.connect({ connectionString: "postgres://" });
         } catch (e) {
             console.error("connection failed! Are you specified PGUSER/PGDATABASE/PGPASSWORD correctly?");
             process.exit(1);
@@ -104,11 +105,13 @@ describe("pgdb", () => {
         pgdb.setLogger(console);
         table = pgdb.schemas[schema]['users'];
         tableGroups = pgdb.schemas[schema]['groups'];
+        tableTypes = pgdb.schemas[schema]['types'];
     }));
 
     beforeEach(w(async () => {
         await table.delete({});
         await tableGroups.delete({});
+        await tableTypes.delete({});
     }));
 
     afterEach(w(async () => {
@@ -119,7 +122,7 @@ describe("pgdb", () => {
     }));
 
     it("Exception on name collision", w(async () => {
-        await table.insert({name: 'A'});
+        await table.insert({ name: 'A' });
         try {
             await pgdb.query(`select u1.id, u2.id from ${table} u1 left join ${table} u2 ON true `);
             expect(false).toBeTruthy();
@@ -143,7 +146,7 @@ describe("pgdb", () => {
                 '(,)',
                 '(write,null)'],
         });
-        let pf = await table.findOne({name: 'Piszkos Fred'});
+        let pf = await table.findOne({ name: 'Piszkos Fred' });
         expect(pf.permission).toEqual(['read', 'book']);
         expect(pf.permissionList[0]).toEqual(['admin', 'chaos j ()",""j ,']);
         expect(pf.permissionList[1]).toEqual(['write', 'book']);
@@ -171,151 +174,151 @@ describe("pgdb", () => {
             `SELECT to_json(permission) perjson, to_json("permissionList") perlistjson
              FROM ${table}
              WHERE name='Elveszett cirkalo' `);
-        expect(res[0].perjson).toEqual({permission: 'read', resource: 'book'});
+        expect(res[0].perjson).toEqual({ permission: 'read', resource: 'book' });
         expect(res[0].perlistjson).toEqual([
-            {permission: 'admin', resource: 'chaos j ()",""j ,'},
-            {permission: 'write', resource: 'book'},
-            {permission: 'write', resource: null},
-            {permission: null, resource: ''},
-            {permission: null, resource: null},
-            {permission: 'write', resource: 'null'}
+            { permission: 'admin', resource: 'chaos j ()",""j ,' },
+            { permission: 'write', resource: 'book' },
+            { permission: 'write', resource: null },
+            { permission: null, resource: '' },
+            { permission: null, resource: null },
+            { permission: 'write', resource: 'null' }
         ]);
     }));
 
     it("List for a non array column in the condition should be converted to 'IN Array'", w(async () => {
-        await table.insert({name: 'Fulig Jimmy', favourites: ['sport']});
-        await table.insert({name: 'Vanek ur', favourites: ['sport', 'food']});
-        await table.insert({name: 'Gorcsev Ivan', favourites: ['tech', 'food']});
+        await table.insert({ name: 'Fulig Jimmy', favourites: ['sport'] });
+        await table.insert({ name: 'Vanek ur', favourites: ['sport', 'food'] });
+        await table.insert({ name: 'Gorcsev Ivan', favourites: ['tech', 'food'] });
 
         let res1 = await table.findAll();
-        let res2 = await table.find({id: res1.map(e => e.id)});
+        let res2 = await table.find({ id: res1.map(e => e.id) });
         expect(res1.map(c => c.id)).toEqual(res2.map(c => c.id));
     }));
 
     it("Testing where function", w(async () => {
-        await table.insert({name: 'Fulig Jimmy', favourites: ['sport']});
-        await table.insert({name: 'Vanek ur', favourites: ['sport', 'food']});
-        await table.insert({name: 'Gorcsev Ivan', favourites: ['tech', 'food', 'sport']});
+        await table.insert({ name: 'Fulig Jimmy', favourites: ['sport'] });
+        await table.insert({ name: 'Vanek ur', favourites: ['sport', 'food'] });
+        await table.insert({ name: 'Gorcsev Ivan', favourites: ['tech', 'food', 'sport'] });
 
-        let res = await table.findWhere(':fav = ANY("favourites")', {fav: 'sport'});
+        let res = await table.findWhere(':fav = ANY("favourites")', { fav: 'sport' });
         expect(res.length).toEqual(3);
-        res = await table.findWhere(':fav = ANY("favourites")', {fav: 'food'});
+        res = await table.findWhere(':fav = ANY("favourites")', { fav: 'food' });
         expect(res.length).toEqual(2);
-        res = await table.findWhere(':fav = ANY("favourites")', {fav: 'tech'});
+        res = await table.findWhere(':fav = ANY("favourites")', { fav: 'tech' });
         expect(res.length).toEqual(1);
     }));
 
     it("Upsert - with column names", w(async () => {
-        await table.upsert({name: 'Fulig Jimmy', textList: ['hiking']}, {columns: ['name']});
-        let res = await table.findWhere(':fav = ANY("textList")', {fav: 'hiking'});
+        await table.upsert({ name: 'Fulig Jimmy', textList: ['hiking'] }, { columns: ['name'] });
+        let res = await table.findWhere(':fav = ANY("textList")', { fav: 'hiking' });
         expect(res.length).toEqual(1);
-        
-        await table.upsert({name: 'Fulig Jimmy', textList: ['biking']}, {columns: ['name']});
-        res = await table.findWhere(':fav = ANY("textList")', {fav: 'hiking'});
+
+        await table.upsert({ name: 'Fulig Jimmy', textList: ['biking'] }, { columns: ['name'] });
+        res = await table.findWhere(':fav = ANY("textList")', { fav: 'hiking' });
         expect(res.length).toEqual(0);
 
-        res = await table.findWhere(':fav = ANY("textList")', {fav: 'biking'});
+        res = await table.findWhere(':fav = ANY("textList")', { fav: 'biking' });
         expect(res.length).toEqual(1);
     }));
 
     it("Upsert - with primary key", w(async () => {
-        await table.upsert({id: 1, name: 'Fulig Jimmy', textList: ['hiking']});
-        let res = await table.findWhere(':fav = ANY("textList")', {fav: 'hiking'});
+        await table.upsert({ id: 1, name: 'Fulig Jimmy', textList: ['hiking'] });
+        let res = await table.findWhere(':fav = ANY("textList")', { fav: 'hiking' });
         expect(res.length).toEqual(1);
-        
-        await table.upsert({id: 1, name: 'Fulig Jimmy', textList: ['biking']});
-        res = await table.findWhere(':fav = ANY("textList")', {fav: 'hiking'});
+
+        await table.upsert({ id: 1, name: 'Fulig Jimmy', textList: ['biking'] });
+        res = await table.findWhere(':fav = ANY("textList")', { fav: 'hiking' });
         expect(res.length).toEqual(0);
 
-        res = await table.findWhere(':fav = ANY("textList")', {fav: 'biking'});
+        res = await table.findWhere(':fav = ANY("textList")', { fav: 'biking' });
         expect(res.length).toEqual(1);
     }));
 
     it("Upsert - with constraint name", w(async () => {
-        await table.upsert({name: 'Fulig Jimmy', textList: ['hiking']}, {constraint: "users_name_key"});
-        let res = await table.findWhere(':fav = ANY("textList")', {fav: 'hiking'});
+        await table.upsert({ name: 'Fulig Jimmy', textList: ['hiking'] }, { constraint: "users_name_key" });
+        let res = await table.findWhere(':fav = ANY("textList")', { fav: 'hiking' });
         expect(res.length).toEqual(1);
-        
-        await table.upsert({name: 'Fulig Jimmy', textList: ['biking']}, {constraint: "users_name_key"});
-        res = await table.findWhere(':fav = ANY("textList")', {fav: 'hiking'});
+
+        await table.upsert({ name: 'Fulig Jimmy', textList: ['biking'] }, { constraint: "users_name_key" });
+        res = await table.findWhere(':fav = ANY("textList")', { fav: 'hiking' });
         expect(res.length).toEqual(0);
 
-        res = await table.findWhere(':fav = ANY("textList")', {fav: 'biking'});
+        res = await table.findWhere(':fav = ANY("textList")', { fav: 'biking' });
         expect(res.length).toEqual(1);
     }));
 
     it("UpsertAndGet - with constraint name", w(async () => {
-        let res = await table.upsertAndGet({name: 'Fulig Jimmy', textList: ['hiking']}, {constraint: "users_name_key"});
+        let res = await table.upsertAndGet({ name: 'Fulig Jimmy', textList: ['hiking'] }, { constraint: "users_name_key" });
         expect(res.textList).toEqual(['hiking']);
-        
-        res = await table.upsertAndGet({name: 'Fulig Jimmy', textList: ['biking']}, {constraint: "users_name_key"});
+
+        res = await table.upsertAndGet({ name: 'Fulig Jimmy', textList: ['biking'] }, { constraint: "users_name_key" });
         expect(res.textList).toEqual(['biking']);
     }));
 
     it("Ignore field with undefined value if requested, but keep with null value", w(async () => {
-        await table.insert({name: 'A', numberList: [1, 2]});
+        await table.insert({ name: 'A', numberList: [1, 2] });
 
-        let res = await table.find({name: undefined}, {skipUndefined: true});
+        let res = await table.find({ name: undefined }, { skipUndefined: true });
         expect(res.length).toEqual(1);
 
-        res = await table.find({name: null}, {skipUndefined: true});
+        res = await table.find({ name: null }, { skipUndefined: true });
         expect(res.length).toEqual(0);
 
-        let res2 = await table.updateAndGetOne({name: 'A'}, {
+        let res2 = await table.updateAndGetOne({ name: 'A' }, {
             numberList: undefined,
             favourites: ['sport']
-        }, {skipUndefined: true});
+        }, { skipUndefined: true });
         expect(res2.numberList).toEqual([1, 2]);
 
         res2 = await table.updateAndGetOne({
             name: 'A',
             numberList: undefined
-        }, {numberList: null}, {skipUndefined: true});
+        }, { numberList: null }, { skipUndefined: true });
         expect(res2.numberList).toEqual(null);
     }));
 
     it("Test return only column values ", w(async () => {
-        await table.insert({name: 'A', membership: 'gold'});
-        await table.insert({name: 'B', membership: 'gold'});
-        await table.insert({name: 'C', membership: 'bronze'});
+        await table.insert({ name: 'A', membership: 'gold' });
+        await table.insert({ name: 'B', membership: 'gold' });
+        await table.insert({ name: 'C', membership: 'bronze' });
 
         let res1 = await table.queryOneColumn("SELECT name || '_' || membership FROM " + table + " WHERE LENGTH(name)=1");
         expect(res1).toEqual(['A_gold', 'B_gold', 'C_bronze']);
     }));
 
     it("Test count ", w(async () => {
-        await table.insert({name: 'A', membership: 'gold'});
-        await table.insert({name: 'B', membership: 'gold'});
-        await table.insert({name: 'C', membership: 'bronze'});
+        await table.insert({ name: 'A', membership: 'gold' });
+        await table.insert({ name: 'B', membership: 'gold' });
+        await table.insert({ name: 'C', membership: 'bronze' });
 
-        let res1 = await table.count({membership: 'gold'});
+        let res1 = await table.count({ membership: 'gold' });
         expect(res1).toEqual(2);
     }));
 
     it("Test AND - OR ", w(async () => {
-        await table.insert({name: 'A', membership: 'gold', favourites: ['sport']});
+        await table.insert({ name: 'A', membership: 'gold', favourites: ['sport'] });
         await table.insert([
-            {name: 'BC', membership: 'gold', favourites: ['sport']},
-            {name: 'D', membership: 'bronze', favourites: ['tech']},
-            {name: 'E', membership: 'bronze', favourites: ['tech', 'food']}
+            { name: 'BC', membership: 'gold', favourites: ['sport'] },
+            { name: 'D', membership: 'bronze', favourites: ['tech'] },
+            { name: 'E', membership: 'bronze', favourites: ['tech', 'food'] }
         ]);
 
         let res;
-        res = await table.find({'membership': "bronze", or: [{'name': 'BC'}, {favourites: 'food', name: 'E'}]});
+        res = await table.find({ 'membership': "bronze", or: [{ 'name': 'BC' }, { favourites: 'food', name: 'E' }] });
         expect(res.length).toEqual(1);
 
-        res = await table.find({name: 'A'});
+        res = await table.find({ name: 'A' });
         res = await table.count({
             and: [
-                {or: [{name: ['A', 'BC']}, {'updated >': res[0].updated}]},
-                {or: [{membership: 'bronze'}, {'favourites @>': ['food']}]}
+                { or: [{ name: ['A', 'BC'] }, { 'updated >': res[0].updated }] },
+                { or: [{ membership: 'bronze' }, { 'favourites @>': ['food'] }] }
             ]
         });
         expect(res).toEqual(2);
     }));
 
     it("Test insert with switched fields", w(async () => {
-        await table.insert([{name: 'A', membership: 'gold'}, {membership: 'gold', name: 'B'}]);
+        await table.insert([{ name: 'A', membership: 'gold' }, { membership: 'gold', name: 'B' }]);
 
         let res = await pgdb.query("SELECT count(*) FROM :!schema.:!table WHERE membership = :membership", {
             schema: schema,
@@ -326,9 +329,9 @@ describe("pgdb", () => {
     }));
 
     it("Test named parameters ", w(async () => {
-        await table.insert({name: 'A', membership: 'gold'});
-        await table.insert({name: 'B', membership: 'gold'});
-        await table.insert({name: 'C', membership: 'bronze'});
+        await table.insert({ name: 'A', membership: 'gold' });
+        await table.insert({ name: 'B', membership: 'gold' });
+        await table.insert({ name: 'C', membership: 'bronze' });
 
         let res = await pgdb.query("SELECT count(*) FROM :!schema.:!table WHERE membership = :membership", {
             schema: schema,
@@ -339,31 +342,31 @@ describe("pgdb", () => {
     }));
 
     it("text[]", w(async () => {
-        await table.insert({name: 'A', textList: ['good', 'better', 'best']});
-        let res = await table.findOne({name: 'A'});
+        await table.insert({ name: 'A', textList: ['good', 'better', 'best'] });
+        let res = await table.findOne({ name: 'A' });
         expect(res.textList).toEqual(['good', 'better', 'best']);
     }));
 
     it("integer[]", w(async () => {
-        await table.insert({name: 'A', numberList: [1, 2, 3]});
-        let res = await table.findOne({name: 'A'});
+        await table.insert({ name: 'A', numberList: [1, 2, 3] });
+        let res = await table.findOne({ name: 'A' });
         expect(res.numberList).toEqual([1, 2, 3]);
     }));
 
     it("integer[]", w(async () => {
-        await table.insert({name: 'A', numberList: [null, 1, 2, 3]});
-        let res = await table.findOne({name: 'A'});
+        await table.insert({ name: 'A', numberList: [null, 1, 2, 3] });
+        let res = await table.findOne({ name: 'A' });
         expect(res.numberList).toEqual([null, 1, 2, 3]);
     }));
 
     it("bigInt[]", w(async () => {
-        await table.insert({name: 'A', bigNumberList: [1, 2, 3]});
-        let res = await table.findOne({name: 'A'});
+        await table.insert({ name: 'A', bigNumberList: [1, 2, 3] });
+        let res = await table.findOne({ name: 'A' });
         expect(res.bigNumberList).toEqual([1, 2, 3]);
 
-        await table.insert({name: 'B', bigNumberList: [1, Number.MAX_SAFE_INTEGER + 10]});
+        await table.insert({ name: 'B', bigNumberList: [1, Number.MAX_SAFE_INTEGER + 10] });
         try {
-            await table.findOne({name: 'B'});
+            await table.findOne({ name: 'B' });
             expect(false).toBeTruthy();
         } catch (e) {
             expect(/Number can't be represented in javascript/.test(e.message)).toBeTruthy();
@@ -371,14 +374,14 @@ describe("pgdb", () => {
     }));
 
     it("bigInt[] cursor callback", w(async () => {
-        await table.insert({name: 'A', bigNumberList: [1, 2, 3]});
+        await table.insert({ name: 'A', bigNumberList: [1, 2, 3] });
         let res;
         await table.queryWithOnCursorCallback(`SELECT * FROM ${table}`, null, null, (rec) => {
             res = rec.bigNumberList;
         });
         expect(res).toEqual([1, 2, 3]);
 
-        await table.insert({name: 'B', bigNumberList: [1, Number.MAX_SAFE_INTEGER + 10]});
+        await table.insert({ name: 'B', bigNumberList: [1, Number.MAX_SAFE_INTEGER + 10] });
         try {
             await table.queryWithOnCursorCallback(`SELECT * FROM ${table}`, null, null, () => {
             });
@@ -393,7 +396,7 @@ describe("pgdb", () => {
             name: 'A',
             timestamptzList: [new Date('2000-01-01 00:00:00').toISOString(), new Date('2001-01-01 00:00:00').toISOString()]
         });
-        let res = await table.findOne({name: 'A'});
+        let res = await table.findOne({ name: 'A' });
         expect(res.timestamptzList[0]).toEqual(new Date('2000-01-01 00:00:00'));
         expect(res.timestamptzList[1]).toEqual(new Date('2001-01-01 00:00:00'));
         expect(res.timestamptzList.length).toEqual(2);
@@ -405,20 +408,20 @@ describe("pgdb", () => {
             created: new Date('2000-01-01 00:00:00'),
             createdtz: new Date('2000-01-01 00:00:00')
         });
-        let res = await table.findOne({name: 'A'});
+        let res = await table.findOne({ name: 'A' });
 
         expect(res.created).toEqual(new Date('2000-01-01 00:00:00'));
         expect(res.createdtz).toEqual(new Date('2000-01-01 00:00:00'));
 
-        res = await table.count({'created': new Date('2000-01-01 00:00:00')});
+        res = await table.count({ 'created': new Date('2000-01-01 00:00:00') });
         expect(res).toEqual(1);
 
-        res = await table.count({'createdtz': new Date('2000-01-01 00:00:00')});
+        res = await table.count({ 'createdtz': new Date('2000-01-01 00:00:00') });
         expect(res).toEqual(1);
 
         let d = new Date('2000-01-01 00:00:00').toISOString();
         await table.query(`INSERT INTO ${table} (name, created, createdtz) values ('A2', '${d}'::timestamptz, '${d}'::timestamptz)`);
-        res = await table.findOne({name: 'A2'});
+        res = await table.findOne({ name: 'A2' });
 
         // this expectation is depend on machine timezone
         // expect(res.created).toEqual(new Date('2000-01-01 00:00:00'));
@@ -432,12 +435,12 @@ describe("pgdb", () => {
     }));
 
     it("transaction - rollback", w(async () => {
-        await table.insert({name: 'A'});
+        await table.insert({ name: 'A' });
         let res;
 
         let pgdbwt = await pgdb.transactionBegin();
         let tablewt = pgdbwt.schemas[schema]['users'];
-        await tablewt.insert({name: 'B'});
+        await tablewt.insert({ name: 'B' });
 
         res = await table.count();
         expect(res).toEqual(1);
@@ -465,7 +468,7 @@ describe("pgdb", () => {
         res = await table.count();
         expect(res).toEqual(2);
 
-        await tr.transactionRollback({savePoint:'name'});
+        await tr.transactionRollback({ savePoint: 'name' });
 
         res = await table.count();
         expect(res).toEqual(1);
@@ -491,11 +494,11 @@ describe("pgdb", () => {
 
 
     it("transaction - commit", w(async () => {
-        await table.insert({name: 'A'});
+        await table.insert({ name: 'A' });
 
         let pgdbwt = await pgdb.transactionBegin();
         let tablewt = <PgTable<any>>pgdbwt.schemas[schema]['users'];
-        await tablewt.insert({name: 'B'});
+        await tablewt.insert({ name: 'B' });
 
         let res;
         res = await table.findAll();
@@ -516,10 +519,10 @@ describe("pgdb", () => {
     it("transaction - error + rollback", w(async () => {
         let pgdbwt = await pgdb.transactionBegin();
         let tablewt = pgdbwt[schema]['users'];
-        await tablewt.insert({name: 'A'});
+        await tablewt.insert({ name: 'A' });
 
         try {
-            await tablewt.insertAndGet({name: 'C', bigNumberList: [1, 2, Number.MAX_SAFE_INTEGER + 100]});
+            await tablewt.insertAndGet({ name: 'C', bigNumberList: [1, 2, Number.MAX_SAFE_INTEGER + 100] });
             expect(false).toBeTruthy();
         } catch (e) {
             expect(/Number can't be represented in javascript/.test(e.message)).toBeTruthy();
@@ -531,15 +534,15 @@ describe("pgdb", () => {
     }));
 
     it("cursor with callback", w(async () => {
-        await table.insert({name: 'A', numberList: [1, 2, 3]});
-        await table.insert({name: 'B'});
+        await table.insert({ name: 'A', numberList: [1, 2, 3] });
+        await table.insert({ name: 'B' });
         let size = await table.count();
         let streamSize = 0;
         await table.queryWithOnCursorCallback(`SELECT * FROM ${table}`, null, null, (r) => {
             streamSize++;
-            return true
+            return true;
         });
-        expect(size).toEqual(streamSize);
+        expect(streamSize).toBe(1);
     }));
 
     it("stream - auto connection handling - normal", w(async () => {
@@ -594,8 +597,8 @@ describe("pgdb", () => {
     it("stream - with transactions handling - normal", w(async () => {
         let pgdbwt = await pgdb.transactionBegin();
         let tablewt = pgdbwt[schema]['users'];
-        await tablewt.insert({name: 'A', numberList: [1, 2, 3]});
-        await tablewt.insert({name: 'B'});
+        await tablewt.insert({ name: 'A', numberList: [1, 2, 3] });
+        await tablewt.insert({ name: 'B' });
 
         let counter = 0;
         let stream = await tablewt.queryAsStream(`SELECT * FROM ${tablewt}`);
@@ -617,10 +620,10 @@ describe("pgdb", () => {
     it("stream - with transactions handling - early close", w(async () => {
         let pgdbwt = await pgdb.transactionBegin();
         let tablewt = <PgTable<any>>pgdbwt[schema]['users'];
-        await tablewt.insert({name: 'A', numberList: [1, 2, 3]});
-        await tablewt.insert({name: 'B'});
-        await tablewt.insert({name: 'C'});
-        await tablewt.insert({name: 'D'});
+        await tablewt.insert({ name: 'A', numberList: [1, 2, 3] });
+        await tablewt.insert({ name: 'B' });
+        await tablewt.insert({ name: 'C' });
+        await tablewt.insert({ name: 'D' });
 
         let counter = 0;
         let stream = await tablewt.queryAsStream(`SELECT * FROM ${tablewt}`);
@@ -648,10 +651,10 @@ describe("pgdb", () => {
     it("stream - with transactions handling - error", w(async () => {
         let pgdbwt = await pgdb.transactionBegin();
         let tablewt = <PgTable<any>>pgdbwt[schema]['users'];
-        await tablewt.insert({name: 'A', bigNumberList: [1, 2, 3]});
-        await tablewt.insert({name: 'B'});
-        await tablewt.insert({name: 'C', bigNumberList: [1, 2, Number.MAX_SAFE_INTEGER + 100]});
-        await tablewt.insert({name: 'D'});
+        await tablewt.insert({ name: 'A', bigNumberList: [1, 2, 3] });
+        await tablewt.insert({ name: 'B' });
+        await tablewt.insert({ name: 'C', bigNumberList: [1, 2, Number.MAX_SAFE_INTEGER + 100] });
+        await tablewt.insert({ name: 'D' });
 
         let counter = 0;
         let stream = await tablewt.queryAsStream(`SELECT * FROM ${tablewt}`);
@@ -678,8 +681,8 @@ describe("pgdb", () => {
     }));
 
     it("truncate", w(async () => {
-        await table.insert({name: 'A'});
-        await table.insert({name: 'B'});
+        await table.insert({ name: 'A' });
+        await table.insert({ name: 'B' });
 
         await table.truncate();
         let size = await table.count();
@@ -714,49 +717,49 @@ describe("pgdb", () => {
                 '(,)',
                 '(write,null)'],
         });
-        let pf = await table.findOne({name: 'Piszkos Fred'});
+        let pf = await table.findOne({ name: 'Piszkos Fred' });
         expect(pf.permission).toEqual(['read', 'book']);
         expect(pf.permissionList[0]).toEqual(['admin', 'chaos j ()",""j ,']);
     }));
 
     it("truncate - cascade", w(async () => {
-        let g = await tableGroups.insertAndGet({name: 'G'});
-        await table.insert({name: 'A', mainGroup: g.id});
-        await table.insert({name: 'B', mainGroup: g.id});
-        await tableGroups.truncate({cascade: true, restartIdentity: true});
+        let g = await tableGroups.insertAndGet({ name: 'G' });
+        await table.insert({ name: 'A', mainGroup: g.id });
+        await table.insert({ name: 'B', mainGroup: g.id });
+        await tableGroups.truncate({ cascade: true, restartIdentity: true });
 
         let size = await table.count();
         expect(size).toEqual(0);
 
-        let g2 = await tableGroups.insertAndGet({name: 'G'}, {return: ['id']});
+        let g2 = await tableGroups.insertAndGet({ name: 'G' }, { return: ['id'] });
         expect(g.id >= g2.id).toBeTruthy()
     }));
 
     it("orderBy", w(async () => {
-        await table.insert({name: 'A', aCategory: 'A'});
-        await table.insert({name: 'B', aCategory: 'B'});
-        await table.insert({name: 'C', aCategory: 'C'});
-        await table.insert({name: 'A2', aCategory: 'A'});
-        await table.insert({name: 'B2', aCategory: 'B'});
-        await table.insert({name: 'C2', aCategory: 'C'});
+        await table.insert({ name: 'A', aCategory: 'A' });
+        await table.insert({ name: 'B', aCategory: 'B' });
+        await table.insert({ name: 'C', aCategory: 'C' });
+        await table.insert({ name: 'A2', aCategory: 'A' });
+        await table.insert({ name: 'B2', aCategory: 'B' });
+        await table.insert({ name: 'C2', aCategory: 'C' });
 
         let res;
-        res = await table.find({}, {orderBy: ['aCategory', 'name'], fields: ['name']});
+        res = await table.find({}, { orderBy: ['aCategory', 'name'], fields: ['name'] });
         expect(res.map(v => v.name)).toEqual(['A', 'A2', 'B', 'B2', 'C', 'C2']);
 
-        res = await table.find({}, {orderBy: ['aCategory asc', 'name desc'], fields: ['name']});
+        res = await table.find({}, { orderBy: ['aCategory asc', 'name desc'], fields: ['name'] });
         expect(res.map(v => v.name)).toEqual(['A2', 'A', 'B2', 'B', 'C2', 'C']);
 
-        res = await table.find({}, {orderBy: ['+aCategory', '-name'], fields: ['name']});
+        res = await table.find({}, { orderBy: ['+aCategory', '-name'], fields: ['name'] });
         expect(res.map(v => v.name)).toEqual(['A2', 'A', 'B2', 'B', 'C2', 'C']);
 
-        res = await table.find({}, {orderBy: '"aCategory" asc, name desc', fields: ['name']});
+        res = await table.find({}, { orderBy: '"aCategory" asc, name desc', fields: ['name'] });
         expect(res.map(v => v.name)).toEqual(['A2', 'A', 'B2', 'B', 'C2', 'C']);
     }));
 
     it("stored proc", w(async () => {
-        await table.insert({name: 'A', membership: 'gold'});
-        await table.insert({name: 'B', membership: 'gold'});
+        await table.insert({ name: 'A', membership: 'gold' });
+        await table.insert({ name: 'B', membership: 'gold' });
         expect(pgdb[schema].fn['list_gold_users']).toBeDefined();
         expect(pgdb.fn['increment']).toBeDefined();
         let s = await pgdb.run('select current_schema');
@@ -780,8 +783,8 @@ describe("pgdb", () => {
     }));
 
     it("select/update/delete should throw exception if the condition contains undefined value", w(async () => {
-        await table.insert({name: 'A', membership: 'gold'});
-        let conditions = {name: 'A', membership: undefined};
+        await table.insert({ name: 'A', membership: 'gold' });
+        let conditions = { name: 'A', membership: undefined };
 
         try {
             await table.find(conditions);
@@ -789,17 +792,17 @@ describe("pgdb", () => {
         } catch (e) {
             expect('' + e).toEqual('Error: Invalid conditions! Field value undefined: "membership". Either delete the field, set it to null or use the options.skipUndefined parameter.');
         }
-        let res = await table.find(conditions, {skipUndefined: true});
+        let res = await table.find(conditions, { skipUndefined: true });
         expect(res.length == 1).toBeTruthy();
 
         try {
-            await table.update(conditions, {name: 'B'});
+            await table.update(conditions, { name: 'B' });
             expect(false).toBeTruthy();
         } catch (e) {
             expect('' + e).toEqual('Error: Invalid conditions! Field value undefined: "membership". Either delete the field, set it to null or use the options.skipUndefined parameter.');
         }
-        await table.update(conditions, {name: 'B'}, {skipUndefined: true});
-        res = await table.find(conditions, {skipUndefined: true});
+        await table.update(conditions, { name: 'B' }, { skipUndefined: true });
+        res = await table.find(conditions, { skipUndefined: true });
         expect(res.length == 0).toBeTruthy();
 
         try {
@@ -809,24 +812,24 @@ describe("pgdb", () => {
         } catch (e) {
             expect('' + e).toEqual('Error: Invalid conditions! Field value undefined: "membership". Either delete the field, set it to null or use the options.skipUndefined parameter.');
         }
-        await table.delete(conditions, {skipUndefined: true});
+        await table.delete(conditions, { skipUndefined: true });
         res = await table.findAll();
         expect(res.length == 0).toBeTruthy();
 
     }));
 
     it("Testing deleteAndGet ", w(async () => {
-        await table.insert({name: 'A'});
-        let res = await table.deleteAndGetOne({name: 'A'});
+        await table.insert({ name: 'A' });
+        let res = await table.deleteAndGetOne({ name: 'A' });
         expect(res != null).toBeTruthy();
         expect(res.name == 'A').toBeTruthy();
 
-        let res2 = await table.deleteAndGetOne({name: 'A'});
+        let res2 = await table.deleteAndGetOne({ name: 'A' });
         expect(res2 == null).toBeTruthy();
     }));
 
     it("Testing postprocess function", w(async () => {
-        await table.insert({name: 'A'});
+        await table.insert({ name: 'A' });
 
         pgdb.setPostProcessResult((res, fields, logger) => {
             res[0].name = 'B';
@@ -841,8 +844,8 @@ describe("pgdb", () => {
     }));
 
     it("Testing deleteAndGet", w(async () => {
-        await table.insert([{name: 'A'}, {name: 'B'}]);
-        let res = await table.deleteAndGet({name: ['A', 'B']});
+        await table.insert([{ name: 'A' }, { name: 'B' }]);
+        let res = await table.deleteAndGet({ name: ['A', 'B'] });
         expect(res.length == 2).toBeTruthy();
     }));
 
@@ -855,8 +858,8 @@ describe("pgdb", () => {
             a: 1,
             b: "aprocska\"kalapocska'bennecsacskamacskamocska"
         })];
-        await table.insert({name: 'A', textList: list});
-        let rec: any = await table.findOne({name: 'A'});
+        await table.insert({ name: 'A', textList: list });
+        let rec: any = await table.findOne({ name: 'A' });
         console.log(list + '\n' + rec.textList);
         let isDifferent = list.some((v, i) => rec.textList[i] !== v);
         expect(isDifferent).toBeFalsy();
@@ -870,8 +873,8 @@ describe("pgdb", () => {
             "path": "/data/files/fl1ace84f744/Wire 2017-09-17 at 11.57.55.png",
             "title": "Wire 2017-09-17 at 11.57.55"
         }];
-        await table.insert({name: 'A', jsonbList: list});
-        let rec: any = await table.findOne({name: 'A'});
+        await table.insert({ name: 'A', jsonbList: list });
+        let rec: any = await table.findOne({ name: 'A' });
         console.log('xxx', rec.jsonbList, typeof rec.jsonbList[0]);
         console.log(JSON.stringify(list) + '\n' + JSON.stringify(rec.jsonbList));
         let isDifferent = list.some((v, i) => !_.isEqual(rec.jsonbList[i], v));
@@ -879,15 +882,15 @@ describe("pgdb", () => {
     }));
 
     it("Testing distinct", w(async () => {
-        await table.insert({name: 'A', aCategory: 'A'});
-        await table.insert({name: 'B', aCategory: 'A'});
-        let recs = await table.find({aCategory: 'A'}, {fields: ['aCategory'], distinct: true});
+        await table.insert({ name: 'A', aCategory: 'A' });
+        await table.insert({ name: 'B', aCategory: 'A' });
+        let recs = await table.find({ aCategory: 'A' }, { fields: ['aCategory'], distinct: true });
         expect(recs.length).toEqual(1);
     }));
 
     it("Testing queryOne", w(async () => {
-        await table.insert({name: 'A', aCategory: 'A'});
-        await table.insert({name: 'B', aCategory: 'A'});
+        await table.insert({ name: 'A', aCategory: 'A' });
+        await table.insert({ name: 'B', aCategory: 'A' });
         try {
             let recs = await table.queryOne(`SELECT * FROM ${table} WHERE "aCategory" = 'A'`);
             expect(false).toBeTruthy();
@@ -896,29 +899,29 @@ describe("pgdb", () => {
         }
     }));
     it("Testing queryFirst", w(async () => {
-        await table.insert({name: 'A', aCategory: 'A'});
-        await table.insert({name: 'B', aCategory: 'A'});
+        await table.insert({ name: 'A', aCategory: 'A' });
+        await table.insert({ name: 'B', aCategory: 'A' });
         let rec = await table.queryFirst(`SELECT * FROM ${table} WHERE "aCategory" = 'A'`);
         expect(rec.aCategory).toEqual('A');
     }));
 
     it("Testing forUpdate", w(async () => {
-        await table.insert({name: 'A', aCategory: 'A'});
+        await table.insert({ name: 'A', aCategory: 'A' });
         let pgdb1 = await table.db.transactionBegin();
-        await pgdb1.tables['users'].find({aCategory: 'A'}, {forUpdate: true});
-        let p = table.update({aCategory: 'A'}, {name: 'C'});
+        await pgdb1.tables['users'].find({ aCategory: 'A' }, { forUpdate: true });
+        let p = table.update({ aCategory: 'A' }, { name: 'C' });
         await new Promise(resolve => setTimeout(resolve, 500));
-        await pgdb1.tables['users'].update({aCategory: 'A'}, {name: 'B'});
+        await pgdb1.tables['users'].update({ aCategory: 'A' }, { name: 'B' });
         await pgdb1.transactionCommit();
         await p;
-        let rec = await table.findFirst({aCategory: 'A'});
+        let rec = await table.findFirst({ aCategory: 'A' });
         expect(rec.name).toEqual('C');
     }));
 
     it("Testing update where something is null", w(async () => {
-        await table.insert({name: 'A', aCategory: 'A'});
-        await table.update({textList: null}, {name: 'B'});
-        let rec = await table.findFirst({aCategory: 'A'});
+        await table.insert({ name: 'A', aCategory: 'A' });
+        await table.update({ textList: null }, { name: 'B' });
+        let rec = await table.findFirst({ aCategory: 'A' });
         expect(rec.name).toEqual('B');
     }));
 
@@ -926,7 +929,7 @@ describe("pgdb", () => {
         await table.insert({ name: 'A', aCategory: 'A' });
         await table.insert({ name: 'B', aCategory: 'A' });
         await table.insert({ name: 'C', aCategory: 'A' });
-        let recs = await table.find({ name: ['A','B'] });
+        let recs = await table.find({ name: ['A', 'B'] });
         expect(recs.length).toEqual(2);
     }));
 
@@ -951,14 +954,14 @@ describe("pgdb", () => {
     it("Testing NOTIFY and LISTEN (listen)", w(async () => {
         let called = null;
         let payload = 'hello';
-        
+
         await table.db.listen('test_channel', (notification) => called = notification.payload);
         await table.db.notify('test_channel', payload);
 
         await new Promise((resolve) => setTimeout(resolve, 1000));
         expect(called).toEqual(payload);
     }));
-    
+
     it("Testing NOTIFY and LISTEN (unlisten)", w(async () => {
         let called = null;
         let payload = 'hello';
@@ -972,7 +975,7 @@ describe("pgdb", () => {
 
     it("Testing Empty 'or' condition", w(async () => {
         await table.insert({ name: 'A', aCategory: 'A' });
-        let recs = await table.find({ or:[] });
+        let recs = await table.find({ or: [] });
         expect(recs.length).toEqual(1);
     }));
 
@@ -991,4 +994,346 @@ describe("pgdb", () => {
         expect(result.columns.includes('aCategory'));
     }));
 
+    it("Testing output formats of default types", w(async () => {
+        await tableTypes.insert({
+            text: 'apple',
+            int: 23,
+            bigInt: 233,
+            real: 0.5,
+            double: 0.25,
+            bool: false,
+            json: { bool: true, number: 12, date: new Date(5), text: 'A' },
+            jsonB: { bool: true, number: 12, date: new Date(5), text: 'A' },
+            timestamptz: new Date(7),
+
+            arrayText: ['apple', 'pear'],
+            arrayInt: [1, 2],
+            arrayBigInt: [100, 101, 102],
+            arrayReal: [0.5, 1.5, 2.5],
+            arrayDouble: [0.25, 1.25, 2.25],
+            arrayBool: [true, false, true],
+            arrayJson: [
+                { bool: true, number: 12, text: 'A' },
+                { bool: true, number: 12, text: 'A' }
+            ],
+            arrayJsonB: [
+                { bool: true, number: 12, text: 'A' },
+                { bool: true, number: 12, text: 'A' }
+            ],
+            arrayTimestamptz: [new Date(1), new Date(2)]
+        });
+
+        let result = await tableTypes.findFirst({});
+        expect(result.text).toEqual('apple');
+        expect(result.int).toEqual(23);
+        expect(result.bigInt).toEqual(233);
+        expect(result.real).toEqual(0.5);
+        expect(result.double).toEqual(0.25);
+        expect(result.bool).toEqual(false);
+
+        expect(result.json.bool).toEqual(true);
+        expect(result.json.number).toEqual(12);
+        expect(typeof result.json.date).toEqual('string'); //This is not a feature, only actual situation, that dates are not stored in Date format in json objects
+        expect(result.json.text).toEqual('A');
+
+        expect(result.jsonB.bool).toEqual(true);
+        expect(result.jsonB.number).toEqual(12);
+        expect(typeof result.jsonB.date).toEqual('string');
+        expect(result.jsonB.text).toEqual('A');
+
+        expect(result.timestamptz).toEqual(new Date(7));
+
+        expect(result.arrayText).toEqual(['apple', 'pear']);
+        expect(result.arrayInt).toEqual([1, 2]);
+        expect(result.arrayBigInt).toEqual([100, 101, 102]);
+        expect(result.arrayReal).toEqual([0.5, 1.5, 2.5]);
+        expect(result.arrayDouble).toEqual([0.25, 1.25, 2.25]);
+        expect(result.arrayBool).toEqual([true, false, true]);
+        expect(result.arrayJson).toEqual([
+            { bool: true, number: 12, text: 'A' },
+            { bool: true, number: 12, text: 'A' }
+        ]);
+        expect(result.arrayJsonB).toEqual([
+            { bool: true, number: 12, text: 'A' },
+            { bool: true, number: 12, text: 'A' }
+        ]);
+        expect(result.arrayTimestamptz).toEqual([new Date(1), new Date(2)]);
+    }));
+
+    it("Testing output formats of enum types - query", w(async () => {
+        let pgdbwt = await pgdb.transactionBegin();
+
+        await pgdbwt.run(`DROP TYPE IF EXISTS ${schema}.mood CASCADE`);
+        await pgdbwt.run(`DROP TABLE IF EXISTS ${schema}."enumTable"`);
+        await pgdbwt.run(`CREATE TYPE ${schema}.mood AS ENUM ('sad', 'ok', 'happy')`);
+        await pgdbwt.run(`CREATE TABLE ${schema}."enumTable" (m ${schema}.mood NULL)`);
+        await pgdbwt.reload();
+        let table = pgdbwt.schemas[schema].tables["enumTable"];
+        await table.insert({ m: 'sad' });
+        let result = await table.findFirst({});
+        expect(result.m).toEqual('sad');
+
+        await pgdbwt.run(`
+            CREATE TYPE ${schema}.mood_new AS ENUM ('sad', 'ok', 'happy', 'other');
+            ALTER TABLE ${schema}."enumTable" ALTER COLUMN m TYPE ${schema}.mood_new USING m::text::${schema}.mood_new;
+        `);
+        result = await table.findFirst({});
+        expect(result.m).toEqual('sad');
+
+        await pgdbwt.transactionRollback();
+    }));
+
+    it("Testing output formats of enum types - queryWithOnCursorCallback without stop", w(async () => {
+        let pgdbwt = await pgdb.transactionBegin();
+
+        await pgdbwt.run(`DROP TYPE IF EXISTS ${schema}.mood CASCADE`);
+        await pgdbwt.run(`DROP TABLE IF EXISTS ${schema}."enumTable"`);
+        await pgdbwt.run(`CREATE TYPE ${schema}.mood AS ENUM ('sad', 'ok', 'happy')`);
+        await pgdbwt.run(`CREATE TABLE ${schema}."enumTable" (m ${schema}.mood NULL)`);
+        await pgdbwt.reload();
+        let table = pgdbwt.schemas[schema].tables["enumTable"];
+        await table.insert([{ m: 'sad' }, { m: 'sad' }]);
+        let counter = 0;
+        await table.queryWithOnCursorCallback(`select * from ${schema}."enumTable"`, [], {}, (data) => {
+            expect(data.m).toEqual('sad');
+            ++counter;
+        });
+        expect(counter).toEqual(2);
+
+        await pgdbwt.run(`
+            CREATE TYPE ${schema}.mood_new AS ENUM ('sad', 'ok', 'happy', 'other');
+            ALTER TABLE ${schema}."enumTable" ALTER COLUMN m TYPE ${schema}.mood_new USING m::text::${schema}.mood_new;
+        `);
+        counter = 0;
+        await table.queryWithOnCursorCallback(`select * from ${schema}."enumTable"`, [], {}, (data) => {
+            expect(data.m).toEqual('sad');
+            ++counter;
+        });
+        expect(counter).toEqual(2);
+
+        await pgdbwt.transactionRollback();
+    }));
+
+    it("Testing output formats of enum types - queryWithOnCursorCallback with stop", w(async () => {
+        let pgdbwt = await pgdb.transactionBegin();
+
+        await pgdbwt.run(`DROP TYPE IF EXISTS ${schema}.mood CASCADE`);
+        await pgdbwt.run(`DROP TABLE IF EXISTS ${schema}."enumTable"`);
+        await pgdbwt.run(`CREATE TYPE ${schema}.mood AS ENUM ('sad', 'ok', 'happy')`);
+        await pgdbwt.run(`CREATE TABLE ${schema}."enumTable" (m ${schema}.mood NULL)`);
+        await pgdbwt.reload();
+        let table = pgdbwt.schemas[schema].tables["enumTable"];
+        await table.insert([{ m: 'sad' }, { m: 'sad' }]);
+        let counter = 0;
+        await table.queryWithOnCursorCallback(`select * from ${schema}."enumTable"`, [], {}, (data) => {
+            expect(data.m).toEqual('sad');
+            ++counter;
+            return true;
+        });
+        expect(counter).toEqual(1);
+
+        await pgdbwt.run(`
+            CREATE TYPE ${schema}.mood_new AS ENUM ('sad', 'ok', 'happy', 'other');
+            ALTER TABLE ${schema}."enumTable" ALTER COLUMN m TYPE ${schema}.mood_new USING m::text::${schema}.mood_new;
+        `);
+        counter = 0;
+        await table.queryWithOnCursorCallback(`select * from ${schema}."enumTable"`, [], {}, (data) => {
+            expect(data.m).toEqual('sad');
+            ++counter;
+            return true;
+        });
+        expect(counter).toEqual(1);
+
+        await pgdbwt.transactionRollback();
+    }));
+
+    it("Testing output formats of enum types - queryAsStream", w(async () => {
+        let pgdbwt = await pgdb.transactionBegin();
+
+        await pgdbwt.run(`DROP TYPE IF EXISTS ${schema}.mood CASCADE`);
+        await pgdbwt.run(`DROP TABLE IF EXISTS ${schema}."enumTable"`);
+        await pgdbwt.run(`CREATE TYPE ${schema}.mood AS ENUM ('sad', 'ok', 'happy')`);
+        await pgdbwt.run(`CREATE TABLE ${schema}."enumTable" (m ${schema}.mood NULL)`);
+        await pgdbwt.reload();
+        let table = pgdbwt.schemas[schema].tables["enumTable"];
+        await table.insert({ m: 'sad' });
+        let stream = await table.find({}, { stream: true });
+        stream.on("data", (data) => {
+            expect(data.m).toEqual('sad');
+        });
+        await new Promise<any>((resolve, reject) => {
+            stream.on('error', reject);
+            stream.on('close', resolve);
+        });
+        await pgdbwt.run(`
+            CREATE TYPE ${schema}.mood_new AS ENUM ('sad', 'ok', 'happy', 'other');
+            ALTER TABLE ${schema}."enumTable" ALTER COLUMN m TYPE ${schema}.mood_new USING m::text::${schema}.mood_new;
+        `);
+        stream = await table.find({}, { stream: true });
+        stream.on("data", (data) => {
+            expect(data.m).toEqual('sad');
+        });
+        try {
+            await new Promise<any>((resolve, reject) => {
+                stream.on('error', reject);
+                stream.on('close', resolve);
+            });
+            expect(false).toBeTruthy();
+        } catch (e) {
+            expect('' + e).toEqual('Error: [337] Query returns fields with unknown oid.'); //This is not a feature, but a side-effect
+        }
+        await pgdbwt.transactionRollback();
+    }));
+
+    it("Testing output formats of enum array types - query", w(async () => {
+        let pgdbwt = await pgdb.transactionBegin();
+
+        await pgdbwt.run(`DROP TYPE IF EXISTS ${schema}.mood CASCADE`);
+        await pgdbwt.run(`DROP TABLE IF EXISTS ${schema}."enumArrayTable"`);
+        await pgdbwt.run(`CREATE TYPE ${schema}.mood AS ENUM ('sad', 'ok', 'happy')`);
+        await pgdbwt.run(`CREATE TABLE ${schema}."enumArrayTable" (m ${schema}.mood[] NULL)`);
+        await pgdbwt.reload();
+        let table = pgdbwt.schemas[schema].tables["enumArrayTable"];
+        await table.insert({ m: ['sad', 'ok'] });
+        let result = await table.findFirst({});
+        expect(result.m).toEqual(['sad', 'ok']);
+
+        await pgdbwt.run(`
+            CREATE TYPE ${schema}.mood_new AS ENUM ('sad', 'ok', 'happy', 'other');
+            ALTER TABLE ${schema}."enumArrayTable" ALTER COLUMN m TYPE ${schema}.mood_new[] USING m::text[]::${schema}.mood_new[];
+        `);
+        result = await table.findFirst({});
+        expect(result.m).toEqual(['sad', 'ok']);
+
+        await pgdbwt.transactionRollback();
+    }));
+
+    it("Testing output formats of enum array types - queryWithOnCursorCallback without stop", w(async () => {
+        let pgdbwt = await pgdb.transactionBegin();
+
+        await pgdbwt.run(`DROP TYPE IF EXISTS ${schema}.mood CASCADE`);
+        await pgdbwt.run(`DROP TABLE IF EXISTS ${schema}."enumArrayTable"`);
+        await pgdbwt.run(`CREATE TYPE ${schema}.mood AS ENUM ('sad', 'ok', 'happy')`);
+        await pgdbwt.run(`CREATE TABLE ${schema}."enumArrayTable" (m ${schema}.mood[] NULL)`);
+        await pgdbwt.reload();
+        let table = pgdbwt.schemas[schema].tables["enumArrayTable"];
+        await table.insert([{ m: ['sad', 'ok'] }, { m: ['sad', 'ok'] }]);
+        let counter = 0;
+        await table.queryWithOnCursorCallback(`select * from ${schema}."enumArrayTable"`, [], {}, (data) => {
+            expect(data.m).toEqual(['sad', 'ok']);
+            ++counter;
+        });
+        expect(counter).toEqual(2);
+
+        await pgdbwt.run(`
+            CREATE TYPE ${schema}.mood_new AS ENUM ('sad', 'ok', 'happy', 'other');
+            ALTER TABLE ${schema}."enumArrayTable" ALTER COLUMN m TYPE ${schema}.mood_new[] USING m::text[]::${schema}.mood_new[];
+        `);
+        counter = 0;
+        await table.queryWithOnCursorCallback(`select * from ${schema}."enumArrayTable"`, [], {}, (data) => {
+            expect(data.m).toEqual(['sad', 'ok']);
+            ++counter;
+        });
+        expect(counter).toEqual(2);
+
+        await pgdbwt.transactionRollback();
+    }));
+
+    it("Testing output formats of enum array types - queryWithOnCursorCallback with stop", w(async () => {
+        let pgdbwt = await pgdb.transactionBegin();
+
+        await pgdbwt.run(`DROP TYPE IF EXISTS ${schema}.mood CASCADE`);
+        await pgdbwt.run(`DROP TABLE IF EXISTS ${schema}."enumArrayTable"`);
+        await pgdbwt.run(`CREATE TYPE ${schema}.mood AS ENUM ('sad', 'ok', 'happy')`);
+        await pgdbwt.run(`CREATE TABLE ${schema}."enumArrayTable" (m ${schema}.mood[] NULL)`);
+        await pgdbwt.reload();
+        let table = pgdbwt.schemas[schema].tables["enumArrayTable"];
+        await table.insert([{ m: ['sad', 'ok'] }, { m: ['sad', 'ok'] }]);
+        let counter = 0;
+        await table.queryWithOnCursorCallback(`select * from ${schema}."enumArrayTable"`, [], {}, (data) => {
+            expect(data.m).toEqual(['sad', 'ok']);
+            ++counter;
+            return true;
+        });
+        expect(counter).toEqual(1);
+
+        await pgdbwt.run(`
+            CREATE TYPE ${schema}.mood_new AS ENUM ('sad', 'ok', 'happy', 'other');
+            ALTER TABLE ${schema}."enumArrayTable" ALTER COLUMN m TYPE ${schema}.mood_new[] USING m::text[]::${schema}.mood_new[];
+        `);
+        counter = 0;
+        await table.queryWithOnCursorCallback(`select * from ${schema}."enumArrayTable"`, [], {}, (data) => {
+            expect(data.m).toEqual(['sad', 'ok']);
+            ++counter;
+            return true;
+        });
+        expect(counter).toEqual(1);
+
+        await pgdbwt.transactionRollback();
+    }));
+
+    it("Testing output formats of enum array types - queryAsStream", w(async () => {
+        let pgdbwt = await pgdb.transactionBegin();
+
+        await pgdbwt.run(`DROP TYPE IF EXISTS ${schema}.mood CASCADE`);
+        await pgdbwt.run(`DROP TABLE IF EXISTS ${schema}."enumArrayTable"`);
+        await pgdbwt.run(`CREATE TYPE ${schema}.mood AS ENUM ('sad', 'ok', 'happy')`);
+        await pgdbwt.run(`CREATE TABLE ${schema}."enumArrayTable" (m ${schema}.mood[] NULL)`);
+        await pgdbwt.reload();
+        let table = pgdbwt.schemas[schema].tables["enumArrayTable"];
+        await table.insert({ m: ['sad', 'ok'] });
+        let stream = await table.find({}, { stream: true });
+        stream.on("data", (data) => {
+            expect(data.m).toEqual(['sad', 'ok']);
+        });
+        await new Promise<any>((resolve, reject) => {
+            stream.on('error', reject);
+            stream.on('close', resolve);
+        });
+        await pgdbwt.run(`
+            CREATE TYPE ${schema}.mood_new AS ENUM ('sad', 'ok', 'happy', 'other');
+            ALTER TABLE ${schema}."enumArrayTable" ALTER COLUMN m TYPE ${schema}.mood_new[] USING m::text[]::${schema}.mood_new[];
+        `);
+        stream = await table.find({}, { stream: true });
+        stream.on("data", (data) => {
+            expect(data.m).toEqual(['sad', 'ok']);
+        });
+        try {
+            await new Promise<any>((resolve, reject) => {
+                stream.on('error', reject);
+                stream.on('close', resolve);
+            });
+            expect(false).toBeTruthy();
+        } catch (e) {
+            expect('' + e).toEqual('Error: [337] Query returns fields with unknown oid.');
+        }
+        await pgdbwt.transactionRollback();
+    }));
+
+    it("Testing output formats of enum array types - query on view", w(async () => {
+        let pgdbwt = await pgdb.transactionBegin();
+
+        await pgdbwt.run(`DROP TYPE IF EXISTS ${schema}.mood CASCADE`);
+        await pgdbwt.run(`DROP TABLE IF EXISTS ${schema}."enumArrayTable"`);
+        await pgdbwt.run(`CREATE TYPE ${schema}.mood AS ENUM ('sad', 'ok', 'happy')`);
+        await pgdbwt.run(`CREATE TABLE ${schema}."enumArrayTable" (m ${schema}.mood[] NULL)`);
+        await pgdbwt.run(`CREATE VIEW ${schema}."enumArrayTableView" as select m from ${schema}."enumArrayTable"`);
+        await pgdbwt.reload();
+        let table = pgdbwt.schemas[schema].tables["enumArrayTable"];
+        await table.insert({ m: ['sad', 'ok'] });
+        let view = pgdbwt.schemas[schema].tables["enumArrayTableView"];
+        let result = await view.findFirst({});
+        expect(result.m).toEqual(['sad', 'ok']);
+
+        await pgdbwt.run(`
+            CREATE TYPE ${schema}.mood_new AS ENUM ('sad', 'ok', 'happy', 'other');
+            DROP VIEW ${schema}."enumArrayTableView";
+            ALTER TABLE ${schema}."enumArrayTable" ALTER COLUMN m TYPE ${schema}.mood_new[] USING m::text[]::${schema}.mood_new[];
+            CREATE VIEW ${schema}."enumArrayTableView" as select m from ${schema}."enumArrayTable"
+        `);
+        result = await view.findFirst({});
+        expect(result.m).toEqual(['sad', 'ok']);
+
+        await pgdbwt.transactionRollback();
+    }));
 });

@@ -27,7 +27,6 @@ export declare class PgDb extends QueryAble {
     };
     pool: any;
     connection: any;
-    protected connectionForListen: any;
     config: ConnectionOptions;
     defaultSchemas: any;
     db: any;
@@ -42,6 +41,7 @@ export declare class PgDb extends QueryAble {
     };
     [name: string]: any | PgSchema;
     pgdbTypeParsers: {};
+    knownOids: Record<number, boolean>;
     postProcessResult: PostProcessResultFunc;
     private constructor();
     setPostProcessResult(f: (res: any[], fields: ResultFieldType[], logger: PgDbLogger) => void): void;
@@ -55,6 +55,7 @@ export declare class PgDb extends QueryAble {
     private initFieldTypes;
     setTypeParser(typeName: string, parser: (string: any) => any, schemaName?: string): Promise<void>;
     setPgDbTypeParser(typeName: string, parser: (string: any) => any, schemaName?: string): Promise<void>;
+    resetMissingParsers(connection: any, oidList: number[]): Promise<void>;
     dedicatedConnectionBegin(): Promise<PgDb>;
     dedicatedConnectionEnd(): Promise<PgDb>;
     savePoint(name: string): Promise<PgDb>;
@@ -71,8 +72,15 @@ export declare class PgDb extends QueryAble {
     isTransactionActive(): boolean;
     execute(fileName: string, statementTransformerFunction?: (string: any) => string): Promise<void>;
     private listeners;
+    private connectionForListen;
+    private _needToRestartConnectionForListen;
+    private restartConnectionForListen;
     listen(channel: string, callback: (notification: Notification) => void): Promise<void>;
     unlisten(channel: string, callback?: (Notification: any) => void): Promise<void>;
     notify(channel: string, payload?: string): Promise<any[]>;
+    runRestartConnectionForListen(): Promise<Error>;
+    needToFixConnectionForListen(): boolean;
+    private tryToFixConnectionForListenActively;
+    private initConnectionForListen;
 }
 export default PgDb;
