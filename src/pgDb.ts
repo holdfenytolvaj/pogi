@@ -1,4 +1,4 @@
-import { QueryAble, ResultFieldType } from "./queryAble";
+import { QueryAble, ResultFieldType, IPgDb,PostProcessResultFunc } from "./queryAble";
 import { PgTable } from "./pgTable";
 import { PgSchema } from "./pgSchema";
 import * as PgConverters from "./pgConverters";
@@ -65,6 +65,13 @@ const LIST_SPECIAL_TYPE_FIELDS =
     WHERE (a.atttypid in (114, 3802, 1082, 1083, 1114, 1184, 1266, 3614) or t.typcategory='A')
     AND reltype>0 `;
 //AND c.nspname not in ('pg_catalog', 'pg_constraint', 'information_schema')
+const TYPE2OID = `SELECT t.oid, typname FROM pg_catalog.pg_type t WHERE typname in (
+    '_bool',
+    'int8','_int2','_int4','_int8','_float4','float8','_float8',
+    '_text','_varchar',
+    'json','jsonb', '_json','_jsonb',
+    'date','time','timestamp','timestamptz','timetz','_date','_time','_timestamp','_timestamptz','_timetz', 
+    'tsvector')`
 
 export enum FieldType { JSON, ARRAY, TIME, TSVECTOR }
 
@@ -75,7 +82,6 @@ export enum TranzactionIsolationLevel {
     readUncommitted = 'READ UNCOMMITTED'
 }
 
-export type PostProcessResultFunc = (res: any[], fields: ResultFieldType[], logger: PgDbLogger) => void;
 
 /** LISTEN callback parameter */
 export interface Notification {
@@ -84,7 +90,7 @@ export interface Notification {
     payload?: string
 }
 
-export class PgDb extends QueryAble {
+export class PgDb extends QueryAble implements IPgDb {
     protected static instances: { [index: string]: Promise<PgDb> };
     /*protected*/
     pool;
@@ -95,13 +101,13 @@ export class PgDb extends QueryAble {
     /*protected*/
     defaultSchemas; // for this.tables and this.fn
 
-    db;
+    db:PgDb;
     schemas: { [name: string]: PgSchema };
     tables: { [name: string]: PgTable<any> } = {};
     fn: { [name: string]: (...any) => any } = {};
     [name: string]: any | PgSchema;
     /* protected */
-    pgdbTypeParsers = {};
+    pgdbTypeParsers:Record<string, (string) => any> = {};
     /* protected */
     knownOids: Record<number, boolean> = {};
     /* protected */
@@ -267,18 +273,24 @@ export class PgDb extends QueryAble {
             this.getLogger(true).error("No readable schema found!");
             return;
         }
+        let type2oid = {};
+        let res = await this.query(TYPE2OID);
+        for (let tt of res || []) {
+            type2oid[tt.typname] = +tt.oid;
+        }
+
         let specialTypeFields: { schema_name: string, table_name: string, column_name: string, typid: number }[]
             = await this.query(LIST_SPECIAL_TYPE_FIELDS + ' AND c.nspname in (' + schemaNames + ')');
 
         for (let r of specialTypeFields) {
             if (this.schemas[r.schema_name][r.table_name]) {
                 this.schemas[r.schema_name][r.table_name].fieldTypes[r.column_name] =
-                    ([3802, 114].indexOf(r.typid) > -1) ? FieldType.JSON :
-                        ([3614].indexOf(r.typid) > -1) ? FieldType.TSVECTOR :
-                            ([1082, 1083, 1114, 1184, 1266].indexOf(r.typid) > -1) ? FieldType.TIME :
+                    ([type2oid['json'], type2oid['jsonb']].indexOf(r.typid) > -1) ? FieldType.JSON :
+                        ([type2oid['tsvector']].indexOf(r.typid) > -1) ? FieldType.TSVECTOR :
+                            ([type2oid['date'],type2oid['time'],type2oid['timestamp'],type2oid['timestamptz'],type2oid['timetz']].indexOf(r.typid) > -1) ? FieldType.TIME :
                                 FieldType.ARRAY;
             }
-        }
+        }      
 
         // https://web.archive.org/web/20160613215445/https://doxygen.postgresql.org/include_2catalog_2pg__type_8h_source.html
         // https://github.com/lib/pq/blob/master/oid/types.go
@@ -286,39 +298,39 @@ export class PgDb extends QueryAble {
         let builtInArrayTypeParsers: { oidList: number[], parser: (string) => any }[] = [
             {
                 oidList: [
-                    1000 // bool[]
+                    type2oid['_bool'] // bool[]
                 ],
                 parser: PgConverters.arraySplitToBool
             },
             {
                 oidList: [
-                    1005, // smallInt[] int2[] 
-                    1007, // integer[]  int4[]
-                    1021  // real[] float4[]
+                    type2oid['_int2'], // smallInt[] int2[] 
+                    type2oid['_int4'], // integer[]  int4[]
+                    type2oid['_float4'],  // real[] float4[]
                 ],
                 parser: PgConverters.arraySplitToNum
             },
             {
                 oidList: [
-                    1009, // text[]
-                    1015  // varchar[]
+                    type2oid['_text'], // text[]
+                    type2oid['_varchar']  // varchar[]
                 ],
                 parser: PgConverters.arraySplit
             },
             {
                 oidList: [
-                    199, // json[]
-                    3807 // jsonb[]
+                    type2oid['_json'], // json[]
+                    type2oid['_jsonb'] // jsonb[]
                 ],
                 parser: PgConverters.arraySplitToJson
             },
             {
                 oidList: [
-                    1115, // timestamp[]
-                    1182, // date[]
-                    1183, // time[]
-                    1185, // timestamptz[]
-                    1270  // timetz[]
+                    type2oid['_date'], // date[]
+                    type2oid['_time'],
+                    type2oid['_timetz'],
+                    type2oid['_timestamp'], //timestamp[]
+                    type2oid['_timestamptz'],
                 ],
                 parser: PgConverters.arraySplitToDate
             }
@@ -337,19 +349,16 @@ export class PgDb extends QueryAble {
                 continue;
             }
             switch (r.typid) {
-                case 114:  // json
-                case 3802: // jsonb
-                case 1082: // date
-                case 1083: // time
-                case 1114: // timestamp
-                case 1184: // timestamptz
-                case 1266: // timetz
-                case 3614: // tsvector
-                    break;
-                case 1016: // bigInt[] int8[]
-                case 1022: // double[] float8[]
-                    //pg.types.setTypeParser(r.typid, arraySplitToNumWithValidation);
-                    //delete this.pgdbTypeParsers[r.typid];
+                case type2oid['json']:  
+                case type2oid['jsonb']: 
+                case type2oid['date']: // date
+                case type2oid['time']: // time
+                case type2oid['timetz']: // timetz
+                case type2oid['timestamp']: // timestamp
+                case type2oid['timestamptz']: // timestamptz
+                case type2oid['tsvector']: // tsvector
+                case type2oid['_int8']: // bigInt[] int8[]
+                case type2oid['_float8']: // double[] float8[]
                     break;
                 default:
                     //best guess otherwise user need to specify
@@ -357,12 +366,15 @@ export class PgDb extends QueryAble {
                     delete this.pgdbTypeParsers[r.typid];
             }
         }
+        this.pgdbTypeParsers[type2oid['int8']] = PgConverters.numWithValidation;
+        this.pgdbTypeParsers[type2oid['float8']] = PgConverters.numWithValidation;
+        this.pgdbTypeParsers[type2oid['_int8']] = PgConverters.stringArrayToNumWithValidation;
+        this.pgdbTypeParsers[type2oid['_float8']] = PgConverters.stringArrayToNumWithValidation;
+        this.knownOids[type2oid['int8']] = true;
+        this.knownOids[type2oid['float8']] = true;
+        this.knownOids[type2oid['_int8']] = true;
+        this.knownOids[type2oid['_float8']] = true;
 
-        //has to set outside of pgjs as it doesnt support exceptions (stop everything immediately)
-        await this.setPgDbTypeParser('int8', PgConverters.numWithValidation); //int8 - 20
-        await this.setPgDbTypeParser('float8', PgConverters.numWithValidation); //float8 - 701
-        await this.setPgDbTypeParser('_int8', PgConverters.stringArrayToNumWithValidation);
-        await this.setPgDbTypeParser('_float8', PgConverters.stringArrayToNumWithValidation);
 
         let allUsedTypeFields = await this.queryOneColumn(`
             SELECT a.atttypid as typid
@@ -441,12 +453,13 @@ export class PgDb extends QueryAble {
         }
         let pgDb = new PgDb(this);
         pgDb.connection = await this.pool.connect();
-        pgDb.connection.on('error', () => { }); //When there is an error, then the actual called query will throw exception
+        pgDb.connection.on('error', QueryAble.connectionErrorListener); //When there is an error, then the actual called query will throw exception
         return pgDb;
     }
 
     async dedicatedConnectionEnd(): Promise<PgDb> {
         if (this.connection) {
+            this.connection.off('error', QueryAble.connectionErrorListener);
             try {
                 await this.connection.release();
             } catch (err) {
@@ -766,9 +779,12 @@ export class PgDb extends QueryAble {
             this.restartConnectionForListen = (async () => {
                 let eventNames = this.listeners.eventNames();
                 try {
+                    this.connectionForListen.on('notification', this.notificationListener );
+                    this.connectionForListen.on('error',this.errorListener);
+                } catch (e) {}
+                try{
                     await this.connectionForListen.release();
-                } catch (e) {
-                }
+                } catch (e) {}
                 this.connectionForListen = null;
                 let error: Error;
                 if (eventNames.length) {
@@ -806,13 +822,16 @@ export class PgDb extends QueryAble {
         }
     }
 
+    notificationListener = (notification: Notification) => this.listeners.emit(notification.channel, notification)
+    errorListener = (e) => {
+        this._needToRestartConnectionForListen = true;
+        this.tryToFixConnectionForListenActively();
+    };
+
     private async initConnectionForListen() {
         this.connectionForListen = await this.pool.connect();
-        this.connectionForListen.on('notification', (notification: Notification) => this.listeners.emit(notification.channel, notification));
-        this.connectionForListen.on('error', (e) => {
-            this._needToRestartConnectionForListen = true;
-            this.tryToFixConnectionForListenActively();
-        });
+        this.connectionForListen.on('notification', this.notificationListener );
+        this.connectionForListen.on('error',this.errorListener);
     }
 }
 

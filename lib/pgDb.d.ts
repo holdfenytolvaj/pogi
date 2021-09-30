@@ -1,4 +1,4 @@
-import { QueryAble, ResultFieldType } from "./queryAble";
+import { QueryAble, ResultFieldType, IPgDb, PostProcessResultFunc } from "./queryAble";
 import { PgTable } from "./pgTable";
 import { PgSchema } from "./pgSchema";
 import { PgDbLogger } from './pgDbLogger';
@@ -15,13 +15,12 @@ export declare enum TranzactionIsolationLevel {
     readCommitted = "READ COMMITTED",
     readUncommitted = "READ UNCOMMITTED"
 }
-export declare type PostProcessResultFunc = (res: any[], fields: ResultFieldType[], logger: PgDbLogger) => void;
 export interface Notification {
     processId: number;
     channel: string;
     payload?: string;
 }
-export declare class PgDb extends QueryAble {
+export declare class PgDb extends QueryAble implements IPgDb {
     protected static instances: {
         [index: string]: Promise<PgDb>;
     };
@@ -29,7 +28,7 @@ export declare class PgDb extends QueryAble {
     connection: any;
     config: ConnectionOptions;
     defaultSchemas: any;
-    db: any;
+    db: PgDb;
     schemas: {
         [name: string]: PgSchema;
     };
@@ -40,7 +39,7 @@ export declare class PgDb extends QueryAble {
         [name: string]: (...any: any[]) => any;
     };
     [name: string]: any | PgSchema;
-    pgdbTypeParsers: {};
+    pgdbTypeParsers: Record<string, (string: any) => any>;
     knownOids: Record<number, boolean>;
     postProcessResult: PostProcessResultFunc;
     private constructor();
@@ -81,6 +80,8 @@ export declare class PgDb extends QueryAble {
     runRestartConnectionForListen(): Promise<Error>;
     needToFixConnectionForListen(): boolean;
     private tryToFixConnectionForListenActively;
+    notificationListener: (notification: Notification) => boolean;
+    errorListener: (e: any) => void;
     private initConnectionForListen;
 }
 export default PgDb;

@@ -41,10 +41,22 @@ export interface PgRowResult {
     columns: string[];
     rows: any[];
 }
+export declare type PostProcessResultFunc = (res: any[], fields: ResultFieldType[], logger: PgDbLogger) => void;
+export interface IPgDb {
+    connection: any;
+    pool: any;
+    pgdbTypeParsers: any;
+    knownOids: Record<number, boolean>;
+    runRestartConnectionForListen(): Promise<Error>;
+    needToFixConnectionForListen(): boolean;
+    postProcessResult: PostProcessResultFunc;
+    resetMissingParsers(connection: any, oidList: number[]): Promise<void>;
+}
 export declare class QueryAble {
-    db: any;
+    db: IPgDb & QueryAble;
     schema: any;
     protected logger: PgDbLogger;
+    static connectionErrorListener: () => void;
     constructor();
     setLogger(logger: PgDbLogger): void;
     getLogger(useConsoleAsDefault?: boolean): any;

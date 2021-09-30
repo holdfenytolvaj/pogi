@@ -54,10 +54,26 @@ let defaultLogger = {
     error: () => { }
 };
 
+export type PostProcessResultFunc = (res: any[], fields: ResultFieldType[], logger: PgDbLogger) => void;
+
+export interface IPgDb {
+    connection;
+    pool;
+    pgdbTypeParsers:any;
+    knownOids: Record<number, boolean>
+
+    runRestartConnectionForListen(): Promise<Error>;
+    needToFixConnectionForListen(): boolean;
+    postProcessResult: PostProcessResultFunc;
+    resetMissingParsers(connection, oidList: number[]): Promise<void>
+}
+
 export class QueryAble {
-    db;
+    db:IPgDb & QueryAble;
     schema;
     protected logger: PgDbLogger;
+    
+    public static connectionErrorListener = () => {}
 
     constructor() {
     }
@@ -116,9 +132,12 @@ export class QueryAble {
             } else {
                 connection = await this.db.pool.connect();
                 logger.log('new connection', sql, util.inspect(params, false, null), connection.processID);
-                connection.on('error', (err: Error) => { });
+
+                connection.on('error', QueryAble.connectionErrorListener);
                 let res = await connection.query({ text: sql, values: params, rowMode: options?.rowMode ? 'array' : undefined });
                 await this.checkAndFixOids(connection, res.fields);
+
+                connection.off('error', QueryAble.connectionErrorListener);
                 connection.release();
                 connection = null;
                 this.postProcessFields(res.rows, res.fields, logger);
@@ -235,8 +254,10 @@ export class QueryAble {
             } else {
                 connection = await this.db.pool.connect();
                 logger.log('new connection', sql, util.inspect(params, false, null), connection.processID);
-                connection.on('error', (err: Error) => { });
+                connection.on('error', QueryAble.connectionErrorListener);
                 await queryInternal();
+
+                connection.off('error', QueryAble.connectionErrorListener);
                 connection.release();
                 connection = null;
             }
@@ -308,19 +329,27 @@ export class QueryAble {
             } else {
                 connection = await this.db.pool.connect();
                 logger.log('new connection', sql, util.inspect(params, false, null), connection.processID);
-                connection.on('error', (err: Error) => { });
+                connection.on('error', QueryAble.connectionErrorListener);
+                
                 let query = new QueryStream(sql, params);
                 query.handleError = (err: Error, connection) => {
                     convertTypeFilter.emit('error', err);
                 };
                 pgStream = connection.query(query);
                 pgStream.on('close', () => {
-                    if (connection) connection.release();
+                    if (connection) {
+                        connection.off('error', QueryAble.connectionErrorListener);
+                        connection.release();
+                    }
                     connection = null;
                 });
                 pgStream.on('error', (e) => {
                     pgUtils.logError(logger, { error: e, sql, params, connection });
-                    if (connection) connection.release();
+
+                    if (connection) {
+                        connection.off('error', QueryAble.connectionErrorListener);
+                        connection.release();
+                    }
                     connection = null;
                 });
                 return pgStream.pipe(convertTypeFilter);
