@@ -1,13 +1,11 @@
-import {QueryAble, QueryOptions} from "./queryAble";
-import {PgDb, FieldType} from "./pgDb";
-import {PgDbLogger} from "./pgDbLogger"
+import { QueryAble, QueryOptions } from "./queryAble";
+import { PgDb, FieldType } from "./pgDb";
+import { PgDbLogger } from "./pgDbLogger"
 import generateWhere from "./queryWhere";
-import {PgSchema} from "./pgSchema";
-import {pgUtils} from "./pgUtils";
+import { PgSchema } from "./pgSchema";
+import { pgUtils } from "./pgUtils";
 import * as _ from 'lodash';
 import * as stream from "stream";
-
-const util = require('util');
 
 export interface InsertOption {
     logger?: PgDbLogger;
@@ -49,10 +47,10 @@ export class PgTable<T> extends QueryAble {
     db: PgDb;
     fieldTypes: { [index: string]: FieldType }; //written directly
 
-    constructor(public schema: PgSchema, protected desc: { name: string, pkey?:string, schema: string }, fieldTypes = {}) {
+    constructor(public schema: PgSchema, protected desc: { name: string, pkey?: string, schema: string }, fieldTypes = {}) {
         super();
         this.db = schema.db;
-        this.qualifiedName = util.format('"%s"."%s"', desc.schema, desc.name);
+        this.qualifiedName = `"${desc.schema}"."${desc.name}"`;
         this.pkey = desc.pkey || desc.name + "_pkey"; //poor man's pkey (could be queried by why?)
         this.fieldTypes = fieldTypes;
     }
@@ -89,9 +87,9 @@ export class PgTable<T> extends QueryAble {
             return 0;  // just return empty arrays so bulk inserting variable-length lists is more friendly
         }
 
-        let {sql, parameters} = this.getInsertQuery(records);
+        let { sql, parameters } = this.getInsertQuery(records);
         sql = "WITH __RESULT as ( " + sql + " RETURNING 1) SELECT SUM(1) FROM __RESULT";
-        let result = await this.query(sql, parameters, {logger: options.logger});
+        let result = await this.query(sql, parameters, { logger: options.logger });
         return result[0].sum;
     }
 
@@ -110,11 +108,11 @@ export class PgTable<T> extends QueryAble {
             return [];  // just return empty arrays so bulk inserting variable-length lists is more friendly
         }
 
-        let {sql, parameters} = this.getInsertQuery(records);
+        let { sql, parameters } = this.getInsertQuery(records);
 
-        sql += " RETURNING " + (options && options.return && Array.isArray(options.return) ? options.return.map(pgUtils.quoteField).join(',') : '*');
+        sql += " RETURNING " + (options && options.return && Array.isArray(options.return) ? options.return.map(pgUtils.quoteFieldNameInsecure).join(',') : '*');
 
-        let result = await this.query(sql, parameters, {logger: options.logger});
+        let result = await this.query(sql, parameters, { logger: options.logger });
         if (options.return && options.return.length == 0) {
             return new Array(returnSingle ? 1 : records.length).fill({});
         }
@@ -142,15 +140,15 @@ export class PgTable<T> extends QueryAble {
     }
 
     async update(conditions: { [k: string]: any }, fields: { [k: string]: any }, options?: UpdateDeleteOption): Promise<number> {
-        let {sql, parameters} = this.getUpdateQuery(conditions, fields, options);
+        let { sql, parameters } = this.getUpdateQuery(conditions, fields, options);
         sql = "WITH __RESULT as ( " + sql + " RETURNING 1) SELECT SUM(1) FROM __RESULT";
         let res = await this.query(sql, parameters, options);
         return res[0].sum;
     };
 
     async updateAndGet(conditions: { [k: string]: any }, fields: { [k: string]: any }, options?: UpdateDeleteOption & Return): Promise<T[]> {
-        let {sql, parameters} = this.getUpdateQuery(conditions, fields, options);
-        sql += " RETURNING " + (options && options.return && Array.isArray(options.return) ? options.return.map(pgUtils.quoteField).join(',') : '*');
+        let { sql, parameters } = this.getUpdateQuery(conditions, fields, options);
+        sql += " RETURNING " + (options && options.return && Array.isArray(options.return) ? options.return.map(pgUtils.quoteFieldNameInsecure).join(',') : '*');
         return this.query(sql, parameters, options);
     };
 
@@ -163,9 +161,9 @@ export class PgTable<T> extends QueryAble {
             throw new Error("insert should be called with data");
         }
 
-        let {sql, parameters} = this.getUpsertQuery(record, options);
+        let { sql, parameters } = this.getUpsertQuery(record, options);
         sql = "WITH __RESULT as ( " + sql + " RETURNING 1) SELECT SUM(1) FROM __RESULT";
-        let result = await this.query(sql, parameters, {logger: options.logger});
+        let result = await this.query(sql, parameters, { logger: options.logger });
         return result[0].sum;
     };
 
@@ -178,19 +176,19 @@ export class PgTable<T> extends QueryAble {
             throw new Error("insert should be called with data");
         }
 
-        let {sql, parameters} = this.getUpsertQuery(record, options);
-        sql += " RETURNING " + (options && options.return && Array.isArray(options.return) ? options.return.map(pgUtils.quoteField).join(',') : '*');
+        let { sql, parameters } = this.getUpsertQuery(record, options);
+        sql += " RETURNING " + (options && options.return && Array.isArray(options.return) ? options.return.map(pgUtils.quoteFieldNameInsecure).join(',') : '*');
 
-        let result = await this.query(sql, parameters, {logger: options.logger});
+        let result = await this.query(sql, parameters, { logger: options.logger });
 
         if (options.return && options.return.length == 0) {
             return <T>{};
         }
         return result[0];
-    }; 
+    };
 
     async delete(conditions: { [k: string]: any }, options?: UpdateDeleteOption): Promise<number> {
-        let {sql, parameters} = this.getDeleteQuery(conditions, options);
+        let { sql, parameters } = this.getDeleteQuery(conditions, options);
         sql = "WITH __RESULT as ( " + sql + " RETURNING 1) SELECT SUM(1) FROM __RESULT";
         let res = await this.query(sql, parameters, options);
         return res[0].sum;
@@ -206,8 +204,8 @@ export class PgTable<T> extends QueryAble {
 
     async deleteAndGet(conditions: { [k: string]: any }, options?: UpdateDeleteOption & Return): Promise<any[]> {
         options = options || {};
-        let {sql, parameters} = this.getDeleteQuery(conditions, options);
-        sql += " RETURNING " + (options && options.return && Array.isArray(options.return) ? options.return.map(pgUtils.quoteField).join(',') : '*');
+        let { sql, parameters } = this.getDeleteQuery(conditions, options);
+        sql += " RETURNING " + (options && options.return && Array.isArray(options.return) ? options.return.map(pgUtils.quoteFieldNameInsecure).join(',') : '*');
         return this.query(sql, parameters);
     }
 
@@ -234,17 +232,17 @@ export class PgTable<T> extends QueryAble {
         if (options && options.cascade) {
             sql += ' CASCADE';
         }
-        await this.query(sql, null, options);
+        await this.query(sql, undefined, options);
     }
 
     async find(conditions: { [k: string]: any }, options?: QueryOptions): Promise<T[]>
     async find(conditions: { [k: string]: any }, options?: QueryOptions & Stream): Promise<stream.Readable>
     async find(conditions: { [k: string]: any }, options?: any): Promise<any> {
         options = options || {};
-        options.skipUndefined = options.skipUndefined === true || (options.skipUndefined === undefined && ['all', 'select'].indexOf(this.db.config.skipUndefined) > -1);
+        options.skipUndefined = options.skipUndefined === true || (options.skipUndefined === undefined && this.db.config.skipUndefined && ['all', 'select'].includes(this.db.config.skipUndefined));
         let where = _.isEmpty(conditions) ? {
-            where: " ",
-            params: null
+            where: "",
+            params: undefined
         } : generateWhere(conditions, this.fieldTypes, this.qualifiedName, 0, options.skipUndefined);
         let sql = `SELECT ${pgUtils.processQueryFields(options)} FROM ${this.qualifiedName} ${where.where} ${pgUtils.processQueryOptions(options)}`;
         return options.stream ? this.queryAsStream(sql, where.params, options) : this.query(sql, where.params, options);
@@ -264,21 +262,21 @@ export class PgTable<T> extends QueryAble {
     public async findAll(options?: any): Promise<any> {
         options = options || {};
         let sql = `SELECT ${pgUtils.processQueryFields(options)} FROM ${this.qualifiedName} ${pgUtils.processQueryOptions(options)}`;
-        return options.stream ? this.queryAsStream(sql, null, options) : this.query(sql, null, options);
+        return options.stream ? this.queryAsStream(sql, undefined, options) : this.query(sql, null, options);
     }
 
-    async findOne(conditions, options?: QueryOptions): Promise<T> {
+    async findOne(conditions: Record<string, any>, options?: QueryOptions): Promise<T> {
         let res = await this.find(conditions, options);
         if (res.length > 1) {
             let logger = (options && options.logger || this.getLogger(false));
             let error = new Error('More then one rows exists');
-            pgUtils.logError(logger, { error, sql:this.qualifiedName, params: conditions, connection: this.db.connection });
+            pgUtils.logError(logger, { error, sql: this.qualifiedName, params: conditions, connection: this.db.connection });
             throw error;
         }
         return res[0];
     }
 
-    async findFirst(conditions, options?: QueryOptions): Promise<T> {
+    async findFirst(conditions: Record<string, any>, options?: QueryOptions): Promise<T> {
         options = options || {};
         options.limit = 1;
         let res = await this.find(conditions, options);
@@ -286,19 +284,19 @@ export class PgTable<T> extends QueryAble {
     }
 
 
-    async count(conditions?: {}, options?: CountOption): Promise<number> {
+    async count(conditions?: Record<string, any>, options?: CountOption): Promise<number> {
         options = options || {};
-        options.skipUndefined = options.skipUndefined === true || (options.skipUndefined === undefined && ['all', 'select'].indexOf(this.db.config.skipUndefined) > -1);
+        options.skipUndefined = options.skipUndefined === true || (options.skipUndefined === undefined && this.db.config.skipUndefined && ['all', 'select'].includes(this.db.config.skipUndefined));
 
         let where = _.isEmpty(conditions) ? {
             where: " ",
-            params: null
-        } : generateWhere(conditions, this.fieldTypes, this.qualifiedName, 0, options.skipUndefined);
+            params: undefined
+        } : generateWhere(conditions!, this.fieldTypes, this.qualifiedName, 0, options.skipUndefined);
         let sql = `SELECT COUNT(*) c FROM ${this.qualifiedName} ${where.where}`;
         return (await this.queryOneField(sql, where.params));
     }
 
-    async findOneFieldOnly(conditions, field: string, options?: QueryOptions): Promise<any> {
+    async findOneFieldOnly(conditions: Record<string, any>, field: string, options?: QueryOptions): Promise<any> {
         options = options || {};
         options.fields = [field];
         let res = await this.findOne(conditions, options);
@@ -314,33 +312,33 @@ export class PgTable<T> extends QueryAble {
             }
         });
         let columns = Object.keys(columnsMap);
-        let sql = util.format("INSERT INTO %s (%s) VALUES\n", this.qualifiedName, columns.map(pgUtils.quoteField).join(", "));
-        let parameters = [];
+        let sql = `INSERT INTO ${this.qualifiedName} (${columns.map(pgUtils.quoteFieldName).join(", ")}) VALUES\n`;
+        let parameters: string[] = [];
         let placeholders = [];
 
         for (let i = 0, seed = 0; i < records.length; i++) {
             placeholders.push('(' + columns.map(c => "$" + (++seed)).join(', ') + ')');
-            parameters.push.apply(parameters, columns.map(c => pgUtils.transformInsertUpdateParams(records[i][c], this.fieldTypes[c])));
+            parameters.push(...columns.map(c => pgUtils.transformInsertUpdateParams(records[i][c], this.fieldTypes[c])));
         }
         sql += placeholders.join(",\n");
 
-        return {sql, parameters};
+        return { sql, parameters };
 
     }
 
-    protected getUpdateSetSnipplet(fields: { [k: string]: any }, parameters?:any[] ): { snipplet: string, parameters: any[] } {
+    protected getUpdateSetSnippet(fields: { [k: string]: any }, parameters?: any[]): { snippet: string, parameters: any[] } {
         let params = parameters || [];
-        let f = [];
+        let f: string[] = [];
         let seed = params.length;
 
         _.each(fields, (value, fieldName) => {
             if (value === undefined) return;
 
-            f.push(util.format('%s = $%s', pgUtils.quoteField(fieldName), (++seed)));
+            f.push(`${pgUtils.quoteFieldName(fieldName)} = $${(++seed)}`);
             params.push(pgUtils.transformInsertUpdateParams(value, this.fieldTypes[fieldName]));
         });
 
-        return {snipplet: f.join(', '), parameters: params};
+        return { snippet: f.join(', '), parameters: params };
     }
 
     protected getUpdateQuery(conditions: { [k: string]: any }, fields: { [k: string]: any }, options?: UpdateDeleteOption): { sql: string, parameters: any[] } {
@@ -353,49 +351,49 @@ export class PgTable<T> extends QueryAble {
             throw new Error('Missing fields for update');
         }
 
-        let {snipplet, parameters} = this.getUpdateSetSnipplet(fields);
-        let sql = util.format("UPDATE %s SET %s", this.qualifiedName, snipplet);
+        let { snippet, parameters } = this.getUpdateSetSnippet(fields);
+        let sql = `UPDATE ${this.qualifiedName} SET ${snippet}`;
 
         if (!hasConditions || !_.isEmpty(conditions)) {
             let parsedWhere = generateWhere(conditions, this.fieldTypes, this.qualifiedName, parameters.length, options.skipUndefined);
             sql += parsedWhere.where;
             parameters = parameters.concat(parsedWhere.params);
         }
-        return {sql, parameters};
+        return { sql, parameters };
     }
 
     protected getUpsertQuery(record: T, options?: UpsertOption): { sql: string, parameters: any[] } {
         options = options || {};
-        
+
         if (_.isEmpty(record)) {
             throw new Error('Missing fields for upsert');
         }
 
         let insert = this.getInsertQuery([record]);
-        let {snipplet, parameters} = this.getUpdateSetSnipplet(record, insert.parameters);
+        let { snippet, parameters } = this.getUpdateSetSnippet(record, insert.parameters);
         let sql = insert.sql;
 
         if (options.columns) {
-            sql += " ON CONFLICT (" + options.columns.map(c=>pgUtils.quoteField(c)).join(', ') + ") DO UPDATE SET " + snipplet;
+            sql += ` ON CONFLICT (${options.columns.map(c => pgUtils.quoteFieldName(c)).join(', ')}) DO UPDATE SET ${snippet}`;
         } else {
-            let constraint = options.constraint || this.pkey;
-            sql += " ON CONFLICT ON CONSTRAINT " + util.format('"%s"', constraint) + " DO UPDATE SET " + snipplet;
+            let constraint = pgUtils.quoteFieldName(options.constraint || this.pkey);
+            sql += ` ON CONFLICT ON CONSTRAINT ${constraint} DO UPDATE SET ${snippet}`;
         }
-        
-        return {sql, parameters};
+
+        return { sql, parameters };
     }
 
     protected getDeleteQuery(conditions: { [k: string]: any }, options?: UpdateDeleteOption): { sql: string, parameters: any[] } {
         options = options || {};
         options.skipUndefined = options.skipUndefined === true || (options.skipUndefined === undefined && this.db.config.skipUndefined === 'all');
 
-        let sql = util.format("DELETE FROM %s ", this.qualifiedName);
+        let sql = `DELETE FROM ${this.qualifiedName} `;
 
         let parsedWhere;
         if (!_.isEmpty(conditions)) {
             parsedWhere = generateWhere(conditions, this.fieldTypes, this.qualifiedName, 0, options.skipUndefined);
             sql += parsedWhere.where;
         }
-        return {sql, parameters: parsedWhere && parsedWhere.params || []}
+        return { sql, parameters: parsedWhere && parsedWhere.params || [] }
     }
 }

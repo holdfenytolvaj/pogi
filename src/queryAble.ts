@@ -1,15 +1,22 @@
 import { PgDbLogger } from "./pgDbLogger";
 import { pgUtils } from "./pgUtils";
 import * as stream from "stream";
-
-const util = require('util');
-const QueryStream = require('pg-query-stream');
-const through = require('through');
+import { PgSchema } from ".";
+import * as pg from 'pg';
+import util = require('util');
+import QueryStream = require('pg-query-stream');
+import through = require('through');
 
 export interface QueryOptions {
     limit?: number;
     offset?: number;
     orderBy?: string | string[] | { [fieldName: string]: 'asc' | 'desc' };//free text or column list
+    /** 
+     * only used with orderBy
+     * true -> nulls first, 
+     * false -> nulls last 
+     */
+    orderByNullsFirst?: boolean;
     groupBy?: string | string[];//free text or column list
     fields?: string | string[];//free text or column list
     logger?: PgDbLogger;
@@ -57,26 +64,23 @@ let defaultLogger = {
 export type PostProcessResultFunc = (res: any[], fields: ResultFieldType[], logger: PgDbLogger) => void;
 
 export interface IPgDb {
-    connection;
-    pool;
-    pgdbTypeParsers:any;
+    connection: pg.PoolClient | null;
+    pool: pg.Pool;
+    pgdbTypeParsers: any;
     knownOids: Record<number, boolean>
 
-    runRestartConnectionForListen(): Promise<Error>;
+    runRestartConnectionForListen(): Promise<Error | null>;
     needToFixConnectionForListen(): boolean;
-    postProcessResult: PostProcessResultFunc;
-    resetMissingParsers(connection, oidList: number[]): Promise<void>
+    postProcessResult: PostProcessResultFunc | undefined | null;
+    resetMissingParsers(connection: pg.PoolClient, oidList: number[]): Promise<void>
 }
 
-export class QueryAble {
-    db:IPgDb & QueryAble;
-    schema;
-    protected logger: PgDbLogger;
-    
-    public static connectionErrorListener = () => {}
+export abstract class QueryAble {
+    db!: IPgDb & QueryAble;  // assigned in async init
+    schema!: PgSchema;
+    protected logger!: PgDbLogger;
 
-    constructor() {
-    }
+    public static connectionErrorListener = () => { }
 
     setLogger(logger: PgDbLogger) {
         this.logger = logger;
@@ -100,15 +104,15 @@ export class QueryAble {
      * e.g. query('select * from a.b where id=$1;',['the_stage_is_set']);
      * e.g. query('select * from :!schema.:!table where id=:id;',{schema:'a',table:'b', id:'the_stage_is_set'});
      */
-    async query(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<any[]> {
+    async query(sql: string, params?: any[] | {} | null, options?: SqlQueryOptions): Promise<any[]> {
         let connection = this.db.connection;
         let logger = (options && options.logger || this.getLogger(false));
         return this.internalQuery({ connection, sql, params, logger });
     }
 
-    protected async internalQuery(options: { connection, sql: string, params?: any, logger?}): Promise<any[]>;
-    protected async internalQuery(options: { connection, sql: string, params?: any, logger?, rowMode: true }): Promise<PgRowResult>;
-    protected async internalQuery(options: { connection, sql: string, params?: any, logger?, rowMode?: boolean }): Promise<any[] | PgRowResult> {
+    protected async internalQuery(options: { connection: pg.PoolClient | null, sql: string, params?: any, logger?: PgDbLogger }): Promise<any[]>;
+    protected async internalQuery(options: { connection: pg.PoolClient | null, sql: string, params?: any, logger?: PgDbLogger, rowMode: true }): Promise<PgRowResult>;
+    protected async internalQuery(options: { connection: pg.PoolClient | null, sql: string, params?: any, logger?: PgDbLogger, rowMode?: boolean }): Promise<any[] | PgRowResult> {
         if (this.db.needToFixConnectionForListen()) {
             await this.db.runRestartConnectionForListen();
         }
@@ -121,31 +125,28 @@ export class QueryAble {
                 sql = p.sql;
                 params = p.params;
             }
-
+            let query = options?.rowMode ? { text: sql, values: params, rowMode: 'array' } : { text: sql, values: params };
+            let res;
             if (connection) {
                 logger.log('reused connection', sql, util.inspect(params, false, null), connection.processID);
-                let res = await connection.query({ text: sql, values: params, rowMode: options?.rowMode ? 'array' : undefined });
+                res = await connection.query(query);
                 await this.checkAndFixOids(connection, res.fields);
-                this.postProcessFields(res.rows, res.fields, logger);
-
-                return options?.rowMode ? { columns: (res.fields || []).map(f => f.name), rows: res.rows || [] } : res.rows;
             } else {
                 connection = await this.db.pool.connect();
                 logger.log('new connection', sql, util.inspect(params, false, null), connection.processID);
 
                 connection.on('error', QueryAble.connectionErrorListener);
-                let res = await connection.query({ text: sql, values: params, rowMode: options?.rowMode ? 'array' : undefined });
+                res = await connection.query(query);
                 await this.checkAndFixOids(connection, res.fields);
 
                 connection.off('error', QueryAble.connectionErrorListener);
                 connection.release();
                 connection = null;
-                this.postProcessFields(res.rows, res.fields, logger);
-
-                return options?.rowMode ? { columns: (res.fields || []).map(f => f.name), rows: res.rows || [] } : res.rows;
             }
+            this.postProcessFields(res.rows, res.fields, logger);
+            return options?.rowMode ? { columns: (res.fields || []).map(f => f.name), rows: res.rows || [] } : res.rows;
         } catch (e) {
-            pgUtils.logError(logger, { error: e, sql, params, connection });
+            pgUtils.logError(logger, { error: <Error>e, sql, params, connection });
             if (connection) {
                 try {
                     //If any problem has happened in a dedicated connection, (wrong sql format or non-accessible postgres server)
@@ -153,7 +154,7 @@ export class QueryAble {
                     //but keep the db.connection member non - null to crash in all of the following commands
                     connection.release();
                 } catch (e) {
-                    logger.error('connection error', e.message);
+                    logger.error('connection error', (<Error>e).message);
                 }
             }
             throw e;
@@ -173,32 +174,33 @@ export class QueryAble {
     /**
      * If the callback function return true, the connection will be closed.
      */
-    async queryWithOnCursorCallback(sql: string, params: any[] | {}, options: SqlQueryOptions, callback: (any) => any): Promise<void> {
+    async queryWithOnCursorCallback(sql: string, params: any[] | Record<string, any> | null, options: SqlQueryOptions | null, callback: (res: any) => any): Promise<void> {
         if (this.db.needToFixConnectionForListen()) {
             await this.db.runRestartConnectionForListen();
         }
-        let connection = this.db.connection;
+        let connection = this.db.connection!;
         let logger = this.getLogger(true);
+        let positionedParams: any[] | null | undefined;
 
         try {
             if (params && !Array.isArray(params)) {
                 let p = pgUtils.processNamedParams(sql, params);
                 sql = p.sql;
                 params = p.params;
+            } else {
+                positionedParams = params;
             }
 
             let queryInternal = async () => {
-                this.getLogger(false).log(sql, util.inspect(params, false, null), connection.processID);
-                let fieldsToFix: ResultFieldType[];
+                this.getLogger(false).log(sql, util.inspect(positionedParams, false, null), connection.processID);
+                let fieldsToFix: ResultFieldType[] | undefined;
                 let isFirst = true;
 
-                let query = new QueryStream(sql, params);
+                let query = new QueryStream(sql, positionedParams);
                 let stream = connection.query(query);
                 await new Promise((resolve, reject) => {
-                    query.handleError = (err: Error, connection) => {
-                        reject(err);
-                    };
-                    stream.on('data', (res) => {
+                    query.handleError = reject;
+                    stream.on('data', (res: any) => {
                         try {
                             let fields = stream._result && stream._result.fields || stream.cursor._result && stream.cursor._result.fields;
                             if (isFirst) {
@@ -224,13 +226,11 @@ export class QueryAble {
                 });
                 if (fieldsToFix) {
                     await this.checkAndFixOids(connection, fieldsToFix);
-                    query = new QueryStream(sql, params);
+                    query = new QueryStream(sql, positionedParams);
                     stream = connection.query(query);
                     await new Promise((resolve, reject) => {
-                        query.handleError = (err: Error, connection) => {
-                            reject(err);
-                        };
-                        stream.on('data', (res) => {
+                        query.handleError = reject;
+                        stream.on('data', (res: any) => {
                             try {
                                 let fields = stream._result && stream._result.fields || stream.cursor._result && stream.cursor._result.fields;
                                 this.postProcessFields([res], fields, this.getLogger(false));
@@ -253,37 +253,36 @@ export class QueryAble {
                 await queryInternal();
             } else {
                 connection = await this.db.pool.connect();
-                logger.log('new connection', sql, util.inspect(params, false, null), connection.processID);
+                logger.log('new connection', sql, util.inspect(positionedParams, false, null), connection.processID);
                 connection.on('error', QueryAble.connectionErrorListener);
                 await queryInternal();
 
                 connection.off('error', QueryAble.connectionErrorListener);
                 connection.release();
-                connection = null;
             }
         } catch (e) {
-            pgUtils.logError(logger, { error: e, sql, params, connection });
+            pgUtils.logError(logger, { error: <Error>e, sql, params, connection });
             if (connection) {
                 try {
                     connection.release();
                 } catch (e) {
-                    logger.error('connection error', e.message);
+                    logger.error('connection error', (<Error>e).message);
                 }
             }
             throw e;
         }
     }
 
-    async queryAsStream(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<stream.Readable> {
+    async queryAsStream(sql: string, params?: any[] | Record<string, any> | null, options?: SqlQueryOptions | null): Promise<stream.Readable> {
         if (this.db.needToFixConnectionForListen()) {
             await this.db.runRestartConnectionForListen();
         }
         let connection = this.db.connection;
         let logger = (options && options.logger || this.getLogger(false));
-        let pgStream;
+        let pgStream: any;
         let queriable = this;
         let isFirst = true;
-        let convertTypeFilter = through(function (data) {
+        let convertTypeFilter = through(function (this: stream, data) {
             try {
                 let fields = pgStream._result && pgStream._result.fields || pgStream.cursor._result && pgStream.cursor._result.fields;
                 if (isFirst) {
@@ -299,40 +298,44 @@ export class QueryAble {
                 this.emit('error', err);
             }
         });
-        convertTypeFilter.on('error', (e) => {
+        convertTypeFilter.on('error', (e: Error) => {
             if (connection) {
                 try {
                     connection.release();
                 } catch (e) {
-                    logger.error('connection error', e.message);
+                    logger.error('connection error', (<Error>e).message);
                 }
             }
             connection = null;
             pgUtils.logError(logger, { error: e, sql, params, connection });
         });
 
+        let positionedParams: any[] | undefined | null;
+
         try {
             if (params && !Array.isArray(params)) {
                 let p = pgUtils.processNamedParams(sql, params);
                 sql = p.sql;
                 params = p.params;
+            } else {
+                positionedParams = params;
             }
 
             if (connection) {
-                logger.log(sql, util.inspect(params, false, null), connection.processID);
-                let query = new QueryStream(sql, params);
-                query.handleError = (err: Error, connection) => {
+                logger.log(sql, util.inspect(positionedParams, false, null), connection.processID);
+                let query = new QueryStream(sql, positionedParams);
+                query.handleError = (err: Error) => {
                     convertTypeFilter.emit('error', err);
                 };
                 pgStream = connection.query(query);
                 return pgStream.pipe(convertTypeFilter);
             } else {
                 connection = await this.db.pool.connect();
-                logger.log('new connection', sql, util.inspect(params, false, null), connection.processID);
+                logger.log('new connection', sql, util.inspect(positionedParams, false, null), connection.processID);
                 connection.on('error', QueryAble.connectionErrorListener);
-                
-                let query = new QueryStream(sql, params);
-                query.handleError = (err: Error, connection) => {
+
+                let query = new QueryStream(sql, positionedParams);
+                query.handleError = (err: Error, _connection: pg.PoolClient) => {
                     convertTypeFilter.emit('error', err);
                 };
                 pgStream = connection.query(query);
@@ -343,8 +346,8 @@ export class QueryAble {
                     }
                     connection = null;
                 });
-                pgStream.on('error', (e) => {
-                    pgUtils.logError(logger, { error: e, sql, params, connection });
+                pgStream.on('error', (e: Error) => {
+                    pgUtils.logError(logger, { error: e, sql, params: positionedParams, connection });
 
                     if (connection) {
                         connection.off('error', QueryAble.connectionErrorListener);
@@ -355,7 +358,7 @@ export class QueryAble {
                 return pgStream.pipe(convertTypeFilter);
             }
         } catch (e) {
-            pgUtils.logError(logger, { error: e, sql, params, connection });
+            pgUtils.logError(logger, { error: <Error>e, sql, params: positionedParams, connection });
             throw e;
         }
     }
@@ -402,12 +405,12 @@ export class QueryAble {
         return res.map(r => r[fieldName]);
     }
 
-    private postProcessFields(rows: any[], fields: ResultFieldType[], logger) {
+    private postProcessFields(rows: any[], fields: ResultFieldType[], logger: PgDbLogger) {
         pgUtils.postProcessResult(rows, fields, this.db.pgdbTypeParsers);
         if (this.db.postProcessResult) this.db.postProcessResult(rows, fields, logger);
     }
 
-    private async checkAndFixOids(connection, fields: ResultFieldType[]) {
+    private async checkAndFixOids(connection: pg.PoolClient, fields: ResultFieldType[]) {
         if (fields) {
             let oidList = fields.map(field => field.dataTypeID);
             return this.db.resetMissingParsers(connection, oidList);

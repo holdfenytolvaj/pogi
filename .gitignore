@@ -3,3 +3,4 @@
 .history
 lib/test
 node_modules
+.env

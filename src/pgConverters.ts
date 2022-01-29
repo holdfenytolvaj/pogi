@@ -1,54 +1,58 @@
 import * as moment from 'moment';
 
 //--- add parsing for array types --------------------------------
-export let arraySplit = (str) => {
-    if (str == "{}") return [];
-    str = str.substring(1, str.length - 1); //cut off {}
+export function parseArray(s: string): (string | null)[] {
+    if (!s || s[0] !== '{' || s[s.length - 1] !== '}') throw new Error('Invalid array value:' + s);
+    if (s == "{}") return [];
+    s = s.slice(1, s.length - 1); //cut off {}
     let e = /(?:("(?:[^"\\]|\\.)*")|([^,"]*))(?:,|$)/g; //has to be mutable because of exec
-    let valList = [];
+    let valList: (string | null)[] = [];
     let parsingResult;
     do {
-        parsingResult = e.exec(str);
-        let valStr = (parsingResult[2] == 'NULL') ? null :
+        parsingResult = e.exec(s);
+        if (!parsingResult) throw new Error('Invalid array value:' + s);
+        let valStr = (parsingResult[2] === 'NULL') ? null :
             (parsingResult[1] == null ? parsingResult[2] : unescapeString(parsingResult[1])); // for string parsing, escape \
         valList.push(valStr);
-    } while (e.lastIndex < str.length);
+    } while (e.lastIndex < s.length);
     return valList;
 };
-export let numWithValidation = val => {
-    if (val === 'NULL') {
+
+export function parseNumberWithValidation(s: string): number | null {
+    if (s === 'NULL') {
         return null;
     }
-    let v = +val;
+    let v = +s;
     if (v > Number.MAX_SAFE_INTEGER || v < Number.MIN_SAFE_INTEGER) {
-        throw Error("Number can't be represented in javascript precisely: " + val);
+        throw new Error("Number can't be represented in javascript precisely: " + s);
     }
     return v;
 };
-export let numberOrNull = val => {
-    if (val === 'NULL') {
+
+export function parseNumberOrNull(s: string): number | null {
+    if (s === 'NULL') {
         return null;
     }
-    return +val;
+    return +s;
 };
-export let boolOrNull = val => {
-    if (val === 'NULL') {
+
+export function parseBoolOrNull(s: string): boolean | null {
+    if (s === 'NULL') {
         return null;
     }
-    return val == 't';
+    return s == 't';
 }
 
-export let arraySplitToBool = val => val == "{}" ? [] : val.substring(1, val.length - 1).split(',').map(boolOrNull);
-export let arraySplitToNum = val => val == "{}" ? [] : val.substring(1, val.length - 1).split(',').map(numberOrNull);
-export let arraySplitToNumWithValidation = val => val == "{}" ? [] : val.substring(1, val.length - 1).split(',').map(numWithValidation);
-export let stringArrayToNumWithValidation = val => val.map(numWithValidation);
-export let arraySplitToDate = val => val == "{}" ? [] : val.substring(1, val.length - 1).split(',').map(d => d == 'NULL' ? null : moment(d.substring(1, d.length - 1)).toDate());
-export let arraySplitToJson = (str) => {
-    let vals = arraySplit(str);
-    return vals.map(s => typeof s === 'string' ? JSON.parse(s) : s);
+export let parseBooleanArray = (s: string): (boolean | null)[] => s == "{}" ? [] : s.substring(1, s.length - 1).split(',').map(parseBoolOrNull);
+export let parseNumberArray = (s: string): (number | null)[] => s == "{}" ? [] : s.substring(1, s.length - 1).split(',').map(parseNumberOrNull);
+export let parseNumberArrayWithValidation = (s: string[]) => s.map(parseNumberWithValidation);
+export let parseDateArray = (s: string): (Date | null)[] => s == "{}" ? [] : s.substring(1, s.length - 1).split(',').map(d => d == 'NULL' ? null : moment(d.substring(1, d.length - 1)).toDate());
+export let parseJsonArray = (s: string): (Object | null)[] => {
+    let vals = parseArray(s);
+    return vals.map(s2 => typeof s2 === 'string' ? JSON.parse(s2) : s2);
 };
 
-function unescapeString(s) {
+function unescapeString(s: string): string {
     return s.slice(1, s.length - 1)    // cut the first and the last "
         .replace(/\\"/g, '"')          // \" -> "
         .replace(/\\\\/g, '\\')        // \\ -> \

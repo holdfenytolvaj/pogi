@@ -1,4 +1,4 @@
-import { QueryAble, ResultFieldType, IPgDb,PostProcessResultFunc } from "./queryAble";
+import { QueryAble, ResultFieldType, IPgDb, PostProcessResultFunc } from "./queryAble";
 import { PgTable } from "./pgTable";
 import { PgSchema } from "./pgSchema";
 import * as PgConverters from "./pgConverters";
@@ -93,31 +93,41 @@ export interface Notification {
 export class PgDb extends QueryAble implements IPgDb {
     protected static instances: { [index: string]: Promise<PgDb> };
     /*protected*/
-    pool;
-    connection;
+    pool: pg.Pool;
+    connection: pg.PoolClient | null = null;
 
     /*protected*/
     config: ConnectionOptions;
     /*protected*/
-    defaultSchemas; // for this.tables and this.fn
+    defaultSchemas: string[]; // for this.tables and this.fn
 
-    db:PgDb;
+    db: PgDb;
     schemas: { [name: string]: PgSchema };
     tables: { [name: string]: PgTable<any> } = {};
-    fn: { [name: string]: (...any) => any } = {};
+    fn: { [name: string]: (...args: any[]) => any } = {};
     [name: string]: any | PgSchema;
     /* protected */
-    pgdbTypeParsers:Record<string, (string) => any> = {};
+    pgdbTypeParsers: Record<string, (s: any) => any> = {};
     /* protected */
     knownOids: Record<number, boolean> = {};
     /* protected */
-    postProcessResult: PostProcessResultFunc;
+    postProcessResult: PostProcessResultFunc | undefined | null;
 
-    private constructor(pgdb: { defaultSchemas?, config?, schemas?, pool?, pgdbTypeParsers?, knownOids?, getLogger?: () => any, postProcessResult?: PostProcessResultFunc } = {}) {
+    private constructor(pgdb: {
+        defaultSchemas?: string[],
+        config?: ConnectionOptions,
+        schemas?: Record<string, PgSchema>,
+        pool?: pg.Pool,
+        pgdbTypeParsers?: Record<string, (s: any) => any>,
+        knownOids?: Record<number, boolean>,
+        getLogger?: () => any,
+        postProcessResult?: PostProcessResultFunc | null
+    }) {
         super();
         this.schemas = {};
-        this.config = pgdb.config;
-        this.pool = pgdb.pool;
+        this.config = pgdb.config || {};
+        // pool is initialized in init, because it is asynchronous, but it is needed to call after constructor
+        this.pool = pgdb.pool!;
         this.postProcessResult = pgdb.postProcessResult;
         this.pgdbTypeParsers = pgdb.pgdbTypeParsers || {};
         this.knownOids = pgdb.knownOids || {};
@@ -138,11 +148,11 @@ export class PgDb extends QueryAble implements IPgDb {
             }
         }
 
-        this.defaultSchemas = pgdb.defaultSchemas;
+        this.defaultSchemas = pgdb.defaultSchemas || [];
         this.setDefaultTablesAndFunctions();
     }
 
-    setPostProcessResult(f: (res: any[], fields: ResultFieldType[], logger: PgDbLogger) => void) {
+    setPostProcessResult(f: null | ((res: any[], fields: ResultFieldType[], logger: PgDbLogger) => void)) {
         this.postProcessResult = f;
     }
 
@@ -162,7 +172,7 @@ export class PgDb extends QueryAble implements IPgDb {
         if (!PgDb.instances) {
             PgDb.instances = {};
         }
-        if (PgDb.instances[connectionString]) {
+        if (PgDb.instances[connectionString] != null) {
             return PgDb.instances[connectionString];
         } else {
             let pgdb = new PgDb({ config: config });
@@ -178,7 +188,7 @@ export class PgDb extends QueryAble implements IPgDb {
                 delete PgDb.instances[cs];
             }
         }
-        await this.pool.end((err: Error) => { });
+        await new Promise<void>((resolve) => this.pool.end(resolve));
     }
 
     static async connect(config: ConnectionOptions): Promise<PgDb> {
@@ -287,20 +297,20 @@ export class PgDb extends QueryAble implements IPgDb {
                 this.schemas[r.schema_name][r.table_name].fieldTypes[r.column_name] =
                     ([type2oid['json'], type2oid['jsonb']].indexOf(r.typid) > -1) ? FieldType.JSON :
                         ([type2oid['tsvector']].indexOf(r.typid) > -1) ? FieldType.TSVECTOR :
-                            ([type2oid['date'],type2oid['time'],type2oid['timestamp'],type2oid['timestamptz'],type2oid['timetz']].indexOf(r.typid) > -1) ? FieldType.TIME :
+                            ([type2oid['date'], type2oid['time'], type2oid['timestamp'], type2oid['timestamptz'], type2oid['timetz']].indexOf(r.typid) > -1) ? FieldType.TIME :
                                 FieldType.ARRAY;
             }
-        }      
+        }
 
         // https://web.archive.org/web/20160613215445/https://doxygen.postgresql.org/include_2catalog_2pg__type_8h_source.html
         // https://github.com/lib/pq/blob/master/oid/types.go
 
-        let builtInArrayTypeParsers: { oidList: number[], parser: (string) => any }[] = [
+        let builtInArrayTypeParsers: { oidList: number[], parser: (s: string) => any }[] = [
             {
                 oidList: [
                     type2oid['_bool'] // bool[]
                 ],
-                parser: PgConverters.arraySplitToBool
+                parser: PgConverters.parseBooleanArray
             },
             {
                 oidList: [
@@ -308,21 +318,21 @@ export class PgDb extends QueryAble implements IPgDb {
                     type2oid['_int4'], // integer[]  int4[]
                     type2oid['_float4'],  // real[] float4[]
                 ],
-                parser: PgConverters.arraySplitToNum
+                parser: PgConverters.parseNumberArray
             },
             {
                 oidList: [
                     type2oid['_text'], // text[]
                     type2oid['_varchar']  // varchar[]
                 ],
-                parser: PgConverters.arraySplit
+                parser: PgConverters.parseArray
             },
             {
                 oidList: [
                     type2oid['_json'], // json[]
                     type2oid['_jsonb'] // jsonb[]
                 ],
-                parser: PgConverters.arraySplitToJson
+                parser: PgConverters.parseJsonArray
             },
             {
                 oidList: [
@@ -332,7 +342,7 @@ export class PgDb extends QueryAble implements IPgDb {
                     type2oid['_timestamp'], //timestamp[]
                     type2oid['_timestamptz'],
                 ],
-                parser: PgConverters.arraySplitToDate
+                parser: PgConverters.parseDateArray
             }
         ];
 
@@ -349,8 +359,8 @@ export class PgDb extends QueryAble implements IPgDb {
                 continue;
             }
             switch (r.typid) {
-                case type2oid['json']:  
-                case type2oid['jsonb']: 
+                case type2oid['json']:
+                case type2oid['jsonb']:
                 case type2oid['date']: // date
                 case type2oid['time']: // time
                 case type2oid['timetz']: // timetz
@@ -362,14 +372,14 @@ export class PgDb extends QueryAble implements IPgDb {
                     break;
                 default:
                     //best guess otherwise user need to specify
-                    pg.types.setTypeParser(r.typid, PgConverters.arraySplit);
+                    pg.types.setTypeParser(r.typid, PgConverters.parseArray);
                     delete this.pgdbTypeParsers[r.typid];
             }
         }
-        this.pgdbTypeParsers[type2oid['int8']] = PgConverters.numWithValidation;
-        this.pgdbTypeParsers[type2oid['float8']] = PgConverters.numWithValidation;
-        this.pgdbTypeParsers[type2oid['_int8']] = PgConverters.stringArrayToNumWithValidation;
-        this.pgdbTypeParsers[type2oid['_float8']] = PgConverters.stringArrayToNumWithValidation;
+        this.pgdbTypeParsers[type2oid['int8']] = PgConverters.parseNumberWithValidation;
+        this.pgdbTypeParsers[type2oid['float8']] = PgConverters.parseNumberWithValidation;
+        this.pgdbTypeParsers[type2oid['_int8']] = PgConverters.parseNumberArrayWithValidation;
+        this.pgdbTypeParsers[type2oid['_float8']] = PgConverters.parseNumberArrayWithValidation;
         this.knownOids[type2oid['int8']] = true;
         this.knownOids[type2oid['float8']] = true;
         this.knownOids[type2oid['_int8']] = true;
@@ -392,7 +402,7 @@ export class PgDb extends QueryAble implements IPgDb {
     /**
      * if schemaName is null, it will be applied for all schemas
      */
-    async setTypeParser(typeName: string, parser: (string) => any, schemaName?: string): Promise<void> {
+    async setTypeParser(typeName: string, parser: (s: string) => any, schemaName?: string): Promise<void> {
         try {
             if (schemaName) {
                 let oid = await this.queryOneField(GET_OID_FOR_COLUMN_TYPE_FOR_SCHEMA, { typeName, schemaName });
@@ -408,11 +418,11 @@ export class PgDb extends QueryAble implements IPgDb {
                 });
             }
         } catch (e) {
-            throw Error('Not existing type: ' + typeName);
+            throw new Error('Not existing type: ' + typeName);
         }
     }
 
-    async setPgDbTypeParser(typeName: string, parser: (string) => any, schemaName?: string): Promise<void> {
+    async setPgDbTypeParser(typeName: string, parser: (s: string) => any, schemaName?: string): Promise<void> {
         try {
             if (schemaName) {
                 let oid = await this.queryOneField(GET_OID_FOR_COLUMN_TYPE_FOR_SCHEMA, { typeName, schemaName });
@@ -426,11 +436,11 @@ export class PgDb extends QueryAble implements IPgDb {
                 });
             }
         } catch (e) {
-            throw Error('Not existing type: ' + typeName);
+            throw new Error('Not existing type: ' + typeName);
         }
     }
 
-    async resetMissingParsers(connection, oidList: number[]): Promise<void> {
+    async resetMissingParsers(connection: pg.PoolClient, oidList: number[]): Promise<void> {
         let unknownOids = oidList.filter(oid => !this.knownOids[oid]);
         if (unknownOids.length) {
             let fieldsData = await connection.query(
@@ -440,7 +450,7 @@ export class PgDb extends QueryAble implements IPgDb {
 
             fieldsData.rows.forEach(fieldData => {
                 if (fieldData.typcategory == 'A') {
-                    this.pgdbTypeParsers[fieldData.oid] = PgConverters.arraySplit;
+                    this.pgdbTypeParsers[fieldData.oid] = PgConverters.parseArray;
                 }
                 this.knownOids[fieldData.oid] = true;
             });
@@ -479,7 +489,7 @@ export class PgDb extends QueryAble implements IPgDb {
             name = (name || '').replace(/"/g, '');
             await this.query(`SAVEPOINT "${name}"`);
         } else {
-            throw Error('No active transaction');
+            throw new Error('No active transaction');
         }
         return this;
     }
@@ -493,7 +503,7 @@ export class PgDb extends QueryAble implements IPgDb {
             name = (name || '').replace(/"/g, '');
             await this.query(`RELEASE SAVEPOINT "${name}"`);
         } else {
-            throw Error('No active transaction');
+            throw new Error('No active transaction');
         }
         return this;
     }
@@ -535,13 +545,13 @@ export class PgDb extends QueryAble implements IPgDb {
         return this.connection != null;
     }
 
-    async execute(fileName: string, statementTransformerFunction?: (string) => string): Promise<void> {
+    async execute(fileName: string, statementTransformerFunction?: (s: string) => string): Promise<void> {
         let isTransactionInPlace = this.isTransactionActive();
         // statements must be run in a dedicated connection
         let pgdb = isTransactionInPlace ? this : await this.dedicatedConnectionBegin();
 
         /** run statements one after the other */
-        let runStatementList = (statementList) => {
+        let runStatementList = (statementList: string[]) => {
             //this.getLogger(true).log('consumer start', commands.length);
             return new Promise((resolve, reject) => {
                 let currentStatement = 0;
@@ -569,10 +579,10 @@ export class PgDb extends QueryAble implements IPgDb {
 
         let lineCounter = 0;
         let promise = new Promise<void>((resolve, reject) => {
-            let statementList = [];
-            let tmp = '', t: RegExpExecArray;
-            let consumer;
-            let inQuotedString: string;
+            let statementList: string[] = [];
+            let tmp = '', t: RegExpExecArray | null;
+            let consumer: Promise<any> | null;
+            let inQuotedString: string | null;
             let rl = readline.createInterface({
                 input: fs.createReadStream(fileName),
                 terminal: false
@@ -593,7 +603,7 @@ export class PgDb extends QueryAble implements IPgDb {
                                 let s = line.slice(SQL_TOKENIZER_REGEXP.lastIndex - 1);
                                 let token = s.match(SQL_$_ESCAPE_REGEXP);
                                 if (!token) {
-                                    throw Error('Invalid sql in line: ' + line);
+                                    throw new Error('Invalid sql in line: ' + line);
                                 }
                                 inQuotedString = token[0];
                                 SQL_TOKENIZER_REGEXP.lastIndex += inQuotedString.length - 1;
@@ -658,7 +668,7 @@ export class PgDb extends QueryAble implements IPgDb {
                 }
             });
         });
-        let error;
+        let error: Error | null;
         return promise
             .catch((e) => {
                 error = e;
@@ -681,9 +691,9 @@ export class PgDb extends QueryAble implements IPgDb {
     }
 
     private listeners = new EventEmitter();
-    private connectionForListen;
+    private connectionForListen: pg.PoolClient | null = null;
     private _needToRestartConnectionForListen = false;
-    private restartConnectionForListen: Promise<Error> = null;
+    private restartConnectionForListen: Promise<Error | null> | null = null;
 
     /** 
      * LISTEN to a channel for a NOTIFY (https://www.postgresql.org/docs/current/sql-listen.html)
@@ -691,7 +701,7 @@ export class PgDb extends QueryAble implements IPgDb {
      * When there is no other callback for a channel, LISTEN command is executed
      */
     async listen(channel: string, callback: (notification: Notification) => void) {
-        let restartConnectionError: Error = null;
+        let restartConnectionError: Error | null = null;
         if (this.needToFixConnectionForListen()) {
             restartConnectionError = await this.runRestartConnectionForListen();
         }
@@ -705,7 +715,7 @@ export class PgDb extends QueryAble implements IPgDb {
                 if (!this.connectionForListen) {
                     await this.initConnectionForListen();
                 }
-                await this.connectionForListen.query(`LISTEN "${channel}"`);
+                await this.connectionForListen!.query(`LISTEN "${channel}"`);
             } catch (err) {
                 this._needToRestartConnectionForListen = true;
                 throw err;
@@ -719,8 +729,8 @@ export class PgDb extends QueryAble implements IPgDb {
      * When all callback is removed from a channel UNLISTEN command is executed
      * When all callback is removed from all channel, dedicated connection is released
      */
-    async unlisten(channel: string, callback?: (Notification) => void) {
-        let restartConnectionError: Error = null;
+    async unlisten(channel: string, callback?: (notification: Notification) => void) {
+        let restartConnectionError: Error | null = null;
         if (this.needToFixConnectionForListen()) {
             restartConnectionError = await this.runRestartConnectionForListen();
         }
@@ -732,7 +742,7 @@ export class PgDb extends QueryAble implements IPgDb {
             }
             try {
                 await this.internalQuery({ connection: this.connectionForListen, sql: `UNLISTEN "${channel}"` });
-                if (this.listeners.eventNames().length == 1) {
+                if (this.connectionForListen && this.listeners.eventNames().length == 1) {
                     this.connectionForListen.removeAllListeners('notification');
                     this.connectionForListen.release();
                     this.connectionForListen = null;
@@ -770,31 +780,33 @@ export class PgDb extends QueryAble implements IPgDb {
         }
     }
 
-    async runRestartConnectionForListen(): Promise<Error> {
+    async runRestartConnectionForListen(): Promise<Error | null> {
         if (!this._needToRestartConnectionForListen) {
             return null;
         }
-        let errorResult: Error = null;
+        let errorResult: Error | null = null;
         if (!this.restartConnectionForListen) {
             this.restartConnectionForListen = (async () => {
                 let eventNames = this.listeners.eventNames();
-                try {
-                    this.connectionForListen.on('notification', this.notificationListener );
-                    this.connectionForListen.on('error',this.errorListener);
-                } catch (e) {}
-                try{
-                    await this.connectionForListen.release();
-                } catch (e) {}
-                this.connectionForListen = null;
-                let error: Error;
+                if (this.connectionForListen) {
+                    try {
+                        this.connectionForListen.on('notification', this.notificationListener);
+                        this.connectionForListen.on('error', this.errorListener);
+                    } catch (e) { }
+                    try {
+                        await this.connectionForListen.release();
+                    } catch (e) { }
+                    this.connectionForListen = null;
+                }
+                let error: Error | null = null;
                 if (eventNames.length) {
                     try {
                         await this.initConnectionForListen();
                         for (let channel of eventNames) {
-                            await this.connectionForListen.query(`LISTEN "${channel as string}"`);
+                            await this.connectionForListen!.query(`LISTEN "${channel as string}"`);
                         }
                     } catch (err) {
-                        error = err;
+                        error = <Error>err;
                     }
                 }
                 return error;
@@ -823,15 +835,16 @@ export class PgDb extends QueryAble implements IPgDb {
     }
 
     notificationListener = (notification: Notification) => this.listeners.emit(notification.channel, notification)
-    errorListener = (e) => {
+
+    errorListener = (e: Error) => {
         this._needToRestartConnectionForListen = true;
         this.tryToFixConnectionForListenActively();
     };
 
     private async initConnectionForListen() {
         this.connectionForListen = await this.pool.connect();
-        this.connectionForListen.on('notification', this.notificationListener );
-        this.connectionForListen.on('error',this.errorListener);
+        this.connectionForListen.on('notification', this.notificationListener);
+        this.connectionForListen.on('error', this.errorListener);
     }
 }
 

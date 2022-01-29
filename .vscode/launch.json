@@ -11,25 +11,48 @@
             "cwd": "${workspaceFolder}",
             "runtimeExecutable": "npm",
             "runtimeArgs": [
-                "run-script", "test_debug"
+                "run-script",
+                "test_debug"
             ],
             "port": 9229
         },
         {
-			"name": "Run test",
-			"type": "node",
-			"request": "launch",
-			"cwd": "${workspaceFolder}",
-			"program": "${workspaceFolder}/spec/run.js",
+            "name": "Run test",
+            "type": "node",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "program": "${workspaceFolder}/spec/run.js",
             "runtimeExecutable": "node",
             "skipFiles": [
-				"fs.js",
-				"typescript.js",
-				"tslib.js",
-				"loader.js",
-				"loaders.js",
-				"helpers.js",
-			  ]
-		}
+                "fs.js",
+                "typescript.js",
+                "tslib.js",
+                "loader.js",
+                "loaders.js",
+                "helpers.js",
+            ]
+        },
+        {
+            "type": "node",
+            "name": "vscode-jest-tests",
+            "request": "launch",
+            "program": "${workspaceFolder}/node_modules/jest/bin/jest",
+            "args": [
+                "--runInBand"
+            ],
+            "cwd": "${workspaceFolder}",
+            "envFile": "${workspaceFolder}/.env",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "disableOptimisticBPs": true,
+            "outFiles": [
+                "${workspaceFolder}/lib/*.js",
+                "!${workspaceFolder}/node_modules/**/*",
+            ],
+            "skipFiles": [
+                "${workspaceFolder}/node_modules/**/*.js",
+                "<node_internals>/**/*.js"
+            ],
+        }
     ]
 }

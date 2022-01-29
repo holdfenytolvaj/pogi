@@ -16,7 +16,7 @@ import {PgTable} from "../pgTable";
 
         for (let schemaName in pgdb.schemas) {
             if (!(pgdb[schemaName] instanceof PgSchema)) {
-                throw Error('Already existing property: ' + schemaName + '!');
+                throw new Error('Already existing property: ' + schemaName + '!');
             }
             console.log(`    '${schemaName}': PgSchema_${schemaName};`); //need to add a PgSchema_ prefix in order to handle schemas starting with number
         }
@@ -32,7 +32,7 @@ import {PgTable} from "../pgTable";
             console.log(`export interface PgSchema_${schemaName} extends PgSchema {`);
             for (let tableName in pgdb.schemas[schemaName].tables) {
                 if (!(pgdb[schemaName][tableName] instanceof PgTable)) {
-                    throw Error('Already existing property: ' + tableName + ' on schema:' + schemaName + '!');
+                    throw new Error('Already existing property: ' + tableName + ' on schema:' + schemaName + '!');
                 }
                 console.log(`    '${tableName}': PgTable<any>;`);
             }

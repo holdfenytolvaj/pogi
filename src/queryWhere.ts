@@ -1,10 +1,10 @@
 import operationsMap from "./pgDbOperators";
-import {FieldType} from "./pgDb";
+import { FieldType } from "./pgDb";
+import _ = require("lodash");
+import util = require("util");
+import { pgUtils } from "./pgUtils";
 
-const _ = require("lodash");
-const util = require("util");
-
-class FieldAndOperator {
+interface FieldAndOperator {
     field: string;
     quotedField: string;
     operator: string;
@@ -12,8 +12,14 @@ class FieldAndOperator {
     mutator?: Function;
 }
 
+interface Result {
+    params: any[],
+    predicates: string[],
+    offset: number
+}
+
 /** public */
-function generateWhere(conditions, fieldTypes: { [index: string]: FieldType }, tableName: string, placeholderOffset = 0, skipUndefined): { where: string, params: Array<any> } {
+function generateWhere(conditions: Record<string, any>, fieldTypes: { [index: string]: FieldType }, tableName: string, placeholderOffset = 0, skipUndefined?: boolean): { where: string, params: Array<any> } {
     let result = generate({
         params: [],
         predicates: [],
@@ -27,7 +33,7 @@ function generateWhere(conditions, fieldTypes: { [index: string]: FieldType }, t
 }
 
 /** private */
-function generate(result, conditions, fieldTypes: { [index: string]: FieldType }, tableName: string, skipUndefined) {
+function generate(result: Result, conditions: Record<string, any>, fieldTypes: { [index: string]: FieldType }, tableName: string, skipUndefined?: boolean): Result {
     _.each(conditions, (value, key) => {
         //get the column field and the operator if specified
         let fieldAndOperator = parseKey(key);
@@ -53,7 +59,7 @@ function generate(result, conditions, fieldTypes: { [index: string]: FieldType }
     return result;
 }
 
-function handleOrAnd(result, fieldAndOperator, value, fieldTypes: { [index: string]: FieldType }, tableName: string, skipUndefined) {
+function handleOrAnd(result: Result, fieldAndOperator: FieldAndOperator, value: any, fieldTypes: { [index: string]: FieldType }, tableName: string, skipUndefined?: boolean): Result {
     if (!Array.isArray(value)) {
         value = [value];
     }
@@ -67,12 +73,12 @@ function handleOrAnd(result, fieldAndOperator, value, fieldTypes: { [index: stri
         }, v, fieldTypes, tableName, skipUndefined);
 
         // encapsulate and join the individual predicates with AND to create the complete subgroup predicate
-        acc.predicates.push(util.format('(%s)', subResult.predicates.join(' AND ')));
+        acc.predicates.push('(' + subResult.predicates.join(' AND ') + ')');
         acc.params = acc.params.concat(subResult.params);
         acc.offset += subResult.params.length;
 
         return acc;
-    }, {
+    }, <Result>{
         params: [],
         predicates: [],
         offset: result.offset
@@ -91,30 +97,29 @@ function handleOrAnd(result, fieldAndOperator, value, fieldTypes: { [index: stri
     return result;
 }
 
-function handleNullValue(result, fieldAndOperator, value) {
+function handleNullValue(result: Result, fieldAndOperator: FieldAndOperator, value: any): Result {
     fieldAndOperator.operator = fieldAndOperator.operator === '=' ? 'IS' : 'IS NOT';
     result.predicates.push(util.format('%s %s %s', fieldAndOperator.quotedField, fieldAndOperator.operator, value));
     return result;
 }
 
-function handleArrayValue(result, fieldAndOperator, value, fieldTypes: { [index: string]: FieldType }) {
+function handleArrayValue(result: Result, fieldAndOperator: FieldAndOperator, value: any[], fieldTypes: { [index: string]: FieldType }): Result {
     if (fieldAndOperator.mutator) {
-        value = value.map(v => fieldAndOperator.mutator(v));
+        value = value.map((v: any) => fieldAndOperator.mutator!(v));
     }
     let fieldType = fieldTypes[fieldAndOperator.field];
 
+    let position = '$' + (result.params.length + 1 + result.offset);
     if (fieldType == FieldType.JSON &&
         ['?|', '?&'].indexOf(fieldAndOperator.operator) != -1) {
         result.params.push(value);
-        value = util.format("$%s", result.params.length + result.offset);
-        result.predicates.push(util.format('%s %s %s', fieldAndOperator.quotedField, fieldAndOperator.operator, value));
+        result.predicates.push(util.format('%s %s %s', fieldAndOperator.quotedField, fieldAndOperator.operator, position));
         return result;
     }
     else if (fieldType == FieldType.JSON &&
         ['@>', '<@', '&&'].indexOf(fieldAndOperator.operator) != -1) {
         result.params.push(JSON.stringify(value));
-        value = util.format("$%s", result.params.length + result.offset);
-        result.predicates.push(util.format('%s %s %s', fieldAndOperator.quotedField, fieldAndOperator.operator, value));
+        result.predicates.push(util.format('%s %s %s', fieldAndOperator.quotedField, fieldAndOperator.operator, position));
         return result;
     }
     else if ((!fieldType || fieldType == FieldType.TIME) &&
@@ -131,31 +136,27 @@ function handleArrayValue(result, fieldAndOperator, value, fieldTypes: { [index:
         }
 
         result.params.push(value
-            .map(v => (fieldType == FieldType.TIME && !(value instanceof Date)) ? new Date(v) : v)
+            .map(v => (fieldType == FieldType.TIME && !(v instanceof Date)) ? new Date(v) : v)
         );
-        value = util.format("$%s", result.params.length + result.offset);
-        result.predicates.push(util.format('%s %s (%s)', fieldAndOperator.quotedField, fieldAndOperator.operator, value));
+        result.predicates.push(util.format('%s %s (%s)', fieldAndOperator.quotedField, fieldAndOperator.operator, position));
         return result;
     }
     else if (!fieldType && ['LIKE', 'ILIKE', 'SIMILAR TO', '~', '~*'].indexOf(fieldAndOperator.operator) != -1) {
         //defaults to any
         result.params.push(value);
-        value = util.format("$%s", result.params.length + result.offset);
-        result.predicates.push(util.format('%s %s ANY(%s)', fieldAndOperator.quotedField, fieldAndOperator.operator, value));
+        result.predicates.push(util.format('%s %s ANY(%s)', fieldAndOperator.quotedField, fieldAndOperator.operator, position));
         return result;
     }
     else if (!fieldType && ['NOT LIKE', 'NOT ILIKE', 'NOT SIMILAR TO', '!~', '!~*'].indexOf(fieldAndOperator.operator) != -1) {
         //defaults to all
         result.params.push(value);
-        value = util.format("$%s", result.params.length + result.offset);
-        result.predicates.push(util.format('%s %s ALL(%s)', fieldAndOperator.quotedField, fieldAndOperator.operator, value));
+        result.predicates.push(util.format('%s %s ALL(%s)', fieldAndOperator.quotedField, fieldAndOperator.operator, position));
         return result;
     }
     else if (fieldType == FieldType.ARRAY &&
         ['=', '<>', '<', '>', '<=', '>=', '@>', '<@', '&&'].indexOf(fieldAndOperator.operator) != -1) {
         result.params.push(value);
-        value = util.format("$%s", result.params.length + result.offset);
-        result.predicates.push(util.format('%s %s %s', fieldAndOperator.quotedField, fieldAndOperator.operator, value));
+        result.predicates.push(util.format('%s %s %s', fieldAndOperator.quotedField, fieldAndOperator.operator, position));
         return result;
     }
 
@@ -163,7 +164,7 @@ function handleArrayValue(result, fieldAndOperator, value, fieldTypes: { [index:
 }
 
 
-function handleSingleValue(result, fieldAndOperator: FieldAndOperator, value, fieldTypes: { [index: string]: FieldType }, tableName) {
+function handleSingleValue(result: Result, fieldAndOperator: FieldAndOperator, value: any, fieldTypes: { [index: string]: FieldType }, tableName: string): Result {
     if (fieldAndOperator.mutator) {
         value = fieldAndOperator.mutator(value);
     }
@@ -237,11 +238,11 @@ function handleSingleValue(result, fieldAndOperator: FieldAndOperator, value, fi
 }
 
 
-function strip(arr) {
+function strip(arr: string[]): string[] {
     return arr.map((s) => s.trim()).filter(v => v != '');
 }
 
-function getOp(str) {
+function getOp(str: string): string {
     for (let i = 0; i < str.length; i++) {
         if (operationsMap[str.substr(i)]) {
             return str.substr(i);
@@ -266,7 +267,7 @@ function getOp(str) {
  * @param  {String} key Key in a format resembling "field [JSON operation+path] operation"
  * @return {Object}     [description]
  */
-function parseKey(key): FieldAndOperator {
+function parseKey(key: string): FieldAndOperator {
     key = key.trim();
 
     let userOp = getOp(key);
@@ -276,30 +277,32 @@ function parseKey(key): FieldAndOperator {
     let operation = operationsMap[userOp] || {};
     let jsonRegexp = /(->[^>]|->>|#>[^>]|#>>)/;
 
-    let field;
-    let quotedField;
+    let field: string | undefined;
+    let quotedField: string;
 
     let quotedByUser = key.indexOf('"') > -1; //key[0]=='"'; -> lets make it possible to write transformed columns, e.g. LOWER("field")
     if (quotedByUser) {
         quotedField = key;
         //field is used for find out the type of the field, so lets restore it if possible, grab the first quoted string
-        field = /[^"]*"([^"]*)".*/.exec(key)[1];
+        field = /[^"]*"([^"]*)".*/.exec(key)?.[1];
         if (!quotedField || !field) {
-            console.error("Parsing error!");
+            throw new Error('Invalid field:' + key);
         }
     } else {
         let parts = strip(key.split(jsonRegexp));
-
         field = parts.shift();
-        quotedField = util.format('"%s"', field);
+        if (!field) {
+            throw new Error('Invalid field:' + key);
+        }
+        quotedField = pgUtils.quoteFieldName(field);
 
         if (parts.length > 1) {
-            let jsonOp = parts.shift();
-            let jsonKey = parts.shift();
+            let jsonOp = parts.shift()!;
+            let jsonKey = parts.shift()!;
 
             // treat numeric json keys as array indices, otherwise quote it
-            if (isNaN(jsonKey) && jsonKey.indexOf("'") == -1) {
-                jsonKey = util.format("'%s'", jsonKey);
+            if (!Number.isInteger(+jsonKey) && !jsonKey.includes("'")) {
+                jsonKey = util.format("'%s'", jsonKey); //TODO: insecure
             }
 
             quotedField = util.format('%s%s%s', quotedField, jsonOp, jsonKey);

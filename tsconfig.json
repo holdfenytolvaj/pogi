@@ -9,8 +9,9 @@
     "forceConsistentCasingInFileNames": true,
     "suppressImplicitAnyIndexErrors": true,
     "importHelpers": true,
+    "strict": true,
     "rootDir": "./",
-    "outDir": "../lib",
+    "outDir": "./lib",
     "types": [
       "node"
     ],
@@ -24,10 +25,11 @@
     ]
   },
   "files": [
-    "index.ts",
-    "test/pgDbOperatorSpec.ts",
-    "test/pgDbSpec.ts",
-    "test/pgServiceRestartTest.ts",
-    "bin/generateInterface.ts"
+    "src/index.ts",
+    "src/bin/generateInterface.ts"
+  ],
+  "include": [
+    "src/*.test.ts",
+    "src/index.d.ts"
   ]
 }

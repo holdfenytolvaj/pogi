@@ -1,28 +1,54 @@
-import {QueryOptions, ResultFieldType, QueryAble} from "./queryAble";
-import {FieldType} from "./pgDb";
-import {PgDbLogger} from "./pgDbLogger";
+import { QueryOptions, ResultFieldType, QueryAble } from "./queryAble";
+import { FieldType } from "./pgDb";
+import { PgDbLogger } from "./pgDbLogger";
 import * as _ from 'lodash';
+import util = require('util');
+import * as pg from 'pg';
 
-const util = require('util');
 const NAMED_PARAMS_REGEXP = /(?:^|[^:]):(!?[a-zA-Z0-9_]+)/g;    // do not convert "::type cast"
-const ASC_DESC_REGEXP = /^([^" (]+)( asc| desc)?$/;
+const ASC_DESC_REGEXP = /^(.+?)(?:\s+(asc|desc))?$/i;
 
 export let pgUtils = {
 
-    logError(logger: PgDbLogger, options: { error?: string|Error, sql: string, params: any, connection }) {
+    logError(logger: PgDbLogger, options: { error?: string | Error, sql: string, params: any, connection?: pg.PoolClient | null }) {
         let { error, sql, params, connection } = options;
         logger.error(error, sql, util.inspect(logger.paramSanitizer ? logger.paramSanitizer(params) : params, false, null), connection ? connection.processID : null);
     },
 
-    quoteField(f) {
+    quoteFieldNameInsecure(f: string) {
         return f.indexOf('"') == -1 && f.indexOf('(') == -1 ? '"' + f + '"' : f;
+    },
+
+    quoteFieldName(f: string) {
+        if (typeof f === 'string' && f.length) {
+            return `"${f
+                .replace(/^\s*"*/, '') // trim "
+                .replace(/"*\s*$/, '')
+                .replace(/"/g, '""')}"`;
+        } else {
+            throw new Error(`Invalid field: ${f}`);
+        }
+    },
+
+    quoteFieldNameOrPosition(f: string | number): string {
+        if (typeof f === 'string' && f.length) {
+            return `"${f
+                .replace(/^\s*"*/, '') // trim "
+                .replace(/"*\s*$/, '')
+                .replace(/"/g, '""')}"`;
+        } else if (typeof f === 'number') {
+            if (!Number.isInteger(f) || f < 1) throw new Error(`Invalid field: ${f}`);
+            return '' + f;
+        } else {
+            throw new Error(`Invalid field: ${f}`);
+        }
     },
 
     processQueryFields(options: QueryOptions): string {
         let s = options && options.distinct ? ' DISTINCT ' : ' ';
         if (options && options.fields) {
             if (Array.isArray(options.fields)) {
-                return s + options.fields.map(pgUtils.quoteField).join(', ');
+                return s + options.fields.map(pgUtils.quoteFieldNameInsecure).join(', ');
             } else {
                 return s + options.fields;
             }
@@ -56,7 +82,7 @@ export let pgUtils = {
             sql2.push(sql.slice(lastIndex, NAMED_PARAMS_REGEXP.lastIndex - p[1].length - 1));
 
             if (ddl) {
-                sql2.push('"' + ('' + params[name]).replace(/"/g, '""') + '"');
+                sql2.push(pgUtils.quoteFieldName(params[name]));
             } else {
                 params2.push(params[name]);
                 sql2.push('$' + params2.length);
@@ -64,7 +90,7 @@ export let pgUtils = {
             lastIndex = NAMED_PARAMS_REGEXP.lastIndex;
             p = NAMED_PARAMS_REGEXP.exec(sql);
         }
-        sql2.push(sql.substr(lastIndex));
+        sql2.push(sql.slice(lastIndex));
 
         return {
             sql: sql2.join(''),
@@ -78,34 +104,40 @@ export let pgUtils = {
 
         if (options.groupBy) {
             if (Array.isArray(options.groupBy)) {
-                sql += ' GROUP BY ' + options.groupBy.map(pgUtils.quoteField).join(',');
+                sql += ' GROUP BY ' + options.groupBy.map(pgUtils.quoteFieldNameOrPosition).join(',');
             } else {
-                sql += ' GROUP BY ' + pgUtils.quoteField(options.groupBy);
+                sql += ' GROUP BY ' + pgUtils.quoteFieldNameOrPosition(options.groupBy);
             }
         }
         if (options.orderBy) {
-            if (typeof options.orderBy == 'string') {
-                sql += ' ORDER BY ' + pgUtils.quoteField(options.orderBy);
-            }
-            else if (Array.isArray(options.orderBy)) {
-                let orderBy = options.orderBy.map(v =>
-                    v[0] == '+' ? pgUtils.quoteField(v.substr(1, v.length - 1)) + ' asc' :
-                        v[0] == '-' ? pgUtils.quoteField(v.substr(1, v.length - 1)) + ' desc' :
-                            v.replace(ASC_DESC_REGEXP, '"$1"$2'));
-                sql += ' ORDER BY ' + orderBy.join(',');
+            let orderBy = typeof options.orderBy === 'string' ? options.orderBy.split(',') : options.orderBy;
+            if (Array.isArray(orderBy)) {
+                let orderBy2: string[] = orderBy.map(v => {
+                    if (typeof v === 'number') return pgUtils.quoteFieldNameOrPosition(v);
+                    else if (typeof v !== 'string' || !v.length) throw new Error(`Invalid orderBy: ${v}`);
+                    if (v[0] == '+') return pgUtils.quoteFieldNameOrPosition(v.slice(1));
+                    if (v[0] == '-') return pgUtils.quoteFieldNameOrPosition(v.slice(1)) + ' desc';
+                    let o = ASC_DESC_REGEXP.exec(v);
+                    if (!o) throw new Error(`Invalid orderBy: ${v}`);
+                    return `${pgUtils.quoteFieldNameOrPosition(o[1])} ${o[2] ?? ''}`;
+                });
+                sql += ' ORDER BY ' + orderBy2.join(',');
             } else {
-                let orderBy = [];
-                _.forEach(options.orderBy, (v, k) => orderBy.push(pgUtils.quoteField(k) + ' ' + v));
-                sql += ' ORDER BY ' + orderBy.join(',');
+                throw new Error(`Invalid orderBy: ${options.orderBy}`);
+            }
+            if (options.orderByNullsFirst != null) {
+                sql += ' NULLS ' + options.orderByNullsFirst ? 'FIRST' : 'LAST';
             }
         }
         if (options.limit) {
-            sql += util.format(' LIMIT %d', options.limit);
+            if (!Number.isInteger(options.limit) || options.limit < 0) throw new Error(`Invalid limit: ${options.limit}`);
+            sql += ` LIMIT ${options.limit}`;
         }
         if (options.offset) {
-            sql += util.format(' OFFSET %d', options.offset);
+            if (!Number.isInteger(options.offset) || options.offset < 0) throw new Error(`Invalid offset: ${options.offset}`);
+            sql += ` OFFSET ${options.offset}`;
         }
-        if (options.forUpdate){
+        if (options.forUpdate) {
             sql += ' FOR UPDATE';
         }
         return sql;
@@ -122,18 +154,18 @@ export let pgUtils = {
             (param != null && fieldType == FieldType.TIME && !(param instanceof Date)) ? new Date(param) : param;
     },
 
-    postProcessResult(res: any[], fields: ResultFieldType[], pgdbTypeParsers: { [oid: number]: (s:string) => any }) {
+    postProcessResult(res: any[], fields: ResultFieldType[], pgdbTypeParsers: { [oid: number]: (s: string) => any }) {
         if (res) {
             if (res[0] && !Array.isArray(res[0])) {
                 if (Object.keys(res[0]).length != fields.length) {
-                    throw Error("Name collision for the query, two or more fields have the same name.");
+                    throw new Error("Name collision for the query, two or more fields have the same name.");
                 }
             }
             pgUtils.convertTypes(res, fields, pgdbTypeParsers);
         }
     },
 
-    convertTypes(res: any[], fields: ResultFieldType[], pgdbTypeParsers: { [oid: number]: (s:string) => any }) {
+    convertTypes(res: any[], fields: ResultFieldType[], pgdbTypeParsers: { [oid: number]: (s: string) => any }) {
         let isArrayMode = Array.isArray(res[0]);
         fields.forEach((field, i) => {
             if (pgdbTypeParsers[field.dataTypeID]) {
@@ -147,9 +179,9 @@ export let pgUtils = {
     },
 
     createFunctionCaller(q: QueryAble, fn: { schema: string, name: string, return_single_row: boolean, return_single_value: boolean }) {
-        return async (...args) => {
-            let placeHolders = [];
-            let params = [];
+        return async (...args: any[]) => {
+            let placeHolders: string[] = [];
+            let params: any[] = [];
             args.forEach((arg) => {
                 placeHolders.push('$' + (placeHolders.length + 1));
                 params.push(arg);
@@ -159,18 +191,21 @@ export let pgUtils = {
             if (fn.return_single_value) {
                 let keys = res[0] ? Object.keys(res[0]) : [];
                 if (keys.length != 1) {
-                    throw Error(`Return type error. schema: ${fn.schema} fn: ${fn.name} expected return type: single value, current value:` + JSON.stringify(res))
+                    throw new Error(`Return type error. schema: ${fn.schema} fn: ${fn.name} expected return type: single value, current value:` + JSON.stringify(res))
                 }
                 res = res.map((r) => r[keys[0]]);
             }
             if (fn.return_single_row) {
                 if (res.length != 1) {
-                    throw Error(`Return type error. schema: ${fn.schema} fn: ${fn.name} expected return type: single value, current value:` + JSON.stringify(res))
+                    throw new Error(`Return type error. schema: ${fn.schema} fn: ${fn.name} expected return type: single value, current value:` + JSON.stringify(res))
                 }
                 return res[0];
             } else {
                 return res;
             }
         }
+    },
+    escapeForLike(s: string): string {
+        return s.replace(/([\\%_])/g, '\\$1');
     }
 };

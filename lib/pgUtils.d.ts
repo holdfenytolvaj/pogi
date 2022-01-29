@@ -8,7 +8,9 @@ export declare let pgUtils: {
         params: any;
         connection;
     }): void;
-    quoteField(f: any): any;
+    quoteFieldNameInsecure(f: string): string;
+    quoteFieldName(f: string): string;
+    quoteFieldNameOrPosition(f: string | number): string;
     processQueryFields(options: QueryOptions): string;
     processNamedParams(sql: string, params: Object): {
         sql: string;
