@@ -30,15 +30,34 @@ export let pgUtils = {
         }
     },
 
+    /** ex. for order by column position can be use, which needs no quote  */
     quoteFieldNameOrPosition(f: string | number): string {
-        if (typeof f === 'string' && f.length) {
+        if (Number.isInteger(+f)) {
+            if (!Number.isInteger(+f) || +f < 1) throw new Error(`Invalid field: ${f}`);
+            return '' + f;
+        } else if (typeof f === 'string' && f.length) {
             return `"${f
                 .replace(/^\s*"*/, '') // trim "
                 .replace(/"*\s*$/, '')
                 .replace(/"/g, '""')}"`;
-        } else if (typeof f === 'number') {
-            if (!Number.isInteger(f) || f < 1) throw new Error(`Invalid field: ${f}`);
+        } else {
+            throw new Error(`Invalid field: ${f}`);
+        }
+    },
+    /**
+     * https://www.postgresql.org/docs/current/functions-json.html 
+     * column->'a' , 
+     * column -> 3
+     */
+    quoteFieldNameJsonbOrPosition(f: string | number): string {
+        // treat numeric json keys as array indices, otherwise quote it
+        if (Number.isInteger(+f)) {
             return '' + f;
+        } if (typeof f === 'string' && f.length) {
+            return `'${f
+                .replace(/^\s*'*/, '') // trim "
+                .replace(/'*\s*$/, '')
+                .replace(/'/g, "''")}'`;
         } else {
             throw new Error(`Invalid field: ${f}`);
         }

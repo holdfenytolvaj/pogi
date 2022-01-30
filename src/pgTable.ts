@@ -50,7 +50,7 @@ export class PgTable<T> extends QueryAble {
     constructor(public schema: PgSchema, protected desc: { name: string, pkey?: string, schema: string }, fieldTypes = {}) {
         super();
         this.db = schema.db;
-        this.qualifiedName = `"${desc.schema}"."${desc.name}"`;
+        this.qualifiedName = `${pgUtils.quoteFieldName(desc.schema)}.${pgUtils.quoteFieldName(desc.name)}`;
         this.pkey = desc.pkey || desc.name + "_pkey"; //poor man's pkey (could be queried by why?)
         this.fieldTypes = fieldTypes;
     }
@@ -110,7 +110,7 @@ export class PgTable<T> extends QueryAble {
 
         let { sql, parameters } = this.getInsertQuery(records);
 
-        sql += " RETURNING " + (options && options.return && Array.isArray(options.return) ? options.return.map(pgUtils.quoteFieldNameInsecure).join(',') : '*');
+        sql += " RETURNING " + (options && options.return && Array.isArray(options.return) ? options.return.map(pgUtils.quoteFieldName).join(',') : '*');
 
         let result = await this.query(sql, parameters, { logger: options.logger });
         if (options.return && options.return.length == 0) {
@@ -148,7 +148,7 @@ export class PgTable<T> extends QueryAble {
 
     async updateAndGet(conditions: { [k: string]: any }, fields: { [k: string]: any }, options?: UpdateDeleteOption & Return): Promise<T[]> {
         let { sql, parameters } = this.getUpdateQuery(conditions, fields, options);
-        sql += " RETURNING " + (options && options.return && Array.isArray(options.return) ? options.return.map(pgUtils.quoteFieldNameInsecure).join(',') : '*');
+        sql += " RETURNING " + (options && options.return && Array.isArray(options.return) ? options.return.map(pgUtils.quoteFieldName).join(',') : '*');
         return this.query(sql, parameters, options);
     };
 
@@ -177,7 +177,7 @@ export class PgTable<T> extends QueryAble {
         }
 
         let { sql, parameters } = this.getUpsertQuery(record, options);
-        sql += " RETURNING " + (options && options.return && Array.isArray(options.return) ? options.return.map(pgUtils.quoteFieldNameInsecure).join(',') : '*');
+        sql += " RETURNING " + (options && options.return && Array.isArray(options.return) ? options.return.map(pgUtils.quoteFieldName).join(',') : '*');
 
         let result = await this.query(sql, parameters, { logger: options.logger });
 
@@ -205,7 +205,7 @@ export class PgTable<T> extends QueryAble {
     async deleteAndGet(conditions: { [k: string]: any }, options?: UpdateDeleteOption & Return): Promise<any[]> {
         options = options || {};
         let { sql, parameters } = this.getDeleteQuery(conditions, options);
-        sql += " RETURNING " + (options && options.return && Array.isArray(options.return) ? options.return.map(pgUtils.quoteFieldNameInsecure).join(',') : '*');
+        sql += " RETURNING " + (options && options.return && Array.isArray(options.return) ? options.return.map(pgUtils.quoteFieldName).join(',') : '*');
         return this.query(sql, parameters);
     }
 

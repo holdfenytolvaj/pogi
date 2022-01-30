@@ -1,11 +1,11 @@
-import {PgDbLogger} from './pgDbLogger';
+import { PgDbLogger } from './pgDbLogger';
 import * as pg from 'pg';
 
-export interface ConnectionOptions extends pg.ConnectionConfig{
+export interface ConnectionOptions extends pg.ConnectionConfig {
     /** host can be specified through PGHOST env variable */
     host?: string;
     /** user can be specified through PGUSER env variable (defaults USER env var) */
-    user?: string; 
+    user?: string;
     /** can be specified through PGDATABASE env variable */
     database?: string;
     /** can be specified through PGPASSWORD env variable */
@@ -39,4 +39,16 @@ export interface ConnectionOptions extends pg.ConnectionConfig{
     logger?: PgDbLogger;
     /** if there is a undefined value in the condition, what should pogi do. Default is 'none', meaning raise error if a value is undefined. */
     skipUndefined?: 'all' | 'select' | 'none';
+
+    /** 
+     * escape all ddl parameter (select, from, where, order by, group by, ...), default: true 
+     * notes:
+     * - insert statements columns are always quoted
+     * - update statements "SET" columns are always quoted
+     * */
+    strictDdl?: boolean,
+    /** escape all "SELECT" ddl parameter, default: true */
+    strictDdlSelect?: boolean,
+    /** escape all "WHERE" ddl parameter, default: true */
+    strictDdlWhere?: boolean,
 }

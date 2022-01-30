@@ -300,11 +300,7 @@ function parseKey(key: string): FieldAndOperator {
             let jsonOp = parts.shift()!;
             let jsonKey = parts.shift()!;
 
-            // treat numeric json keys as array indices, otherwise quote it
-            if (!Number.isInteger(+jsonKey) && !jsonKey.includes("'")) {
-                jsonKey = util.format("'%s'", jsonKey); //TODO: insecure
-            }
-
+            jsonKey = pgUtils.quoteFieldNameJsonbOrPosition(jsonKey);
             quotedField = util.format('%s%s%s', quotedField, jsonOp, jsonKey);
         }
     }
