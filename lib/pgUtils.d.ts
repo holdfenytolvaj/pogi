@@ -9,7 +9,9 @@ export declare let pgUtils: {
         error?: string | Error;
         sql: string;
         params: any;
-        connection?: pg.PoolClient | null;
+        connection?: (pg.PoolClient & {
+            processID?: string;
+        }) | null;
     }): void;
     quoteFieldNameInsecure(f: string): string;
     quoteFieldName(f: string): string;

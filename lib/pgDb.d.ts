@@ -16,7 +16,9 @@ export declare class PgDb extends QueryAble {
         [index: string]: Promise<PgDb>;
     };
     pool: pg.Pool;
-    connection: pg.PoolClient | null;
+    connection: (pg.PoolClient & {
+        processID?: string;
+    }) | null;
     config: ConnectionOptions;
     defaultSchemas: string[];
     db: PgDb;

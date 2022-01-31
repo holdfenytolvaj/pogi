@@ -82,7 +82,8 @@ export class PgDb extends QueryAble /*implements IPgDb*/ {
     protected static instances: { [index: string]: Promise<PgDb> };
     /*protected*/
     pool: pg.Pool;
-    connection: pg.PoolClient | null = null;
+    /** it actually has processID just not in the defition */
+    connection: (pg.PoolClient & { processID?: string }) | null = null;
 
     /*protected*/
     config: ConnectionOptions;

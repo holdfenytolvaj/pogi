@@ -13,7 +13,7 @@ const ASC_DESC_REGEXP = /^\s*(.+?)(?:\s+(asc|desc))?\s*$/i;
 
 export let pgUtils = {
 
-    logError(logger: PgDbLogger, options: { error?: string | Error, sql: string, params: any, connection?: pg.PoolClient | null }) {
+    logError(logger: PgDbLogger, options: { error?: string | Error, sql: string, params: any, connection?: (pg.PoolClient & { processID?: string }) | null }) {
         let { error, sql, params, connection } = options;
         logger.error(error, sql, util.inspect(logger.paramSanitizer ? logger.paramSanitizer(params) : params, false, null), connection ? connection.processID : null);
     },

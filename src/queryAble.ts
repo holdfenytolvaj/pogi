@@ -52,7 +52,7 @@ export abstract class QueryAble implements IQueryAble {
 
     protected async internalQuery(options: { connection: pg.PoolClient | null, sql: string, params?: any, logger?: PgDbLogger }): Promise<any[]>;
     protected async internalQuery(options: { connection: pg.PoolClient | null, sql: string, params?: any, logger?: PgDbLogger, rowMode: true }): Promise<PgRowResult>;
-    protected async internalQuery(options: { connection: pg.PoolClient | null, sql: string, params?: any, logger?: PgDbLogger, rowMode?: boolean }): Promise<any[] | PgRowResult> {
+    protected async internalQuery(options: { connection: (pg.PoolClient & { processID?: string }) | null, sql: string, params?: any, logger?: PgDbLogger, rowMode?: boolean }): Promise<any[] | PgRowResult> {
         if (this.db.needToFixConnectionForListen()) {
             await this.db.runRestartConnectionForListen();
         }
@@ -120,7 +120,7 @@ export abstract class QueryAble implements IQueryAble {
         }
         let connection = this.db.connection!;
         let logger = this.getLogger(true);
-        let positionedParams: any[] | null | undefined;
+        let positionedParams: any[] | undefined;
 
         try {
             if (params && !Array.isArray(params)) {
@@ -128,7 +128,7 @@ export abstract class QueryAble implements IQueryAble {
                 sql = p.sql;
                 params = p.params;
             } else {
-                positionedParams = params;
+                positionedParams = params ?? undefined;
             }
 
             let queryInternal = async () => {
@@ -250,7 +250,7 @@ export abstract class QueryAble implements IQueryAble {
             pgUtils.logError(logger, { error: e, sql, params, connection });
         });
 
-        let positionedParams: any[] | undefined | null;
+        let positionedParams: any[] | undefined;
 
         try {
             if (params && !Array.isArray(params)) {
@@ -258,7 +258,7 @@ export abstract class QueryAble implements IQueryAble {
                 sql = p.sql;
                 params = p.params;
             } else {
-                positionedParams = params;
+                positionedParams = params ?? undefined;
             }
 
             if (connection) {
