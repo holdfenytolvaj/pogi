@@ -77,7 +77,7 @@ export let pgUtils = {
         }
     },
 
-    processQueryFields<T>(options: QueryOptions, pgTable?: PgTable<T>): string {
+    processQueryFields<T>(options: QueryOptions, pgTable: PgTable<T>): string {
         let escapeColumns = (
             (pgTable?.db.config.forceEscapeColumns === true || (pgTable?.db.config.forceEscapeColumns as ForceEscapeColumnsOptions)?.select === true)
             && options.forceEscapeColumns !== false && (options.forceEscapeColumns as ForceEscapeColumnsOptions)?.select !== false)
@@ -92,7 +92,7 @@ export let pgUtils = {
                 }
                 return s + options.fields.map(pgUtils.quoteFieldNameInsecure).join(', ');
             } else {
-                return s + options.fields;
+                return s + (escapeColumns ? pgUtils.quoteFieldName(options.fields) : pgUtils.quoteFieldNameInsecure(options.fields));
             }
         } else {
             return s + ' *';

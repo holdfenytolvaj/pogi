@@ -214,7 +214,7 @@ export class PgTable<T> extends QueryAble {
             where: "",
             params: undefined
         } : generateWhere(conditions, this.fieldTypes, this.qualifiedName, 0, options.skipUndefined);
-        let sql = `SELECT ${pgUtils.processQueryFields(options)} FROM ${this.qualifiedName} ${where.where} ${pgUtils.processQueryOptions<T>(options, this)}`;
+        let sql = `SELECT ${pgUtils.processQueryFields(options, this)} FROM ${this.qualifiedName} ${where.where} ${pgUtils.processQueryOptions<T>(options, this)}`;
         return options.stream ? this.queryAsStream(sql, where.params, options) : this.query(sql, where.params, options);
     }
 
@@ -223,7 +223,7 @@ export class PgTable<T> extends QueryAble {
     async findWhere(where: string, params: any[] | {}, options?: QueryOptions & Stream): Promise<stream.Readable>
     async findWhere(where: string, params: any, options?: any): Promise<any> {
         options = options || {};
-        let sql = `SELECT ${pgUtils.processQueryFields(options)} FROM ${this.qualifiedName} WHERE ${where} ${pgUtils.processQueryOptions<T>(options, this)}`;
+        let sql = `SELECT ${pgUtils.processQueryFields(options, this)} FROM ${this.qualifiedName} WHERE ${where} ${pgUtils.processQueryOptions<T>(options, this)}`;
         return options.stream ? this.queryAsStream(sql, params, options) : this.query(sql, params, options);
     }
 
@@ -231,7 +231,7 @@ export class PgTable<T> extends QueryAble {
     public async findAll(options?: QueryOptions & Stream): Promise<stream.Readable>
     public async findAll(options?: any): Promise<any> {
         options = options || {};
-        let sql = `SELECT ${pgUtils.processQueryFields(options)} FROM ${this.qualifiedName} ${pgUtils.processQueryOptions<T>(options, this)}`;
+        let sql = `SELECT ${pgUtils.processQueryFields(options, this)} FROM ${this.qualifiedName} ${pgUtils.processQueryOptions<T>(options, this)}`;
         return options.stream ? this.queryAsStream(sql, undefined, options) : this.query(sql, null, options);
     }
 

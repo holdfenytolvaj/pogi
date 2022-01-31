@@ -18,7 +18,7 @@ export declare let pgUtils: {
     quoteFieldNameOrPositionInsecure(f: string | number): string;
     quoteFieldNameOrPosition(f: string | number): string;
     quoteFieldNameJsonbOrPosition(f: string | number): string;
-    processQueryFields<T>(options: QueryOptions, pgTable?: PgTable<T> | undefined): string;
+    processQueryFields<T>(options: QueryOptions, pgTable: PgTable<T>): string;
     processNamedParams(sql: string, params: Object): {
         sql: string;
         params: any[];
