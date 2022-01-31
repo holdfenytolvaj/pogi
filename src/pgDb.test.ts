@@ -732,13 +732,22 @@ describe("pgdb", () => {
         res = await table.find({}, { orderBy: ['aCategory', 'name'], fields: ['name'] });
         expect(res.map(v => v.name)).toEqual(['A', 'A2', 'B', 'B2', 'C', 'C2']);
 
+        res = await table.find({}, { orderBy: { 'aCategory': 'asc', 'name': 'asc' }, fields: ['name'] });
+        expect(res.map(v => v.name)).toEqual(['A', 'A2', 'B', 'B2', 'C', 'C2']);
+
         res = await table.find({}, { orderBy: ['aCategory asc', 'name desc'], fields: ['name'] });
+        expect(res.map(v => v.name)).toEqual(['A2', 'A', 'B2', 'B', 'C2', 'C']);
+
+        res = await table.find({}, { orderBy: { 'aCategory': 'asc', 'name': 'desc' }, fields: ['name'] });
         expect(res.map(v => v.name)).toEqual(['A2', 'A', 'B2', 'B', 'C2', 'C']);
 
         res = await table.find({}, { orderBy: ['+aCategory', '-name'], fields: ['name'] });
         expect(res.map(v => v.name)).toEqual(['A2', 'A', 'B2', 'B', 'C2', 'C']);
 
         res = await table.find({}, { orderBy: '"aCategory" asc, name desc', fields: ['name'] });
+        expect(res.map(v => v.name)).toEqual(['A2', 'A', 'B2', 'B', 'C2', 'C']);
+
+        res = await table.find({}, { orderBy: { '"aCategory"': 'asc', 'name': 'desc' }, fields: ['name'] });
         expect(res.map(v => v.name)).toEqual(['A2', 'A', 'B2', 'B', 'C2', 'C']);
     });
 

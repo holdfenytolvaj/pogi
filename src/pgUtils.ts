@@ -172,7 +172,9 @@ export let pgUtils = {
             || options.forceEscapeColumns === true
             || (options.forceEscapeColumns as ForceEscapeColumnsOptions)?.orderBy;
 
-        let orderBy = typeof options.orderBy === 'string' ? options.orderBy.split(',') : options.orderBy;
+        let orderBy = typeof options.orderBy === 'string' ? options.orderBy.split(',') :
+            Array.isArray(options.orderBy) ? options.orderBy : Object.entries(options.orderBy).map(([k, v]) => k + ' ' + v);
+
         if (Array.isArray(orderBy)) {
             let orderBy2: string[];
 
