@@ -1,58 +1,28 @@
 import { QueryAble, QueryOptions } from "./queryAble";
-import { PgDb, FieldType } from "./pgDb";
+import { FieldType } from "./pgDb";
+import { IPgDb } from "./pgDbInterface";
 import { PgDbLogger } from "./pgDbLogger"
 import generateWhere from "./queryWhere";
 import { PgSchema } from "./pgSchema";
 import { pgUtils } from "./pgUtils";
 import * as _ from 'lodash';
 import * as stream from "stream";
+import { IPgTable, TruncateOptions, InsertOption, Return, UpdateDeleteOption, UpsertOption, Stream, CountOption } from "./pgTableInterface";
 
-export interface InsertOption {
-    logger?: PgDbLogger;
-}
 
-export interface Return {
-    return?: string[] | '*';
-}
-
-export interface UpdateDeleteOption {
-    skipUndefined?: boolean;
-    logger?: PgDbLogger;
-}
-
-export interface UpsertOption {
-    constraint?: string,
-    columns?: string[],
-    logger?: PgDbLogger;
-}
-
-export interface CountOption {
-    skipUndefined?: boolean;
-    logger?: PgDbLogger;
-}
-
-export interface Stream {
-    stream: true;
-}
-
-export interface TruncateOptions {
-    restartIdentity?: boolean,
-    cascade?: boolean,
-    logger?: PgDbLogger;
-}
-
-export class PgTable<T> extends QueryAble {
+export class PgTable<T> extends QueryAble implements IPgTable<T> {
     qualifiedName: string;
     pkey: string;
-    db: PgDb;
+    db: IPgDb;
     fieldTypes: { [index: string]: FieldType }; //written directly
 
-    constructor(public schema: PgSchema, protected desc: { name: string, pkey?: string, schema: string }, fieldTypes = {}) {
+    constructor(public schema: PgSchema, protected desc: { name: string, pkey?: string, schema: string }, fieldTypes: Record<string, FieldType> = {}) {
         super();
         this.db = schema.db;
         this.qualifiedName = `${pgUtils.quoteFieldName(desc.schema)}.${pgUtils.quoteFieldName(desc.name)}`;
         this.pkey = desc.pkey || desc.name + "_pkey"; //poor man's pkey (could be queried by why?)
         this.fieldTypes = fieldTypes;
+        return this
     }
 
     toString() {
@@ -244,7 +214,7 @@ export class PgTable<T> extends QueryAble {
             where: "",
             params: undefined
         } : generateWhere(conditions, this.fieldTypes, this.qualifiedName, 0, options.skipUndefined);
-        let sql = `SELECT ${pgUtils.processQueryFields(options)} FROM ${this.qualifiedName} ${where.where} ${pgUtils.processQueryOptions(options)}`;
+        let sql = `SELECT ${pgUtils.processQueryFields(options)} FROM ${this.qualifiedName} ${where.where} ${pgUtils.processQueryOptions<T>(options, this)}`;
         return options.stream ? this.queryAsStream(sql, where.params, options) : this.query(sql, where.params, options);
     }
 
@@ -253,7 +223,7 @@ export class PgTable<T> extends QueryAble {
     async findWhere(where: string, params: any[] | {}, options?: QueryOptions & Stream): Promise<stream.Readable>
     async findWhere(where: string, params: any, options?: any): Promise<any> {
         options = options || {};
-        let sql = `SELECT ${pgUtils.processQueryFields(options)} FROM ${this.qualifiedName} WHERE ${where} ${pgUtils.processQueryOptions(options)}`;
+        let sql = `SELECT ${pgUtils.processQueryFields(options)} FROM ${this.qualifiedName} WHERE ${where} ${pgUtils.processQueryOptions<T>(options, this)}`;
         return options.stream ? this.queryAsStream(sql, params, options) : this.query(sql, params, options);
     }
 
@@ -261,7 +231,7 @@ export class PgTable<T> extends QueryAble {
     public async findAll(options?: QueryOptions & Stream): Promise<stream.Readable>
     public async findAll(options?: any): Promise<any> {
         options = options || {};
-        let sql = `SELECT ${pgUtils.processQueryFields(options)} FROM ${this.qualifiedName} ${pgUtils.processQueryOptions(options)}`;
+        let sql = `SELECT ${pgUtils.processQueryFields(options)} FROM ${this.qualifiedName} ${pgUtils.processQueryOptions<T>(options, this)}`;
         return options.stream ? this.queryAsStream(sql, undefined, options) : this.query(sql, null, options);
     }
 

@@ -21,9 +21,18 @@
             "type": "node",
             "request": "launch",
             "cwd": "${workspaceFolder}",
-            "program": "${workspaceFolder}/spec/run.js",
-            "runtimeExecutable": "node",
-            "skipFiles": [
+            "program": "${workspaceFolder}/node_modules/jest/bin/jest",
+            "args": [
+				"--runInBand",
+				"--config",
+				"jest.config.js",
+				"--runTestsByPath",
+				"${relativeFile}",
+			],
+			"console": "integratedTerminal",
+			"internalConsoleOptions": "neverOpen",
+			"disableOptimisticBPs": true,
+			"skipFiles": [
                 "fs.js",
                 "typescript.js",
                 "tslib.js",

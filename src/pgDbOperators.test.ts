@@ -1,4 +1,3 @@
-/// <reference types="jasmine"/>
 import { PgDb } from "./pgDb";
 import { PgTable } from "./pgTable";
 

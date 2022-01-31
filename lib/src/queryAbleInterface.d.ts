@@ -1,0 +1,59 @@
+/// <reference types="node" />
+import { PgDbLogger } from "./pgDbLogger";
+import { IPgSchema } from "./pgSchemaInterface";
+import * as stream from "stream";
+import { ResultFieldType, IPgDb } from "./pgDbInterface";
+export interface QueryOptions {
+    limit?: number;
+    offset?: number;
+    orderBy?: string | string[] | {
+        [fieldName: string]: 'asc' | 'desc';
+    };
+    orderByNullsFirst?: boolean;
+    groupBy?: string | string[];
+    fields?: string | string[];
+    logger?: PgDbLogger;
+    forUpdate?: boolean;
+    distinct?: boolean;
+    skipUndefined?: boolean;
+    forceEscapeColumns?: boolean | {
+        select?: boolean;
+        where?: boolean;
+        orderBy?: boolean;
+        groupBy?: boolean;
+    };
+}
+export interface SqlQueryOptions {
+    logger?: PgDbLogger;
+}
+export interface ResultType {
+    command: 'SELECT' | 'UPDATE' | 'DELETE';
+    rowCount: number;
+    oid: number;
+    rows: any[];
+    fields: ResultFieldType[];
+    _parsers: Function[][];
+    RowCtor: Function[];
+    rowsAsArray: boolean;
+    _getTypeParser: Function[];
+}
+export interface PgRowResult {
+    columns: string[];
+    rows: any[];
+}
+export interface IQueryAble {
+    db: IPgDb & IQueryAble;
+    schema: IPgSchema;
+    logger: PgDbLogger;
+    setLogger(logger: PgDbLogger): void;
+    getLogger(useConsoleAsDefault: boolean): PgDbLogger;
+    run(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<any[]>;
+    query(sql: string, params?: any[] | {} | null, options?: SqlQueryOptions): Promise<any[]>;
+    queryAsRows(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<PgRowResult>;
+    queryWithOnCursorCallback(sql: string, params: any[] | Record<string, any> | null, options: SqlQueryOptions | null, callback: (res: any) => any): Promise<void>;
+    queryAsStream(sql: string, params?: any[] | Record<string, any> | null, options?: SqlQueryOptions | null): Promise<stream.Readable>;
+    queryOne(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<any>;
+    queryFirst(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<any>;
+    queryOneField(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<any>;
+    queryOneColumn(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<any[]>;
+}

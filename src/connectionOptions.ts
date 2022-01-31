@@ -1,12 +1,22 @@
 import { PgDbLogger } from './pgDbLogger';
-import * as pg from 'pg';
 
-export interface ConnectionOptions extends pg.ConnectionConfig {
-    /** host can be specified through PGHOST env variable */
+/**
+ * @property connectionString e.g.: "postgres://user@localhost/database"
+ * @property host can be specified through PGHOST env variable
+ * @property user can be specified through PGUSER env variable (defaults USER env var)
+ * @property database can be specified through PGDATABASE env variable (defaults USER env var)
+ * @property password can be specified through PGPASSWORD env variable
+ * @property port can be specified through PGPORT env variable
+ * @property idleTimeoutMillis how long a client is allowed to remain idle before being closed
+ * @property skipUndefined if there is a undefined value in the condition, what should pogi do. Default is 'none', meaning raise error if a value is undefined.
+ * @property logSQLDetailsOnError - log sql and params in case of sql error (this might contain sensitive information)
+ */
+export interface ConnectionOptions {
+    /** host can be specified through PGHOST env variable (defaults USER env var) */
     host?: string;
     /** user can be specified through PGUSER env variable (defaults USER env var) */
     user?: string;
-    /** can be specified through PGDATABASE env variable */
+    /** can be specified through PGDATABASE env variable (defaults USER env var) */
     database?: string;
     /** can be specified through PGPASSWORD env variable */
     password?: string;
@@ -14,7 +24,18 @@ export interface ConnectionOptions extends pg.ConnectionConfig {
     port?: number;
     poolSize?: number;
 
-    /** number of rows to return at a time from a prepared statement's portal. 0 will return all rows at once */
+    /**
+     * Turn on some basic sql injection protection
+     */
+    forceEscapeColumns?: boolean | {
+        select?: boolean
+        where?: boolean
+        orderBy?: boolean
+        groupBy?: boolean
+        //warningOnly?: boolean
+    }
+
+    //number of rows to return at a time from a prepared statement's portal. 0 will return all rows at once
     rows?: number;
     /** set min pool size */
     min?: number;

@@ -1,84 +1,24 @@
 import { PgDbLogger } from "./pgDbLogger";
 import { pgUtils } from "./pgUtils";
 import * as stream from "stream";
-import { PgSchema } from ".";
+import { IPgSchema } from "./pgSchemaInterface";
 import * as pg from 'pg';
 import util = require('util');
 import QueryStream = require('pg-query-stream');
 import through = require('through');
+import {ResultFieldType, IPgDb} from "./pgDbInterface";
+import {SqlQueryOptions, IQueryAble, PgRowResult } from "./queryAbleInterface"
 
-export interface QueryOptions {
-    limit?: number;
-    offset?: number;
-    orderBy?: string | string[] | { [fieldName: string]: 'asc' | 'desc' };//free text or column list
-    /** 
-     * only used with orderBy
-     * true -> nulls first, 
-     * false -> nulls last 
-     */
-    orderByNullsFirst?: boolean;
-    groupBy?: string | string[];//free text or column list
-    fields?: string | string[];//free text or column list
-    logger?: PgDbLogger;
-    forUpdate?: boolean;
-    distinct?: boolean;
-    skipUndefined?: boolean;
-}
-
-export interface SqlQueryOptions {
-    logger?: PgDbLogger;
-}
-
-export interface ResultFieldType {
-    name: string,
-    tableID: number,
-    columnID: number,
-    dataTypeID: number,
-    dataTypeSize: number,
-    dataTypeModifier: number,
-    format: string
-}
-
-export interface ResultType {
-    command: 'SELECT' | 'UPDATE' | 'DELETE',
-    rowCount: number,
-    oid: number,
-    rows: any[],
-    fields: ResultFieldType[],
-    _parsers: Function[][],
-    RowCtor: Function[],
-    rowsAsArray: boolean,
-    _getTypeParser: Function[]
-}
-
-export interface PgRowResult {
-    columns: string[],
-    rows: any[]
-}
 
 let defaultLogger = {
     log: () => { },
     error: () => { }
 };
 
-export type PostProcessResultFunc = (res: any[], fields: ResultFieldType[], logger: PgDbLogger) => void;
-
-export interface IPgDb {
-    connection: pg.PoolClient | null;
-    pool: pg.Pool;
-    pgdbTypeParsers: any;
-    knownOids: Record<number, boolean>
-
-    runRestartConnectionForListen(): Promise<Error | null>;
-    needToFixConnectionForListen(): boolean;
-    postProcessResult: PostProcessResultFunc | undefined | null;
-    resetMissingParsers(connection: pg.PoolClient, oidList: number[]): Promise<void>
-}
-
-export abstract class QueryAble {
-    db!: IPgDb & QueryAble;  // assigned in async init
-    schema!: PgSchema;
-    protected logger!: PgDbLogger;
+export abstract class QueryAble implements IQueryAble {
+    db!: IPgDb & IQueryAble;  // assigned in async init
+    schema!: IPgSchema;
+    /*protected*/ logger!: PgDbLogger;
 
     public static connectionErrorListener = () => { }
 

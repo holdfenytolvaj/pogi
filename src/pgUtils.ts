@@ -1,12 +1,14 @@
-import { QueryOptions, ResultFieldType, QueryAble } from "./queryAble";
+import { QueryOptions, IQueryAble } from "./queryAbleInterface";
+import { ResultFieldType } from "./pgDbInterface";
 import { FieldType } from "./pgDb";
 import { PgDbLogger } from "./pgDbLogger";
+import { IPgTable } from "./pgTableInterface";
 import * as _ from 'lodash';
 import util = require('util');
 import * as pg from 'pg';
 
 const NAMED_PARAMS_REGEXP = /(?:^|[^:]):(!?[a-zA-Z0-9_]+)/g;    // do not convert "::type cast"
-const ASC_DESC_REGEXP = /^(.+?)(?:\s+(asc|desc))?$/i;
+const ASC_DESC_REGEXP = /^\s*(.+?)(?:\s+(asc|desc))?\s*$/i;
 
 export let pgUtils = {
 
@@ -30,6 +32,17 @@ export let pgUtils = {
         }
     },
 
+    quoteFieldNameOrPositionInsecure(f: string | number): string {
+        if (Number.isInteger(+f)) {
+            if (!Number.isInteger(+f) || +f < 1) throw new Error(`Invalid field: ${f}`);
+            return '' + f;
+        } else if (typeof f === 'string' && f.length) {
+            return f.indexOf('"') == -1 && f.indexOf('(') == -1 ? '"' + f + '"' : f;
+        } else {
+            throw new Error(`Invalid field: ${f}`);
+        }
+    },
+
     /** ex. for order by column position can be use, which needs no quote  */
     quoteFieldNameOrPosition(f: string | number): string {
         if (Number.isInteger(+f)) {
@@ -37,8 +50,8 @@ export let pgUtils = {
             return '' + f;
         } else if (typeof f === 'string' && f.length) {
             return `"${f
-                .replace(/^\s*"*/, '') // trim "
-                .replace(/"*\s*$/, '')
+                .replace(/^\s*"*\s*/, '') // trim "
+                .replace(/\s*"*\s*$/, '')
                 .replace(/"/g, '""')}"`;
         } else {
             throw new Error(`Invalid field: ${f}`);
@@ -63,10 +76,16 @@ export let pgUtils = {
         }
     },
 
-    processQueryFields(options: QueryOptions): string {
+    processQueryFields<T>(options: QueryOptions, pgTable?: IPgTable<T>): string {
+        let escapeColumns = ((pgTable?.db.config.forceEscapeColumns === true || pgTable?.db.config.forceEscapeColumns?.select === true) && options.forceEscapeColumns?.select !== false && options.forceEscapeColumns !== false) ||
+            options.forceEscapeColumns === true || options.forceEscapeColumns?.select;
+
         let s = options && options.distinct ? ' DISTINCT ' : ' ';
         if (options && options.fields) {
             if (Array.isArray(options.fields)) {
+                if (escapeColumns) {
+                    return s + options.fields.map(pgUtils.quoteFieldName).join(', ');
+                }
                 return s + options.fields.map(pgUtils.quoteFieldNameInsecure).join(', ');
             } else {
                 return s + options.fields;
@@ -117,21 +136,38 @@ export let pgUtils = {
         }
     },
 
-    processQueryOptions(options: QueryOptions): string {
-        options = options || {};
-        let sql = '';
+    handleColumnEscapeGroupBy<T>(options: QueryOptions, pgTable?: IPgTable<T>): string {
+        if (!options.groupBy) return '';
+        let escapeColumns = ((pgTable?.db.config.forceEscapeColumns === true || pgTable?.db.config.forceEscapeColumns?.groupBy === true) && options.forceEscapeColumns?.groupBy !== false && options.forceEscapeColumns !== false) ||
+            options.forceEscapeColumns === true || options.forceEscapeColumns?.groupBy;
 
-        if (options.groupBy) {
+        if (escapeColumns) {
             if (Array.isArray(options.groupBy)) {
-                sql += ' GROUP BY ' + options.groupBy.map(pgUtils.quoteFieldNameOrPosition).join(',');
+                return ' GROUP BY ' + options.groupBy.map(pgUtils.quoteFieldNameOrPosition).join(',');
             } else {
-                sql += ' GROUP BY ' + pgUtils.quoteFieldNameOrPosition(options.groupBy);
+                return ' GROUP BY ' + pgUtils.quoteFieldNameOrPosition(options.groupBy);
+            }
+        } else {
+            if (Array.isArray(options.groupBy)) {
+                return ' GROUP BY ' + options.groupBy.map(pgUtils.quoteFieldNameOrPositionInsecure).join(',');
+            } else {
+                return ' GROUP BY ' + pgUtils.quoteFieldNameOrPositionInsecure(options.groupBy);
             }
         }
-        if (options.orderBy) {
-            let orderBy = typeof options.orderBy === 'string' ? options.orderBy.split(',') : options.orderBy;
-            if (Array.isArray(orderBy)) {
-                let orderBy2: string[] = orderBy.map(v => {
+    },
+
+    handleColumnEscapeOrderBy<T>(options: QueryOptions, pgTable: IPgTable<T>): string {
+        if (!options.orderBy) return '';
+        let sql = '';
+        let escapeColumns = ((pgTable?.db.config.forceEscapeColumns === true || pgTable?.db.config.forceEscapeColumns?.orderBy === true) && options.forceEscapeColumns?.orderBy !== false && options.forceEscapeColumns !== false) ||
+            options.forceEscapeColumns === true || options.forceEscapeColumns?.orderBy;
+
+        let orderBy = typeof options.orderBy === 'string' ? options.orderBy.split(',') : options.orderBy;
+        if (Array.isArray(orderBy)) {
+            let orderBy2: string[];
+
+            if (escapeColumns) {
+                orderBy2 = orderBy.map(v => {
                     if (typeof v === 'number') return pgUtils.quoteFieldNameOrPosition(v);
                     else if (typeof v !== 'string' || !v.length) throw new Error(`Invalid orderBy: ${v}`);
                     if (v[0] == '+') return pgUtils.quoteFieldNameOrPosition(v.slice(1));
@@ -140,10 +176,34 @@ export let pgUtils = {
                     if (!o) throw new Error(`Invalid orderBy: ${v}`);
                     return `${pgUtils.quoteFieldNameOrPosition(o[1])} ${o[2] ?? ''}`;
                 });
-                sql += ' ORDER BY ' + orderBy2.join(',');
             } else {
-                throw new Error(`Invalid orderBy: ${options.orderBy}`);
+                orderBy2 = orderBy.map(v => {
+                    if (typeof v === 'number') return pgUtils.quoteFieldNameOrPositionInsecure(v);
+                    else if (typeof v !== 'string' || !v.length) throw new Error(`Invalid orderBy: ${v}`);
+                    if (v[0] == '+') return pgUtils.quoteFieldNameOrPositionInsecure(v.slice(1));
+                    if (v[0] == '-') return pgUtils.quoteFieldNameOrPositionInsecure(v.slice(1)) + ' desc';
+                    let o = ASC_DESC_REGEXP.exec(v);
+                    if (!o) throw new Error(`Invalid orderBy: ${v}`);
+                    return `${pgUtils.quoteFieldNameOrPositionInsecure(o[1])} ${o[2] ?? ''}`;
+                });
             }
+            sql += ' ORDER BY ' + orderBy2.join(',');
+        } else {
+            throw new Error(`Invalid orderBy: ${options.orderBy}`);
+        }
+        return sql;
+    },
+
+    processQueryOptions<T>(options: QueryOptions, pgTable: IPgTable<T>): string {
+        options = options || {};
+        let sql = '';
+
+        if (options.groupBy) {
+            sql += pgUtils.handleColumnEscapeGroupBy(options, pgTable);
+        }
+        if (options.orderBy) {
+            sql += pgUtils.handleColumnEscapeOrderBy(options, pgTable);
+
             if (options.orderByNullsFirst != null) {
                 sql += ' NULLS ' + options.orderByNullsFirst ? 'FIRST' : 'LAST';
             }
@@ -197,7 +257,7 @@ export let pgUtils = {
         });
     },
 
-    createFunctionCaller(q: QueryAble, fn: { schema: string, name: string, return_single_row: boolean, return_single_value: boolean }) {
+    createFunctionCaller(q: IQueryAble, fn: { schema: string, name: string, return_single_row: boolean, return_single_value: boolean }) {
         return async (...args: any[]) => {
             let placeHolders: string[] = [];
             let params: any[] = [];

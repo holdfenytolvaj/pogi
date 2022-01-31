@@ -1,6 +1,9 @@
-import { QueryAble, ResultFieldType, IPgDb, PostProcessResultFunc } from "./queryAble";
+import { QueryAble } from "./queryAble";
+import { IPgDb,ResultFieldType, PostProcessResultFunc, Notification, TranzactionIsolationLevel } from "./pgDbInterface";
+import { IPgTable } from "./pgTableInterface";
 import { PgTable } from "./pgTable";
 import { PgSchema } from "./pgSchema";
+import { IPgSchema } from "./pgSchemaInterface";
 import * as PgConverters from "./pgConverters";
 import { pgUtils } from "./pgUtils";
 import * as _ from 'lodash';
@@ -57,7 +60,7 @@ const GET_CURRENT_SCHEMAS = "SELECT current_schemas(false)";
 /** We get back fields as well that we don't have access to, thus we need to filter those schemas that we have permission for
  * ... TODO check it for tables */
 const LIST_SPECIAL_TYPE_FIELDS =
-    `SELECT c.nspname as schema_name, b.relname as table_name, a.attname as column_name, a.atttypid as typid 
+    `SELECT c.nspname as schema_name, b.relname as table_name, a.attname as column_name, a.atttypid as typid, t.typcategory
     FROM pg_attribute a 
     JOIN pg_class b ON (a.attrelid = b.oid)
     JOIN pg_type t ON (a.atttypid = t.oid)
@@ -75,20 +78,7 @@ const TYPE2OID = `SELECT t.oid, typname FROM pg_catalog.pg_type t WHERE typname 
 
 export enum FieldType { JSON, ARRAY, TIME, TSVECTOR }
 
-export enum TranzactionIsolationLevel {
-    serializable = 'SERIALIZABLE',
-    repeatableRead = 'REPEATABLE READ',
-    readCommitted = 'READ COMMITTED',
-    readUncommitted = 'READ UNCOMMITTED'
-}
 
-
-/** LISTEN callback parameter */
-export interface Notification {
-    processId: number,
-    channel: string,
-    payload?: string
-}
 
 export class PgDb extends QueryAble implements IPgDb {
     protected static instances: { [index: string]: Promise<PgDb> };
@@ -101,9 +91,9 @@ export class PgDb extends QueryAble implements IPgDb {
     /*protected*/
     defaultSchemas: string[]; // for this.tables and this.fn
 
-    db: PgDb;
-    schemas: { [name: string]: PgSchema };
-    tables: { [name: string]: PgTable<any> } = {};
+    db: IPgDb;
+    schemas: { [name: string]: IPgSchema };
+    tables: { [name: string]: IPgTable<any> } = {};
     fn: { [name: string]: (...args: any[]) => any } = {};
     [name: string]: any | PgSchema;
     /* protected */
@@ -289,7 +279,7 @@ export class PgDb extends QueryAble implements IPgDb {
             type2oid[tt.typname] = +tt.oid;
         }
 
-        let specialTypeFields: { schema_name: string, table_name: string, column_name: string, typid: number }[]
+        let specialTypeFields: { schema_name: string, table_name: string, column_name: string, typid: number, typcategory: string }[]
             = await this.query(LIST_SPECIAL_TYPE_FIELDS + ' AND c.nspname in (' + schemaNames + ')');
 
         for (let r of specialTypeFields) {
@@ -387,7 +377,7 @@ export class PgDb extends QueryAble implements IPgDb {
 
 
         let allUsedTypeFields = await this.queryOneColumn(`
-            SELECT a.atttypid as typid
+            SELECT distinct a.atttypid as typid
             FROM pg_attribute a
                 JOIN pg_class b ON (a.attrelid = b.oid)
                 JOIN pg_type t ON (a.atttypid = t.oid)
