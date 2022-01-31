@@ -1,12 +1,12 @@
 /// <reference types="node" />
 import * as stream from "stream";
+import { PgDb } from '.';
 import { FieldType } from "./pgDb";
-import { IPgDb } from "./pgDbInterface";
 import { PgSchema } from "./pgSchema";
-import { CountOption, InsertOption, IPgTable, Return, Stream, TruncateOptions, UpdateDeleteOption, UpsertOption } from "./pgTableInterface";
+import { CountOption, InsertOption, Return, Stream, TruncateOptions, UpdateDeleteOption, UpsertOption } from "./pgTableInterface";
 import { QueryAble } from "./queryAble";
 import { QueryOptions } from "./queryAbleInterface";
-export declare class PgTable<T> extends QueryAble implements IPgTable<T> {
+export declare class PgTable<T> extends QueryAble {
     schema: PgSchema;
     protected desc: {
         name: string;
@@ -15,7 +15,7 @@ export declare class PgTable<T> extends QueryAble implements IPgTable<T> {
     };
     qualifiedName: string;
     pkey: string;
-    db: IPgDb;
+    db: PgDb;
     fieldTypes: {
         [index: string]: FieldType;
     };

@@ -1,9 +1,4 @@
-import * as pg from 'pg';
 import { PgDbLogger } from "./pgDbLogger";
-import { IPgTable } from "./pgTableInterface";
-import { IPgSchema } from "./pgSchemaInterface";
-import { IQueryAble } from './queryAbleInterface';
-import { ConnectionOptions } from './connectionOptions';
 
 export interface ResultFieldType {
     name: string,
@@ -22,7 +17,7 @@ export interface Notification {
     payload?: string
 }
 
-export enum TranzactionIsolationLevel {
+export enum TransactionIsolationLevel {
     serializable = 'SERIALIZABLE',
     repeatableRead = 'REPEATABLE READ',
     readCommitted = 'READ COMMITTED',
@@ -31,27 +26,27 @@ export enum TranzactionIsolationLevel {
 
 export type PostProcessResultFunc = (res: any[], fields: ResultFieldType[], logger: PgDbLogger) => void;
 
-export interface IPgDb extends IQueryAble {
-    connection: pg.PoolClient | null;
-    config: ConnectionOptions;
-    pool: pg.Pool;
-    pgdbTypeParsers: any;
-    knownOids: Record<number, boolean>
-    schemas: { [name: string]: IPgSchema };
-    tables: { [name: string]: IPgTable<any> };
+// export interface IPgDb extends IQueryAble {
+//     connection: pg.PoolClient | null;
+//     config: ConnectionOptions;
+//     pool: pg.Pool;
+//     pgdbTypeParsers: any;
+//     knownOids: Record<number, boolean>
+//     schemas: { [name: string]: IPgSchema };
+//     tables: { [name: string]: IPgTable<any> };
 
-    runRestartConnectionForListen(): Promise<Error | null>;
-    needToFixConnectionForListen(): boolean;
-    postProcessResult: PostProcessResultFunc | undefined | null;
-    resetMissingParsers(connection: pg.PoolClient, oidList: number[]): Promise<void>
+//     runRestartConnectionForListen(): Promise<Error | null>;
+//     needToFixConnectionForListen(): boolean;
+//     postProcessResult: PostProcessResultFunc | undefined | null;
+//     resetMissingParsers(connection: pg.PoolClient, oidList: number[]): Promise<void>
 
-    transactionBegin(options?: { isolationLevel?: TranzactionIsolationLevel, deferrable?: boolean, readOnly?: boolean }): Promise<IPgDb>
-    transactionCommit(): Promise<IPgDb>;
+//     transactionBegin(options?: { isolationLevel?: TransactionIsolationLevel, deferrable?: boolean, readOnly?: boolean }): Promise<IPgDb>
+//     transactionCommit(): Promise<IPgDb>;
 
-    listen(channel: string, callback: (notification: Notification) => void): Promise<void>
-    unlisten(channel: string, callback?: (notification: Notification) => void): Promise<void>
-    /**
-     * Notify a channel (https://www.postgresql.org/docs/current/sql-notify.html)
-     */
-    notify(channel: string, payload?: string): Promise<any[]>
-}
+//     listen(channel: string, callback: (notification: Notification) => void): Promise<void>
+//     unlisten(channel: string, callback?: (notification: Notification) => void): Promise<void>
+//     /**
+//      * Notify a channel (https://www.postgresql.org/docs/current/sql-notify.html)
+//      */
+//     notify(channel: string, payload?: string): Promise<any[]>
+// }

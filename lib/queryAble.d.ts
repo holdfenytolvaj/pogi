@@ -1,13 +1,12 @@
 /// <reference types="node" />
 import { PgDbLogger } from "./pgDbLogger";
 import * as stream from "stream";
-import { IPgSchema } from "./pgSchemaInterface";
 import * as pg from 'pg';
-import { IPgDb } from "./pgDbInterface";
 import { SqlQueryOptions, IQueryAble, PgRowResult } from "./queryAbleInterface";
+import { PgDb, PgSchema } from ".";
 export declare abstract class QueryAble implements IQueryAble {
-    db: IPgDb & IQueryAble;
-    schema: IPgSchema;
+    db: PgDb & QueryAble;
+    schema: PgSchema;
     logger: PgDbLogger;
     static connectionErrorListener: () => void;
     setLogger(logger: PgDbLogger): void;

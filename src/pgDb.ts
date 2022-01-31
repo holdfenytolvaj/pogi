@@ -1,18 +1,16 @@
-import { QueryAble } from "./queryAble";
-import { IPgDb, ResultFieldType, PostProcessResultFunc, Notification, TranzactionIsolationLevel } from "./pgDbInterface";
-import { IPgTable } from "./pgTableInterface";
-import { PgTable } from "./pgTable";
-import { PgSchema } from "./pgSchema";
-import { IPgSchema } from "./pgSchemaInterface";
-import * as PgConverters from "./pgConverters";
-import { pgUtils } from "./pgUtils";
+import * as EventEmitter from 'events';
+import * as fs from 'fs';
 import * as _ from 'lodash';
 import * as pg from 'pg';
 import * as readline from 'readline';
-import * as fs from 'fs';
-import { PgDbLogger } from './pgDbLogger';
 import { ConnectionOptions } from './connectionOptions';
-import * as EventEmitter from 'events';
+import * as PgConverters from "./pgConverters";
+import { Notification, PostProcessResultFunc, ResultFieldType, TransactionIsolationLevel } from "./pgDbInterface";
+import { PgDbLogger } from './pgDbLogger';
+import { PgSchema } from "./pgSchema";
+import { PgTable } from "./pgTable";
+import { pgUtils } from "./pgUtils";
+import { QueryAble } from "./queryAble";
 
 const CONNECTION_URL_REGEXP = /^postgres:\/\/(?:([^:]+)(?::([^@]*))?@)?([^\/:]+)?(?::([^\/]+))?\/(.*)$/;
 const SQL_TOKENIZER_REGEXP = /''|'|""|"|;|\$|--|\/\*|\*\/|(.+?)/g;
@@ -80,7 +78,7 @@ export enum FieldType { JSON, ARRAY, TIME, TSVECTOR }
 
 
 
-export class PgDb extends QueryAble implements IPgDb {
+export class PgDb extends QueryAble /*implements IPgDb*/ {
     protected static instances: { [index: string]: Promise<PgDb> };
     /*protected*/
     pool: pg.Pool;
@@ -91,7 +89,7 @@ export class PgDb extends QueryAble implements IPgDb {
     /*protected*/
     defaultSchemas: string[]; // for this.tables and this.fn
 
-    db: IPgDb;
+    db: PgDb;
     schemas: { [name: string]: PgSchema };
     tables: { [name: string]: PgTable<any> } = {};
     fn: { [name: string]: (...args: any[]) => any } = {};
@@ -498,7 +496,7 @@ export class PgDb extends QueryAble implements IPgDb {
         return this;
     }
 
-    async transactionBegin(options?: { isolationLevel?: TranzactionIsolationLevel, deferrable?: boolean, readOnly?: boolean }): Promise<PgDb> {
+    async transactionBegin(options?: { isolationLevel?: TransactionIsolationLevel, deferrable?: boolean, readOnly?: boolean }): Promise<PgDb> {
         let pgDb = this.connection ? this : await this.dedicatedConnectionBegin();
         let q = 'BEGIN'
         if (options?.isolationLevel) {

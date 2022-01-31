@@ -1,9 +1,9 @@
 /// <reference types="node" />
 import { PgDbLogger } from "./pgDbLogger";
-import { IPgSchema } from "./pgSchemaInterface";
 import * as stream from "stream";
-import { ResultFieldType, IPgDb } from "./pgDbInterface";
+import { ResultFieldType } from "./pgDbInterface";
 import { ForceEscapeColumnsOptions } from "./connectionOptions";
+import { PgDb, PgSchema } from ".";
 export interface QueryOptions {
     limit?: number;
     offset?: number;
@@ -38,8 +38,8 @@ export interface PgRowResult {
     rows: any[];
 }
 export interface IQueryAble {
-    db: IPgDb & IQueryAble;
-    schema: IPgSchema;
+    db: PgDb & IQueryAble;
+    schema: PgSchema;
     logger: PgDbLogger;
     setLogger(logger: PgDbLogger): void;
     getLogger(useConsoleAsDefault: boolean): PgDbLogger;

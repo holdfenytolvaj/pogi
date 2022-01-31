@@ -32,11 +32,6 @@ export interface ConnectionOptions {
     port?: number;
     poolSize?: number;
 
-    /**
-     * Turn on some basic sql injection protection
-     */
-    forceEscapeColumns?: boolean | ForceEscapeColumnsOptions;
-
     //number of rows to return at a time from a prepared statement's portal. 0 will return all rows at once
     rows?: number;
     /** set min pool size */
@@ -63,15 +58,8 @@ export interface ConnectionOptions {
     /** if there is a undefined value in the condition, what should pogi do. Default is 'none', meaning raise error if a value is undefined. */
     skipUndefined?: 'all' | 'select' | 'none';
 
-    /** 
-     * escape all ddl parameter (select, from, where, order by, group by, ...), default: true 
-     * notes:
-     * - insert statements columns are always quoted
-     * - update statements "SET" columns are always quoted
-     * */
-    strictDdl?: boolean,
-    /** escape all "SELECT" ddl parameter, default: true */
-    strictDdlSelect?: boolean,
-    /** escape all "WHERE" ddl parameter, default: true */
-    strictDdlWhere?: boolean,
+    /**
+     * Turn on strict escape columns parameters for select, from, where, group by, order by
+     */
+    forceEscapeColumns?: boolean | ForceEscapeColumnsOptions;
 }

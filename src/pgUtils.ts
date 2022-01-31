@@ -2,11 +2,11 @@ import { QueryOptions, IQueryAble } from "./queryAbleInterface";
 import { ResultFieldType } from "./pgDbInterface";
 import { FieldType } from "./pgDb";
 import { PgDbLogger } from "./pgDbLogger";
-import { IPgTable } from "./pgTableInterface";
 import * as _ from 'lodash';
 import util = require('util');
 import * as pg from 'pg';
 import { ForceEscapeColumnsOptions } from "./connectionOptions";
+import { PgTable } from ".";
 
 const NAMED_PARAMS_REGEXP = /(?:^|[^:]):(!?[a-zA-Z0-9_]+)/g;    // do not convert "::type cast"
 const ASC_DESC_REGEXP = /^\s*(.+?)(?:\s+(asc|desc))?\s*$/i;
@@ -77,7 +77,7 @@ export let pgUtils = {
         }
     },
 
-    processQueryFields<T>(options: QueryOptions, pgTable?: IPgTable<T>): string {
+    processQueryFields<T>(options: QueryOptions, pgTable?: PgTable<T>): string {
         let escapeColumns = (
             (pgTable?.db.config.forceEscapeColumns === true || (pgTable?.db.config.forceEscapeColumns as ForceEscapeColumnsOptions)?.select === true)
             && options.forceEscapeColumns !== false && (options.forceEscapeColumns as ForceEscapeColumnsOptions)?.select !== false)
@@ -140,7 +140,7 @@ export let pgUtils = {
         }
     },
 
-    handleColumnEscapeGroupBy<T>(options: QueryOptions, pgTable?: IPgTable<T>): string {
+    handleColumnEscapeGroupBy<T>(options: QueryOptions, pgTable?: PgTable<T>): string {
         if (!options.groupBy) return '';
         let escapeColumns = (
             (pgTable?.db.config.forceEscapeColumns === true || (pgTable?.db.config.forceEscapeColumns as ForceEscapeColumnsOptions)?.groupBy === true)
@@ -163,7 +163,7 @@ export let pgUtils = {
         }
     },
 
-    handleColumnEscapeOrderBy<T>(options: QueryOptions, pgTable: IPgTable<T>): string {
+    handleColumnEscapeOrderBy<T>(options: QueryOptions, pgTable: PgTable<T>): string {
         if (!options.orderBy) return '';
         let sql = '';
         let escapeColumns = (
@@ -204,7 +204,7 @@ export let pgUtils = {
         return sql;
     },
 
-    processQueryOptions<T>(options: QueryOptions, pgTable: IPgTable<T>): string {
+    processQueryOptions<T>(options: QueryOptions, pgTable: PgTable<T>): string {
         options = options || {};
         let sql = '';
 

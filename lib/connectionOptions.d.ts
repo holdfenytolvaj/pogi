@@ -12,7 +12,6 @@ export interface ConnectionOptions {
     password?: string;
     port?: number;
     poolSize?: number;
-    forceEscapeColumns?: boolean | ForceEscapeColumnsOptions;
     rows?: number;
     min?: number;
     max?: number;
@@ -29,7 +28,5 @@ export interface ConnectionOptions {
     idleTimeoutMillis?: number;
     logger?: PgDbLogger;
     skipUndefined?: 'all' | 'select' | 'none';
-    strictDdl?: boolean;
-    strictDdlSelect?: boolean;
-    strictDdlWhere?: boolean;
+    forceEscapeColumns?: boolean | ForceEscapeColumnsOptions;
 }

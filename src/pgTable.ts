@@ -1,19 +1,19 @@
 import * as _ from 'lodash';
 import * as stream from "stream";
+import { PgDb } from '.';
 import { FieldType } from "./pgDb";
-import { IPgDb } from "./pgDbInterface";
 import { PgSchema } from "./pgSchema";
-import { CountOption, InsertOption, IPgTable, Return, Stream, TruncateOptions, UpdateDeleteOption, UpsertOption } from "./pgTableInterface";
+import { CountOption, InsertOption, Return, Stream, TruncateOptions, UpdateDeleteOption, UpsertOption } from "./pgTableInterface";
 import { pgUtils } from "./pgUtils";
 import { QueryAble } from "./queryAble";
 import { QueryOptions } from "./queryAbleInterface";
 import generateWhere from "./queryWhere";
 
 
-export class PgTable<T> extends QueryAble implements IPgTable<T> {
+export class PgTable<T> extends QueryAble {
     qualifiedName: string;
     pkey: string;
-    db: IPgDb;
+    db: PgDb;
     fieldTypes: { [index: string]: FieldType }; //written directly
 
     constructor(public schema: PgSchema, protected desc: { name: string, pkey?: string, schema: string }, fieldTypes: Record<string, FieldType> = {}) {

@@ -1,17 +1,17 @@
-import { QueryAble } from "./queryAble";
-import { IPgDb, ResultFieldType, PostProcessResultFunc, Notification, TranzactionIsolationLevel } from "./pgDbInterface";
-import { PgTable } from "./pgTable";
-import { PgSchema } from "./pgSchema";
 import * as pg from 'pg';
-import { PgDbLogger } from './pgDbLogger';
 import { ConnectionOptions } from './connectionOptions';
+import { Notification, PostProcessResultFunc, ResultFieldType, TransactionIsolationLevel } from "./pgDbInterface";
+import { PgDbLogger } from './pgDbLogger';
+import { PgSchema } from "./pgSchema";
+import { PgTable } from "./pgTable";
+import { QueryAble } from "./queryAble";
 export declare enum FieldType {
     JSON = 0,
     ARRAY = 1,
     TIME = 2,
     TSVECTOR = 3
 }
-export declare class PgDb extends QueryAble implements IPgDb {
+export declare class PgDb extends QueryAble {
     protected static instances: {
         [index: string]: Promise<PgDb>;
     };
@@ -19,7 +19,7 @@ export declare class PgDb extends QueryAble implements IPgDb {
     connection: pg.PoolClient | null;
     config: ConnectionOptions;
     defaultSchemas: string[];
-    db: IPgDb;
+    db: PgDb;
     schemas: {
         [name: string]: PgSchema;
     };
@@ -51,7 +51,7 @@ export declare class PgDb extends QueryAble implements IPgDb {
     savePoint(name: string): Promise<PgDb>;
     savePointRelease(name: string): Promise<PgDb>;
     transactionBegin(options?: {
-        isolationLevel?: TranzactionIsolationLevel;
+        isolationLevel?: TransactionIsolationLevel;
         deferrable?: boolean;
         readOnly?: boolean;
     }): Promise<PgDb>;

@@ -1,8 +1,8 @@
 import { PgDbLogger } from "./pgDbLogger";
-import { IPgSchema } from "./pgSchemaInterface";
 import * as stream from "stream";
-import { ResultFieldType, IPgDb } from "./pgDbInterface";
+import { ResultFieldType } from "./pgDbInterface";
 import { ForceEscapeColumnsOptions } from "./connectionOptions";
+import { PgDb, PgSchema } from ".";
 
 export interface QueryOptions {
     limit?: number;
@@ -54,8 +54,8 @@ let defaultLogger = {
 
 
 export interface IQueryAble {
-    db: IPgDb & IQueryAble;  // assigned in async init
-    schema: IPgSchema;
+    db: PgDb & IQueryAble;  // assigned in async init
+    schema: PgSchema;
     logger: PgDbLogger;
 
     /*connectionErrorListener : () => { }*/

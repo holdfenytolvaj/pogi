@@ -1,13 +1,13 @@
 import { PgDbLogger } from "./pgDbLogger";
 import { pgUtils } from "./pgUtils";
 import * as stream from "stream";
-import { IPgSchema } from "./pgSchemaInterface";
 import * as pg from 'pg';
 import util = require('util');
 import QueryStream = require('pg-query-stream');
 import through = require('through');
-import {ResultFieldType, IPgDb} from "./pgDbInterface";
-import {SqlQueryOptions, IQueryAble, PgRowResult } from "./queryAbleInterface"
+import { ResultFieldType } from "./pgDbInterface";
+import { SqlQueryOptions, IQueryAble, PgRowResult } from "./queryAbleInterface"
+import { PgDb, PgSchema } from ".";
 
 
 let defaultLogger = {
@@ -16,8 +16,8 @@ let defaultLogger = {
 };
 
 export abstract class QueryAble implements IQueryAble {
-    db!: IPgDb & IQueryAble;  // assigned in async init
-    schema!: IPgSchema;
+    db!: PgDb & QueryAble;  // assigned in async init
+    schema!: PgSchema;
     /*protected*/ logger!: PgDbLogger;
 
     public static connectionErrorListener = () => { }
@@ -220,18 +220,18 @@ export abstract class QueryAble implements IQueryAble {
         let connection = this.db.connection;
         let logger = (options && options.logger || this.getLogger(false));
         let pgStream: any;
-        let queriable = this;
+        let queryable = this;
         let isFirst = true;
         let convertTypeFilter = through(function (this: stream, data) {
             try {
                 let fields = pgStream._result && pgStream._result.fields || pgStream.cursor._result && pgStream.cursor._result.fields;
                 if (isFirst) {
-                    if (queriable.hasUnknownOids(fields)) {
+                    if (queryable.hasUnknownOids(fields)) {
                         throw new Error('[337] Query returns fields with unknown oid.');
                     }
                     isFirst = false;
                 }
-                queriable.postProcessFields([data], fields, queriable.db.pgdbTypeParsers);
+                queryable.postProcessFields([data], fields, queryable.db.logger);
 
                 this.emit('data', data);
             } catch (err) {
