@@ -1,5 +1,5 @@
 import { QueryAble } from "./queryAble";
-import { IPgDb,ResultFieldType, PostProcessResultFunc, Notification, TranzactionIsolationLevel } from "./pgDbInterface";
+import { IPgDb, ResultFieldType, PostProcessResultFunc, Notification, TranzactionIsolationLevel } from "./pgDbInterface";
 import { IPgTable } from "./pgTableInterface";
 import { PgTable } from "./pgTable";
 import { PgSchema } from "./pgSchema";
@@ -92,8 +92,8 @@ export class PgDb extends QueryAble implements IPgDb {
     defaultSchemas: string[]; // for this.tables and this.fn
 
     db: IPgDb;
-    schemas: { [name: string]: IPgSchema };
-    tables: { [name: string]: IPgTable<any> } = {};
+    schemas: { [name: string]: PgSchema };
+    tables: { [name: string]: PgTable<any> } = {};
     fn: { [name: string]: (...args: any[]) => any } = {};
     [name: string]: any | PgSchema;
     /* protected */

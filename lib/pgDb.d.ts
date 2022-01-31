@@ -1,6 +1,8 @@
-import { QueryAble, ResultFieldType, IPgDb, PostProcessResultFunc } from "./queryAble";
+import { QueryAble } from "./queryAble";
+import { IPgDb, ResultFieldType, PostProcessResultFunc, Notification, TranzactionIsolationLevel } from "./pgDbInterface";
 import { PgTable } from "./pgTable";
 import { PgSchema } from "./pgSchema";
+import * as pg from 'pg';
 import { PgDbLogger } from './pgDbLogger';
 import { ConnectionOptions } from './connectionOptions';
 export declare enum FieldType {
@@ -9,26 +11,15 @@ export declare enum FieldType {
     TIME = 2,
     TSVECTOR = 3
 }
-export declare enum TranzactionIsolationLevel {
-    serializable = "SERIALIZABLE",
-    repeatableRead = "REPEATABLE READ",
-    readCommitted = "READ COMMITTED",
-    readUncommitted = "READ UNCOMMITTED"
-}
-export interface Notification {
-    processId: number;
-    channel: string;
-    payload?: string;
-}
 export declare class PgDb extends QueryAble implements IPgDb {
     protected static instances: {
         [index: string]: Promise<PgDb>;
     };
-    pool: any;
-    connection: any;
+    pool: pg.Pool;
+    connection: pg.PoolClient | null;
     config: ConnectionOptions;
-    defaultSchemas: any;
-    db: PgDb;
+    defaultSchemas: string[];
+    db: IPgDb;
     schemas: {
         [name: string]: PgSchema;
     };
@@ -36,14 +27,14 @@ export declare class PgDb extends QueryAble implements IPgDb {
         [name: string]: PgTable<any>;
     };
     fn: {
-        [name: string]: (...any: any[]) => any;
+        [name: string]: (...args: any[]) => any;
     };
     [name: string]: any | PgSchema;
-    pgdbTypeParsers: Record<string, (string: any) => any>;
+    pgdbTypeParsers: Record<string, (s: any) => any>;
     knownOids: Record<number, boolean>;
-    postProcessResult: PostProcessResultFunc;
+    postProcessResult: PostProcessResultFunc | undefined | null;
     private constructor();
-    setPostProcessResult(f: (res: any[], fields: ResultFieldType[], logger: PgDbLogger) => void): void;
+    setPostProcessResult(f: null | ((res: any[], fields: ResultFieldType[], logger: PgDbLogger) => void)): void;
     static getInstance(config: ConnectionOptions): Promise<PgDb>;
     close(): Promise<void>;
     static connect(config: ConnectionOptions): Promise<PgDb>;
@@ -52,9 +43,9 @@ export declare class PgDb extends QueryAble implements IPgDb {
     private initSchemasAndTables;
     private setDefaultTablesAndFunctions;
     private initFieldTypes;
-    setTypeParser(typeName: string, parser: (string: any) => any, schemaName?: string): Promise<void>;
-    setPgDbTypeParser(typeName: string, parser: (string: any) => any, schemaName?: string): Promise<void>;
-    resetMissingParsers(connection: any, oidList: number[]): Promise<void>;
+    setTypeParser(typeName: string, parser: (s: string) => any, schemaName?: string): Promise<void>;
+    setPgDbTypeParser(typeName: string, parser: (s: string) => any, schemaName?: string): Promise<void>;
+    resetMissingParsers(connection: pg.PoolClient, oidList: number[]): Promise<void>;
     dedicatedConnectionBegin(): Promise<PgDb>;
     dedicatedConnectionEnd(): Promise<PgDb>;
     savePoint(name: string): Promise<PgDb>;
@@ -69,19 +60,19 @@ export declare class PgDb extends QueryAble implements IPgDb {
         savePoint?: string;
     }): Promise<PgDb>;
     isTransactionActive(): boolean;
-    execute(fileName: string, statementTransformerFunction?: (string: any) => string): Promise<void>;
+    execute(fileName: string, statementTransformerFunction?: (s: string) => string): Promise<void>;
     private listeners;
     private connectionForListen;
     private _needToRestartConnectionForListen;
     private restartConnectionForListen;
     listen(channel: string, callback: (notification: Notification) => void): Promise<void>;
-    unlisten(channel: string, callback?: (Notification: any) => void): Promise<void>;
+    unlisten(channel: string, callback?: (notification: Notification) => void): Promise<void>;
     notify(channel: string, payload?: string): Promise<any[]>;
-    runRestartConnectionForListen(): Promise<Error>;
+    runRestartConnectionForListen(): Promise<Error | null>;
     needToFixConnectionForListen(): boolean;
     private tryToFixConnectionForListenActively;
     notificationListener: (notification: Notification) => boolean;
-    errorListener: (e: any) => void;
+    errorListener: (e: Error) => void;
     private initConnectionForListen;
 }
 export default PgDb;

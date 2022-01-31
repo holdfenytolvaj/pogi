@@ -67,37 +67,37 @@ export interface IPgTable<T> extends IQueryAble {
      */
     insert(records: T[], options?: InsertOption): Promise<number>
     insert(records: T, options?: InsertOption): Promise<number>
-    insert(records: any, options?: any): Promise<any> 
+    insert(records: any, options?: any): Promise<any>
 
     insertAndGet(records: T[], options?: InsertOption & Return): Promise<T[]>
     insertAndGet(records: T, options?: InsertOption & Return): Promise<T>
-    insertAndGet(records: any, options?: InsertOption & Return): Promise<any> 
+    insertAndGet(records: any, options?: InsertOption & Return): Promise<any>
 
-    updateOne(conditions: { [k: string]: any }, fields: { [k: string]: any }, options?: UpdateDeleteOption): Promise<number> 
+    updateOne(conditions: { [k: string]: any }, fields: { [k: string]: any }, options?: UpdateDeleteOption): Promise<number>
 
-    updateAndGetOne(conditions: { [k: string]: any }, fields: { [k: string]: any }, options?: UpdateDeleteOption & Return): Promise<T> 
+    updateAndGetOne(conditions: { [k: string]: any }, fields: { [k: string]: any }, options?: UpdateDeleteOption & Return): Promise<T>
 
-    update(conditions: { [k: string]: any }, fields: { [k: string]: any }, options?: UpdateDeleteOption): Promise<number> 
+    update(conditions: { [k: string]: any }, fields: { [k: string]: any }, options?: UpdateDeleteOption): Promise<number>
 
-    updateAndGet(conditions: { [k: string]: any }, fields: { [k: string]: any }, options?: UpdateDeleteOption & Return): Promise<T[]> 
-
-    /**
-     * columnsOrConstraintName is by default the primary key
-     */
-    upsert(record: T, options?: UpsertOption): Promise<number> 
+    updateAndGet(conditions: { [k: string]: any }, fields: { [k: string]: any }, options?: UpdateDeleteOption & Return): Promise<T[]>
 
     /**
      * columnsOrConstraintName is by default the primary key
      */
-    upsertAndGet(record: T, options?: UpsertOption & Return): Promise<T> 
+    upsert(record: T, options?: UpsertOption): Promise<number>
 
-    delete(conditions: { [k: string]: any }, options?: UpdateDeleteOption): Promise<number> 
+    /**
+     * columnsOrConstraintName is by default the primary key
+     */
+    upsertAndGet(record: T, options?: UpsertOption & Return): Promise<T>
 
-    deleteOne(conditions: { [k: string]: any }, options?: UpdateDeleteOption): Promise<number> 
+    delete(conditions: { [k: string]: any }, options?: UpdateDeleteOption): Promise<number>
 
-    deleteAndGet(conditions: { [k: string]: any }, options?: UpdateDeleteOption & Return): Promise<any[]> 
+    deleteOne(conditions: { [k: string]: any }, options?: UpdateDeleteOption): Promise<number>
 
-    deleteAndGetOne(conditions: { [k: string]: any }, options?: UpdateDeleteOption & Return): Promise<any> 
+    deleteAndGet(conditions: { [k: string]: any }, options?: UpdateDeleteOption & Return): Promise<any[]>
+
+    deleteAndGetOne(conditions: { [k: string]: any }, options?: UpdateDeleteOption & Return): Promise<any>
 
     // async deleteAll(options?:UpdateDeleteOption):Promise<number> {
     //     let sql = util.format("DELETE FROM %s ", this.qualifiedName);
@@ -106,26 +106,26 @@ export interface IPgTable<T> extends IQueryAble {
     //     return res[0].sum;
     // }
 
-    truncate(options?: TruncateOptions): Promise<void> 
+    truncate(options?: TruncateOptions): Promise<void>
 
     find(conditions: { [k: string]: any }, options?: QueryOptions): Promise<T[]>
     find(conditions: { [k: string]: any }, options?: QueryOptions & Stream): Promise<stream.Readable>
-    find(conditions: { [k: string]: any }, options?: any): Promise<any> 
+    find(conditions: { [k: string]: any }, options?: any): Promise<any>
 
     findWhere(where: string, params: any[] | {}, options?: QueryOptions): Promise<T[]>
     findWhere(where: string, params: any[] | {}, options?: QueryOptions & Stream): Promise<stream.Readable>
-    findWhere(where: string, params: any, options?: any): Promise<any> 
+    findWhere(where: string, params: any, options?: any): Promise<any>
 
     findAll(options?: QueryOptions): Promise<T[]>
     findAll(options?: QueryOptions & Stream): Promise<stream.Readable>
-    findAll(options?: any): Promise<any> 
+    findAll(options?: any): Promise<any>
 
-    findOne(conditions, options?: QueryOptions): Promise<T> 
+    findOne(conditions: Record<string, any>, options?: QueryOptions): Promise<T>
 
-    findFirst(conditions, options?: QueryOptions): Promise<T> 
+    findFirst(conditions: Record<string, any>, options?: QueryOptions): Promise<T>
 
-    count(conditions?: {}, options?: CountOption): Promise<number> 
+    count(conditions?: {}, options?: CountOption): Promise<number>
 
-    findOneFieldOnly(conditions, field: string, options?: QueryOptions): Promise<any> 
+    findOneFieldOnly(conditions: Record<string, any>, field: string, options?: QueryOptions): Promise<any>
 
 }

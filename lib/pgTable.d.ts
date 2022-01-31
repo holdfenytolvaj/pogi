@@ -1,37 +1,12 @@
 /// <reference types="node" />
-import { QueryAble, QueryOptions } from "./queryAble";
-import { PgDb, FieldType } from "./pgDb";
-import { PgDbLogger } from "./pgDbLogger";
-import { PgSchema } from "./pgSchema";
 import * as stream from "stream";
-export interface InsertOption {
-    logger?: PgDbLogger;
-}
-export interface Return {
-    return?: string[] | '*';
-}
-export interface UpdateDeleteOption {
-    skipUndefined?: boolean;
-    logger?: PgDbLogger;
-}
-export interface UpsertOption {
-    constraint?: string;
-    columns?: string[];
-    logger?: PgDbLogger;
-}
-export interface CountOption {
-    skipUndefined?: boolean;
-    logger?: PgDbLogger;
-}
-export interface Stream {
-    stream: true;
-}
-export interface TruncateOptions {
-    restartIdentity?: boolean;
-    cascade?: boolean;
-    logger?: PgDbLogger;
-}
-export declare class PgTable<T> extends QueryAble {
+import { FieldType } from "./pgDb";
+import { IPgDb } from "./pgDbInterface";
+import { PgSchema } from "./pgSchema";
+import { CountOption, InsertOption, IPgTable, Return, Stream, TruncateOptions, UpdateDeleteOption, UpsertOption } from "./pgTableInterface";
+import { QueryAble } from "./queryAble";
+import { QueryOptions } from "./queryAbleInterface";
+export declare class PgTable<T> extends QueryAble implements IPgTable<T> {
     schema: PgSchema;
     protected desc: {
         name: string;
@@ -40,7 +15,7 @@ export declare class PgTable<T> extends QueryAble {
     };
     qualifiedName: string;
     pkey: string;
-    db: PgDb;
+    db: IPgDb;
     fieldTypes: {
         [index: string]: FieldType;
     };
@@ -48,7 +23,7 @@ export declare class PgTable<T> extends QueryAble {
         name: string;
         pkey?: string;
         schema: string;
-    }, fieldTypes?: {});
+    }, fieldTypes?: Record<string, FieldType>);
     toString(): string;
     insert(records: T[], options?: InsertOption): Promise<number>;
     insert(records: T, options?: InsertOption): Promise<number>;
@@ -99,15 +74,15 @@ export declare class PgTable<T> extends QueryAble {
     findWhere(where: string, params: any[] | {}, options?: QueryOptions & Stream): Promise<stream.Readable>;
     findAll(options?: QueryOptions): Promise<T[]>;
     findAll(options?: QueryOptions & Stream): Promise<stream.Readable>;
-    findOne(conditions: any, options?: QueryOptions): Promise<T>;
-    findFirst(conditions: any, options?: QueryOptions): Promise<T>;
-    count(conditions?: {}, options?: CountOption): Promise<number>;
-    findOneFieldOnly(conditions: any, field: string, options?: QueryOptions): Promise<any>;
+    findOne(conditions: Record<string, any>, options?: QueryOptions): Promise<T>;
+    findFirst(conditions: Record<string, any>, options?: QueryOptions): Promise<T>;
+    count(conditions?: Record<string, any>, options?: CountOption): Promise<number>;
+    findOneFieldOnly(conditions: Record<string, any>, field: string, options?: QueryOptions): Promise<any>;
     private getInsertQuery;
-    protected getUpdateSetSnipplet(fields: {
+    protected getUpdateSetSnippet(fields: {
         [k: string]: any;
     }, parameters?: any[]): {
-        snipplet: string;
+        snippet: string;
         parameters: any[];
     };
     protected getUpdateQuery(conditions: {

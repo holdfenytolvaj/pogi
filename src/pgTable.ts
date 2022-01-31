@@ -1,13 +1,13 @@
-import { QueryAble, QueryOptions } from "./queryAble";
-import { FieldType } from "./pgDb";
-import { IPgDb } from "./pgDbInterface";
-import { PgDbLogger } from "./pgDbLogger"
-import generateWhere from "./queryWhere";
-import { PgSchema } from "./pgSchema";
-import { pgUtils } from "./pgUtils";
 import * as _ from 'lodash';
 import * as stream from "stream";
-import { IPgTable, TruncateOptions, InsertOption, Return, UpdateDeleteOption, UpsertOption, Stream, CountOption } from "./pgTableInterface";
+import { FieldType } from "./pgDb";
+import { IPgDb } from "./pgDbInterface";
+import { PgSchema } from "./pgSchema";
+import { CountOption, InsertOption, IPgTable, Return, Stream, TruncateOptions, UpdateDeleteOption, UpsertOption } from "./pgTableInterface";
+import { pgUtils } from "./pgUtils";
+import { QueryAble } from "./queryAble";
+import { QueryOptions } from "./queryAbleInterface";
+import generateWhere from "./queryWhere";
 
 
 export class PgTable<T> extends QueryAble implements IPgTable<T> {

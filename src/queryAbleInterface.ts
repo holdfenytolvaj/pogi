@@ -2,6 +2,7 @@ import { PgDbLogger } from "./pgDbLogger";
 import { IPgSchema } from "./pgSchemaInterface";
 import * as stream from "stream";
 import { ResultFieldType, IPgDb } from "./pgDbInterface";
+import { ForceEscapeColumnsOptions } from "./connectionOptions";
 
 export interface QueryOptions {
     limit?: number;
@@ -19,12 +20,7 @@ export interface QueryOptions {
     forUpdate?: boolean;
     distinct?: boolean;
     skipUndefined?: boolean;
-    forceEscapeColumns?: boolean | {
-        select?: boolean
-        where?: boolean
-        orderBy?: boolean
-        groupBy?: boolean
-    }
+    forceEscapeColumns?: boolean | ForceEscapeColumnsOptions
 }
 
 export interface SqlQueryOptions {

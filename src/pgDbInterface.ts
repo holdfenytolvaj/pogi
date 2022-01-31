@@ -45,8 +45,8 @@ export interface IPgDb extends IQueryAble {
     postProcessResult: PostProcessResultFunc | undefined | null;
     resetMissingParsers(connection: pg.PoolClient, oidList: number[]): Promise<void>
 
-    transactionBegin(options?: { isolationLevel?: TranzactionIsolationLevel, deferrable?: boolean, readOnly?: boolean }): Promise<PgDb>
-
+    transactionBegin(options?: { isolationLevel?: TranzactionIsolationLevel, deferrable?: boolean, readOnly?: boolean }): Promise<IPgDb>
+    transactionCommit(): Promise<IPgDb>;
 
     listen(channel: string, callback: (notification: Notification) => void): Promise<void>
     unlisten(channel: string, callback?: (notification: Notification) => void): Promise<void>

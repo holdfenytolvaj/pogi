@@ -6,6 +6,7 @@ import { IPgTable } from "./pgTableInterface";
 import * as _ from 'lodash';
 import util = require('util');
 import * as pg from 'pg';
+import { ForceEscapeColumnsOptions } from "./connectionOptions";
 
 const NAMED_PARAMS_REGEXP = /(?:^|[^:]):(!?[a-zA-Z0-9_]+)/g;    // do not convert "::type cast"
 const ASC_DESC_REGEXP = /^\s*(.+?)(?:\s+(asc|desc))?\s*$/i;
@@ -77,8 +78,11 @@ export let pgUtils = {
     },
 
     processQueryFields<T>(options: QueryOptions, pgTable?: IPgTable<T>): string {
-        let escapeColumns = ((pgTable?.db.config.forceEscapeColumns === true || pgTable?.db.config.forceEscapeColumns?.select === true) && options.forceEscapeColumns?.select !== false && options.forceEscapeColumns !== false) ||
-            options.forceEscapeColumns === true || options.forceEscapeColumns?.select;
+        let escapeColumns = (
+            (pgTable?.db.config.forceEscapeColumns === true || (pgTable?.db.config.forceEscapeColumns as ForceEscapeColumnsOptions)?.select === true)
+            && options.forceEscapeColumns !== false && (options.forceEscapeColumns as ForceEscapeColumnsOptions)?.select !== false)
+            || options.forceEscapeColumns === true
+            || (options.forceEscapeColumns as ForceEscapeColumnsOptions)?.select;
 
         let s = options && options.distinct ? ' DISTINCT ' : ' ';
         if (options && options.fields) {
@@ -138,8 +142,11 @@ export let pgUtils = {
 
     handleColumnEscapeGroupBy<T>(options: QueryOptions, pgTable?: IPgTable<T>): string {
         if (!options.groupBy) return '';
-        let escapeColumns = ((pgTable?.db.config.forceEscapeColumns === true || pgTable?.db.config.forceEscapeColumns?.groupBy === true) && options.forceEscapeColumns?.groupBy !== false && options.forceEscapeColumns !== false) ||
-            options.forceEscapeColumns === true || options.forceEscapeColumns?.groupBy;
+        let escapeColumns = (
+            (pgTable?.db.config.forceEscapeColumns === true || (pgTable?.db.config.forceEscapeColumns as ForceEscapeColumnsOptions)?.groupBy === true)
+            && options.forceEscapeColumns !== false && (options.forceEscapeColumns as ForceEscapeColumnsOptions)?.groupBy !== false)
+            || options.forceEscapeColumns === true
+            || (options.forceEscapeColumns as ForceEscapeColumnsOptions)?.groupBy;
 
         if (escapeColumns) {
             if (Array.isArray(options.groupBy)) {
@@ -159,8 +166,11 @@ export let pgUtils = {
     handleColumnEscapeOrderBy<T>(options: QueryOptions, pgTable: IPgTable<T>): string {
         if (!options.orderBy) return '';
         let sql = '';
-        let escapeColumns = ((pgTable?.db.config.forceEscapeColumns === true || pgTable?.db.config.forceEscapeColumns?.orderBy === true) && options.forceEscapeColumns?.orderBy !== false && options.forceEscapeColumns !== false) ||
-            options.forceEscapeColumns === true || options.forceEscapeColumns?.orderBy;
+        let escapeColumns = (
+            (pgTable?.db.config.forceEscapeColumns === true || (pgTable?.db.config.forceEscapeColumns as ForceEscapeColumnsOptions)?.orderBy === true)
+            && options.forceEscapeColumns !== false && (options.forceEscapeColumns as ForceEscapeColumnsOptions)?.orderBy !== false)
+            || options.forceEscapeColumns === true
+            || (options.forceEscapeColumns as ForceEscapeColumnsOptions)?.orderBy;
 
         let orderBy = typeof options.orderBy === 'string' ? options.orderBy.split(',') : options.orderBy;
         if (Array.isArray(orderBy)) {

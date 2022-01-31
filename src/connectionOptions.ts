@@ -1,5 +1,13 @@
 import { PgDbLogger } from './pgDbLogger';
 
+export interface ForceEscapeColumnsOptions {
+    select?: boolean
+    where?: boolean
+    orderBy?: boolean
+    groupBy?: boolean
+    //warningOnly?: boolean
+}
+
 /**
  * @property connectionString e.g.: "postgres://user@localhost/database"
  * @property host can be specified through PGHOST env variable
@@ -27,13 +35,7 @@ export interface ConnectionOptions {
     /**
      * Turn on some basic sql injection protection
      */
-    forceEscapeColumns?: boolean | {
-        select?: boolean
-        where?: boolean
-        orderBy?: boolean
-        groupBy?: boolean
-        //warningOnly?: boolean
-    }
+    forceEscapeColumns?: boolean | ForceEscapeColumnsOptions;
 
     //number of rows to return at a time from a prepared statement's portal. 0 will return all rows at once
     rows?: number;

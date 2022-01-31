@@ -1,16 +1,17 @@
 import { QueryAble } from "./queryAble";
-import { PgDb } from "./pgDb";
-import { PgTable } from "./pgTable";
-export declare class PgSchema extends QueryAble {
-    db: PgDb;
+import { IPgDb } from "./pgDbInterface";
+import { IPgTable } from "./pgTableInterface";
+import { IPgSchema } from "./pgSchemaInterface";
+export declare class PgSchema extends QueryAble implements IPgSchema {
+    db: IPgDb;
     schemaName: string;
-    schema: PgSchema;
+    schema: IPgSchema;
     tables: {
-        [name: string]: PgTable<any>;
+        [name: string]: IPgTable<any>;
     };
     fn: {
-        [name: string]: (...any: any[]) => any;
+        [name: string]: (...args: any[]) => any;
     };
-    [name: string]: any | PgTable<any>;
-    constructor(db: PgDb, schemaName: string);
+    [name: string]: any | IPgTable<any>;
+    constructor(db: IPgDb, schemaName: string);
 }

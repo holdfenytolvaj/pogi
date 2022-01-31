@@ -1,83 +1,35 @@
 /// <reference types="node" />
 import { PgDbLogger } from "./pgDbLogger";
 import * as stream from "stream";
-export interface QueryOptions {
-    limit?: number;
-    offset?: number;
-    orderBy?: string | string[] | {
-        [fieldName: string]: 'asc' | 'desc';
-    };
-    groupBy?: string | string[];
-    fields?: string | string[];
-    logger?: PgDbLogger;
-    forUpdate?: boolean;
-    distinct?: boolean;
-    skipUndefined?: boolean;
-}
-export interface SqlQueryOptions {
-    logger?: PgDbLogger;
-}
-export interface ResultFieldType {
-    name: string;
-    tableID: number;
-    columnID: number;
-    dataTypeID: number;
-    dataTypeSize: number;
-    dataTypeModifier: number;
-    format: string;
-}
-export interface ResultType {
-    command: 'SELECT' | 'UPDATE' | 'DELETE';
-    rowCount: number;
-    oid: number;
-    rows: any[];
-    fields: ResultFieldType[];
-    _parsers: Function[][];
-    RowCtor: Function[];
-    rowsAsArray: boolean;
-    _getTypeParser: Function[];
-}
-export interface PgRowResult {
-    columns: string[];
-    rows: any[];
-}
-export declare type PostProcessResultFunc = (res: any[], fields: ResultFieldType[], logger: PgDbLogger) => void;
-export interface IPgDb {
-    connection: any;
-    pool: any;
-    pgdbTypeParsers: any;
-    knownOids: Record<number, boolean>;
-    runRestartConnectionForListen(): Promise<Error>;
-    needToFixConnectionForListen(): boolean;
-    postProcessResult: PostProcessResultFunc;
-    resetMissingParsers(connection: any, oidList: number[]): Promise<void>;
-}
-export declare class QueryAble {
-    db: IPgDb & QueryAble;
-    schema: any;
-    protected logger: PgDbLogger;
+import { IPgSchema } from "./pgSchemaInterface";
+import * as pg from 'pg';
+import { IPgDb } from "./pgDbInterface";
+import { SqlQueryOptions, IQueryAble, PgRowResult } from "./queryAbleInterface";
+export declare abstract class QueryAble implements IQueryAble {
+    db: IPgDb & IQueryAble;
+    schema: IPgSchema;
+    logger: PgDbLogger;
     static connectionErrorListener: () => void;
-    constructor();
     setLogger(logger: PgDbLogger): void;
-    getLogger(useConsoleAsDefault?: boolean): any;
+    getLogger(useConsoleAsDefault?: boolean): PgDbLogger;
     run(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<any[]>;
-    query(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<any[]>;
+    query(sql: string, params?: any[] | {} | null, options?: SqlQueryOptions): Promise<any[]>;
     protected internalQuery(options: {
-        connection: any;
+        connection: pg.PoolClient | null;
         sql: string;
         params?: any;
-        logger?: any;
+        logger?: PgDbLogger;
     }): Promise<any[]>;
     protected internalQuery(options: {
-        connection: any;
+        connection: pg.PoolClient | null;
         sql: string;
         params?: any;
-        logger?: any;
+        logger?: PgDbLogger;
         rowMode: true;
     }): Promise<PgRowResult>;
     queryAsRows(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<PgRowResult>;
-    queryWithOnCursorCallback(sql: string, params: any[] | {}, options: SqlQueryOptions, callback: (any: any) => any): Promise<void>;
-    queryAsStream(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<stream.Readable>;
+    queryWithOnCursorCallback(sql: string, params: any[] | Record<string, any> | null, options: SqlQueryOptions | null, callback: (res: any) => any): Promise<void>;
+    queryAsStream(sql: string, params?: any[] | Record<string, any> | null, options?: SqlQueryOptions | null): Promise<stream.Readable>;
     queryOne(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<any>;
     queryFirst(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<any>;
     queryOneField(sql: string, params?: any[] | {}, options?: SqlQueryOptions): Promise<any>;

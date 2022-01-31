@@ -10,19 +10,17 @@
     "suppressImplicitAnyIndexErrors": true,
     "importHelpers": true,
     "strict": true,
-    "rootDir": "./",
+    "rootDir": "./src",
     "outDir": "./lib",
     "types": [
-      "node"
+      "node",
+      "jest"
     ],
     "lib": [
       "es2015",
       "es2016",
       "es2017"
     ],
-    "typeRoots": [
-      "../node_modules/@types"
-    ]
   },
   "files": [
     "src/index.ts",

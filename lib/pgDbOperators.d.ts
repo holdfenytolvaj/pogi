@@ -2,11 +2,11 @@ declare const _default: {
     '=*': {
         operator: string;
         mutator: (s: string) => string;
-        fieldMutator: (s: any) => any;
+        fieldMutator: (s: string) => string;
     };
     icontains: {
         operator: string;
-        mutator: (s: any) => string;
+        mutator: (s: string) => string;
     };
     '=': {
         operator: string;
@@ -50,7 +50,7 @@ declare const _default: {
     '&&*': {
         operator: string;
         mutator: (s: string) => string;
-        fieldMutator: (f: any) => any;
+        fieldMutator: (f: string) => string;
     };
     '?': {
         operator: string;
