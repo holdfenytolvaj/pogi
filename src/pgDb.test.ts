@@ -751,6 +751,54 @@ describe("pgdb", () => {
         expect(res.map(v => v.name)).toEqual(['A2', 'A', 'B2', 'B', 'C2', 'C']);
     });
 
+    it("orderBy - sqlInjection", async () => {
+        await table.insert({ name: 'A', aCategory: 'A' });
+        await table.insert({ name: 'B', aCategory: 'B' });
+        await table.insert({ name: 'C', aCategory: 'C' });
+        await table.insert({ name: 'A2', aCategory: 'A' });
+        await table.insert({ name: 'B2', aCategory: 'B' });
+        await table.insert({ name: 'C2', aCategory: 'C' });
+
+        let res;
+        res = await table.find({}, { orderBy: ['aCategory', 'name'], fields: ['name'], forceEscapeColumns: true });
+        expect(res.map(v => v.name)).toEqual(['A', 'A2', 'B', 'B2', 'C', 'C2']);
+
+        res = await table.find({}, { orderBy: ['"aCategory"', 'name'], fields: ['name'], forceEscapeColumns: false });
+        expect(res.map(v => v.name)).toEqual(['A', 'A2', 'B', 'B2', 'C', 'C2']);
+
+        try {
+            res = await table.find({}, { orderBy: ['random()', 'name'], fields: ['name'], forceEscapeColumns: true });
+            expect(false).toBeTruthy();
+        } catch (e) {
+            expect('' + e).toBe('error: column "random()" does not exist');
+        }
+
+        res = await table.find({}, { orderBy: ['random()', 'name'], fields: ['name'], forceEscapeColumns: false });
+        expect(res.length).toEqual(6);
+
+        try {
+            res = await table.find({}, { orderBy: ['aCategory/*", "*/name'], fields: ['aCategory', 'name'], forceEscapeColumns: true });
+            expect(false).toBeTruthy();
+        } catch (e) {
+            expect('' + e).toBe('error: column "aCategory/*", "*/name" does not exist');
+        }
+
+        try {
+            res = await table.find({}, { orderBy: ['1, random()'], fields: ['aCategory', 'name'], forceEscapeColumns: true });
+            expect(false).toBeTruthy();
+        } catch (e) {
+            expect('' + e).toBe('error: column "1, random()" does not exist');
+        }
+
+        try {
+            res = await table.find({}, { orderBy: ['aCategory\", random() \"'], fields: ['name'], forceEscapeColumns: { orderBy: true } });
+            expect(false).toBeTruthy();
+        } catch (e) {
+            expect('' + e).toBe('error: column "aCategory", random()" does not exist');
+        }
+
+    });
+
     it("stored proc", async () => {
         await table.insert({ name: 'A', membership: 'gold' });
         await table.insert({ name: 'B', membership: 'gold' });
@@ -768,12 +816,13 @@ describe("pgdb", () => {
     });
 
     it("executing sql file - if there is an exception, should be thrown", async () => {
+        let ex = null;
         try {
             await pgdb.execute('src/test/throw_exception.sql', (cmd) => cmd.replace(/__SCHEMA__/g, '"' + schema + '"'));
-            expect(false).toBeTruthy();
         } catch (e) {
-            expect('' + e).toEqual("error: division_by_zero");
+            ex = e;
         }
+        expect('' + ex).toEqual("error: division_by_zero");
     });
 
     it("select/update/delete should throw exception if the condition contains undefined value", async () => {
@@ -782,7 +831,7 @@ describe("pgdb", () => {
 
         try {
             await table.find(conditions);
-            expect(false).toBeTruthy();
+            expect(false).toBeTruthy(); //this also throws exception
         } catch (e) {
             expect('' + e).toEqual('Error: Invalid conditions! Field value undefined: "membership". Either delete the field, set it to null or use the options.skipUndefined parameter.');
         }
@@ -791,7 +840,7 @@ describe("pgdb", () => {
 
         try {
             await table.update(conditions, { name: 'B' });
-            expect(false).toBeTruthy();
+            expect(false).toBeTruthy(); //this also throws exception
         } catch (e) {
             expect('' + e).toEqual('Error: Invalid conditions! Field value undefined: "membership". Either delete the field, set it to null or use the options.skipUndefined parameter.');
         }
@@ -802,7 +851,7 @@ describe("pgdb", () => {
         try {
             conditions.name = 'B';
             await table.delete(conditions);
-            expect(false).toBeTruthy();
+            expect(false).toBeTruthy(); //this also throws exception
         } catch (e) {
             expect('' + e).toEqual('Error: Invalid conditions! Field value undefined: "membership". Either delete the field, set it to null or use the options.skipUndefined parameter.');
         }
