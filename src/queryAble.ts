@@ -76,12 +76,18 @@ export abstract class QueryAble implements IQueryAble {
                 logger.log('new connection', sql, util.inspect(params, false, null), connection.processID);
 
                 connection.on('error', QueryAble.connectionErrorListener);
-                res = await connection.query(query);
-                await this.checkAndFixOids(connection, res.fields);
+                try {
+                    res = await connection.query(query);
+                    await this.checkAndFixOids(connection, res.fields);
+                } catch (e) {
+                    pgUtils.logError(logger, { error: <Error>e, sql, params, connection });
+                
+                    connection.off('error', QueryAble.connectionErrorListener);
+                    connection.release();
+                    connection = null;
 
-                connection.off('error', QueryAble.connectionErrorListener);
-                connection.release();
-                connection = null;
+                    throw e;
+                }
             }
             this.postProcessFields(res.rows, res.fields, logger);
             return options?.rowMode ? { columns: (res.fields || []).map(f => f.name), rows: res.rows || [] } : res.rows;
