@@ -79,14 +79,10 @@ export abstract class QueryAble implements IQueryAble {
                 try {
                     res = await connection.query(query);
                     await this.checkAndFixOids(connection, res.fields);
-                } catch (e) {
-                    pgUtils.logError(logger, { error: <Error>e, sql, params, connection });
-                
+                } finally {
                     connection.off('error', QueryAble.connectionErrorListener);
                     connection.release();
                     connection = null;
-
-                    throw e;
                 }
             }
             this.postProcessFields(res.rows, res.fields, logger);
