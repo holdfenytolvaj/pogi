@@ -18,8 +18,8 @@ const SQL_$_ESCAPE_REGEXP = /\$[^$]*\$/g;
 
 /** looks like we only get back those that we have access to */
 const LIST_SCHEMAS_TABLES =
-    `SELECT table_schema as schema, table_name as name 
-     FROM information_schema.tables 
+    `SELECT table_schema as schema, table_name as name
+     FROM information_schema.tables
      WHERE table_schema NOT IN ('pg_catalog', 'pg_constraint', 'information_schema')`;
 const GET_OID_FOR_COLUMN_TYPE_FOR_SCHEMA = "SELECT t.oid FROM pg_catalog.pg_type t, pg_namespace n WHERE typname=:typeName and n.oid=t.typnamespace and n.nspname=:schemaName;";
 const GET_OID_FOR_COLUMN_TYPE = "SELECT t.oid FROM pg_catalog.pg_type t WHERE typname=:typeName";
@@ -59,10 +59,10 @@ const GET_CURRENT_SCHEMAS = "SELECT current_schemas(false)";
  * ... TODO check it for tables */
 const LIST_SPECIAL_TYPE_FIELDS =
     `SELECT c.nspname as schema_name, b.relname as table_name, a.attname as column_name, a.atttypid as typid, t.typcategory
-    FROM pg_attribute a 
+    FROM pg_attribute a
     JOIN pg_class b ON (a.attrelid = b.oid)
     JOIN pg_type t ON (a.atttypid = t.oid)
-    JOIN pg_namespace c ON (b.relnamespace=c.oid) 
+    JOIN pg_namespace c ON (b.relnamespace=c.oid)
     WHERE (a.atttypid in (114, 3802, 1082, 1083, 1114, 1184, 1266, 3614) or t.typcategory='A')
     AND reltype>0 `;
 //AND c.nspname not in ('pg_catalog', 'pg_constraint', 'information_schema')
@@ -71,7 +71,7 @@ const TYPE2OID = `SELECT t.oid, typname FROM pg_catalog.pg_type t WHERE typname 
     'int8','_int2','_int4','_int8','_float4','float8','_float8',
     '_text','_varchar',
     'json','jsonb', '_json','_jsonb',
-    'date','time','timestamp','timestamptz','timetz','_date','_time','_timestamp','_timestamptz','_timetz', 
+    'date','time','timestamp','timestamptz','timetz','_date','_time','_timestamp','_timestamptz','_timetz',
     'tsvector')`
 
 export enum FieldType { JSON, ARRAY, TIME, TSVECTOR }
@@ -303,7 +303,7 @@ export class PgDb extends QueryAble /*implements IPgDb*/ {
             },
             {
                 oidList: [
-                    type2oid['_int2'], // smallInt[] int2[] 
+                    type2oid['_int2'], // smallInt[] int2[]
                     type2oid['_int4'], // integer[]  int4[]
                     type2oid['_float4'],  // real[] float4[]
                 ],
@@ -469,9 +469,9 @@ export class PgDb extends QueryAble /*implements IPgDb*/ {
         return this;
     }
 
-    /** 
+    /**
      * transaction save point
-     * https://www.postgresql.org/docs/current/sql-savepoint.html 
+     * https://www.postgresql.org/docs/current/sql-savepoint.html
      */
     async savePoint(name: string): Promise<PgDb> {
         if (this.isTransactionActive()) {
@@ -483,9 +483,9 @@ export class PgDb extends QueryAble /*implements IPgDb*/ {
         return this;
     }
 
-    /** 
+    /**
      * "RELEASE SAVEPOINT" - remove transaction save point
-     * https://www.postgresql.org/docs/current/sql-savepoint.html 
+     * https://www.postgresql.org/docs/current/sql-savepoint.html
      */
     async savePointRelease(name: string): Promise<PgDb> {
         if (this.isTransactionActive()) {
@@ -572,7 +572,7 @@ export class PgDb extends QueryAble /*implements IPgDb*/ {
             let tmp = '', t: RegExpExecArray | null;
             let consumer: Promise<any> | null;
             let inQuotedString: string | null;
-            let rl = readline.createInterface({
+            let rl: readline.Interface | null = readline.createInterface({
                 input: fs.createReadStream(fileName),
                 terminal: false
             }).on('line', (line) => {
@@ -620,9 +620,9 @@ export class PgDb extends QueryAble /*implements IPgDb*/ {
                                         // console.log('consumer done');
                                         consumer = null;
                                         statementList.length = 0;
-                                        rl.resume();
+                                        rl?.resume();
                                     }, reject);
-                                    rl.pause();
+                                    rl?.pause();
                                 }
                             }
                             tmp = '';
@@ -637,6 +637,7 @@ export class PgDb extends QueryAble /*implements IPgDb*/ {
                     reject(e);
                 }
             }).on('close', () => {
+                rl = null;
                 if (inQuotedString) {
                     reject(Error('Invalid SQL, unterminated string'));
                 }
@@ -684,7 +685,7 @@ export class PgDb extends QueryAble /*implements IPgDb*/ {
     private _needToRestartConnectionForListen = false;
     private restartConnectionForListen: Promise<Error | null> | null = null;
 
-    /** 
+    /**
      * LISTEN to a channel for a NOTIFY (https://www.postgresql.org/docs/current/sql-listen.html)
      * One connection will be dedicated for listening if there are any listeners.
      * When there is no other callback for a channel, LISTEN command is executed
