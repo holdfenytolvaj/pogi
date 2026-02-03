@@ -1,3 +1,26 @@
+## [3.0.2](https://github.com/holdfenytolvaj/pogi/compare/v2.10.2...v3.0.2) (2026-02-03)
+
+
+### Bug Fixes
+
+* emitter leak ([3040a43](https://github.com/holdfenytolvaj/pogi/commit/3040a43c2cd6a8fee319f6dfe4cb66b7693e4443))
+* oid fix ([bfaedd5](https://github.com/holdfenytolvaj/pogi/commit/bfaedd5a10810623d27be010e338abe324155494))
+* oid fixes ([5af7146](https://github.com/holdfenytolvaj/pogi/commit/5af7146d727f0344e3411a2f9df1f02afbf998b2))
+* orderBy ([33f2373](https://github.com/holdfenytolvaj/pogi/commit/33f23730a51c5c921c1e2f725ee1202b84138072))
+* strict column escape ([e4eeff3](https://github.com/holdfenytolvaj/pogi/commit/e4eeff3558ccc3b0cd02875b46a95f19feb8781a))
+* support node v24 ([234e44a](https://github.com/holdfenytolvaj/pogi/commit/234e44ac268213fc668913a3184be211d4f6d2b6))
+* ts warnings ([a16231c](https://github.com/holdfenytolvaj/pogi/commit/a16231c5c1e5053d9c2cf4ef86a81990cc7963f4))
+* typescript errors, build ([ac4210a](https://github.com/holdfenytolvaj/pogi/commit/ac4210a412717141151d0a1a870d3f23d0d450e8))
+* wrongly implemented catch for non-transactional query ([f79de17](https://github.com/holdfenytolvaj/pogi/commit/f79de17a781e2d6c7873b4afc88eacbd020c836b))
+
+
+### Features
+
+* improve  sql injections prevention phase 2 ([880b9c4](https://github.com/holdfenytolvaj/pogi/commit/880b9c4b26b107b7bb3d2caae24319c761f95a4c))
+* strictDDL for group by/order by/limit/offset ([54c866f](https://github.com/holdfenytolvaj/pogi/commit/54c866f1fcec9f1b8666c0a8a509663acc0af79c))
+
+
+
 # [2.11.0](https://github.com/holdfenytolvaj/pogi/compare/v2.10.0...v2.11.0) (2021-09-16)
 
 ### Features
