@@ -1,3 +1,12 @@
+# [3.1.0](https://github.com/holdfenytolvaj/pogi/compare/v3.0.5...v3.1.0) (2026-02-04)
+
+
+### Bug Fixes
+
+* esm modules and package updates ([b7b231a](https://github.com/holdfenytolvaj/pogi/commit/b7b231a6a6ecdaf5a93cebda62064a32328146b5))
+
+
+
 ## [3.0.5](https://github.com/holdfenytolvaj/pogi/compare/v3.0.4...v3.0.5) (2026-02-03)
 
 
