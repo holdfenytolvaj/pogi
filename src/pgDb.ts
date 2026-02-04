@@ -1,16 +1,16 @@
-import * as EventEmitter from 'events';
-import * as fs from 'fs';
-import * as _ from 'lodash';
-import * as pg from 'pg';
-import * as readline from 'readline';
-import { ConnectionOptions } from './connectionOptions';
-import * as PgConverters from "./pgConverters";
-import { Notification, PostProcessResultFunc, ResultFieldType, TransactionIsolationLevel } from "./pgDbInterface";
-import { PgDbLogger } from './pgDbLogger';
-import { PgSchema } from "./pgSchema";
-import { PgTable } from "./pgTable";
-import { pgUtils } from "./pgUtils";
-import { QueryAble } from "./queryAble";
+import EventEmitter from 'events';
+import fs from 'fs';
+import _ from 'lodash';
+import pg from 'pg';
+import readline from 'readline';
+import { ConnectionOptions } from './connectionOptions.js';
+import * as PgConverters from "./pgConverters.js";
+import { Notification, PostProcessResultFunc, ResultFieldType, TransactionIsolationLevel } from "./pgDbInterface.js";
+import { PgDbLogger } from './pgDbLogger.js';
+import { PgSchema } from "./pgSchema.js";
+import { PgTable } from "./pgTable.js";
+import { pgUtils } from "./pgUtils.js";
+import { QueryAble } from "./queryAble.js";
 
 const CONNECTION_URL_REGEXP = /^postgres:\/\/(?:([^:]+)(?::([^@]*))?@)?([^\/:]+)?(?::([^\/]+))?\/(.*)$/;
 const SQL_TOKENIZER_REGEXP = /''|'|""|"|;|\$|--|\/\*|\*\/|(.+?)/g;
@@ -267,8 +267,8 @@ export class PgDb extends QueryAble /*implements IPgDb*/ {
 
     private async initFieldTypes() {
         //--- init field types -------------------------------------------
-        let schemaNames = "'" + Object.keys(this.schemas).join("', '") + "'";
-        if (schemaNames == "''") {
+        let schemaNames = Object.keys(this.schemas);
+        if (!schemaNames.length) {
             this.getLogger(true).error("No readable schema found!");
             return;
         }
@@ -279,7 +279,7 @@ export class PgDb extends QueryAble /*implements IPgDb*/ {
         }
 
         let specialTypeFields: { schema_name: string, table_name: string, column_name: string, typid: number, typcategory: string }[]
-            = await this.query(LIST_SPECIAL_TYPE_FIELDS + ' AND c.nspname in (' + schemaNames + ')');
+            = await this.query(LIST_SPECIAL_TYPE_FIELDS + ' AND c.nspname = ANY($1)', [schemaNames]);
 
         for (let r of specialTypeFields) {
             if (this.schemas[r.schema_name][r.table_name]) {
@@ -383,7 +383,7 @@ export class PgDb extends QueryAble /*implements IPgDb*/ {
                 JOIN pg_namespace c ON (b.relnamespace=c.oid)
             WHERE
                 reltype>0 AND
-                c.nspname in (${schemaNames})`
+                c.nspname = ANY($1)`, [schemaNames]
         );
         allUsedTypeFields.forEach(oid => this.knownOids[oid] = true);
     }
@@ -430,7 +430,7 @@ export class PgDb extends QueryAble /*implements IPgDb*/ {
     }
 
     async resetMissingParsers(connection: pg.PoolClient, oidList: number[]): Promise<void> {
-        let unknownOids = oidList.filter(oid => !this.knownOids[oid]);
+        let unknownOids = _.uniq(oidList.filter(oid => !this.knownOids[oid]));
         if (unknownOids.length) {
             let fieldsData = await connection.query(
                 `select oid, typcategory from pg_type where oid = ANY($1)`,

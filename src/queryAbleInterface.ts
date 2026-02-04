@@ -1,17 +1,17 @@
-import { PgDbLogger } from "./pgDbLogger";
-import * as stream from "stream";
-import { ResultFieldType } from "./pgDbInterface";
-import { ForceEscapeColumnsOptions } from "./connectionOptions";
-import { PgDb, PgSchema } from ".";
+import stream from "stream";
+import { ForceEscapeColumnsOptions } from "./connectionOptions.js";
+import { PgDb, PgSchema } from "./index.js";
+import { ResultFieldType } from "./pgDbInterface.js";
+import { PgDbLogger } from "./pgDbLogger.js";
 
 export interface QueryOptions {
     limit?: number;
     offset?: number;
     orderBy?: string | string[] | { [fieldName: string]: 'asc' | 'desc' };//free text or column list
-    /** 
+    /**
      * only used with orderBy
-     * true -> nulls first, 
-     * false -> nulls last 
+     * true -> nulls first,
+     * false -> nulls last
      */
     orderByNullsFirst?: boolean;
     groupBy?: string | string[];//free text or column list

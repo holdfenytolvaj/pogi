@@ -1,12 +1,11 @@
-import { QueryOptions, IQueryAble } from "./queryAbleInterface";
-import { ResultFieldType } from "./pgDbInterface";
-import { FieldType } from "./pgDb";
-import { PgDbLogger } from "./pgDbLogger";
-import * as _ from 'lodash';
-import util = require('util');
-import * as pg from 'pg';
-import { ForceEscapeColumnsOptions } from "./connectionOptions";
-import { PgTable } from ".";
+import util from 'node:util';
+import pg from 'pg';
+import { ForceEscapeColumnsOptions } from "./connectionOptions.js";
+import { PgTable } from "./index.js";
+import { FieldType } from "./pgDb.js";
+import { ResultFieldType } from "./pgDbInterface.js";
+import { PgDbLogger } from "./pgDbLogger.js";
+import { IQueryAble, QueryOptions } from "./queryAbleInterface.js";
 
 const NAMED_PARAMS_REGEXP = /(?:^|[^:]):(!?[a-zA-Z0-9_]+)/g;    // do not convert "::type cast"
 const ASC_DESC_REGEXP = /^\s*(.+?)(?:\s+(asc|desc))?\s*$/i;
@@ -59,8 +58,8 @@ export let pgUtils = {
         }
     },
     /**
-     * https://www.postgresql.org/docs/current/functions-json.html 
-     * column->'a' , 
+     * https://www.postgresql.org/docs/current/functions-json.html
+     * column->'a' ,
      * column -> 3
      */
     quoteFieldNameJsonbOrPosition(f: string | number): string {
@@ -105,8 +104,8 @@ export let pgUtils = {
      * do not touch ::type cast
      */
     processNamedParams(sql: string, params: Object) {
-        let sql2 = [];
-        let params2 = [];
+        let sql2: string[] = [];
+        let params2: string[] = [];
 
         let p = NAMED_PARAMS_REGEXP.exec(sql);
         let lastIndex = 0;

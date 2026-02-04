@@ -1,15 +1,16 @@
 {
   "compilerOptions": {
     "removeComments": true,
-    "target": "es2015",
-    "module": "commonjs",
+    "target": "es2022",
+    "module": "es2022",
     "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
     "sourceMap": true,
     "declaration": true,
     "forceConsistentCasingInFileNames": true,
-    "suppressImplicitAnyIndexErrors": true,
     "importHelpers": true,
     "strict": true,
+    "noImplicitAny": false,
     "rootDir": "./src",
     "outDir": "./lib",
     "types": [
@@ -17,17 +18,10 @@
       "jest"
     ],
     "lib": [
-      "es2015",
-      "es2016",
-      "es2017"
+      "es2022",
     ],
   },
-  "files": [
-    "src/index.ts",
-    "src/bin/generateInterface.ts"
-  ],
   "include": [
-    "src/*.test.ts",
-    "src/index.d.ts"
+    "src/**/*",
   ]
 }

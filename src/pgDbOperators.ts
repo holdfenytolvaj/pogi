@@ -1,4 +1,4 @@
-import { pgUtils } from "./pgUtils";
+import { pgUtils } from "./pgUtils.js";
 
 export default {
     /** lowercase comparison */
@@ -24,12 +24,12 @@ export default {
     /** free text search */
     '@@': {operator: '@@'}, //value can be {lang:string, query:string} or simply string (defaults to english)
 
-    /** 
+    /**
      * jsonb / array
      * contains                          ARRAY[1,4,3] @> ARRAY[3,1]      => true
      */
     '@>': {operator: '@>'},
-    /** 
+    /**
      * jsonb / array
      * is contained by                   ARRAY[2,7] <@ ARRAY[1,7,4,2,6] 	=> true
      */
@@ -73,10 +73,10 @@ export default {
     'similar to': {operator: 'SIMILAR TO'},
     /** NOT SIMILAR TO */
     'not similar to': {operator: 'NOT SIMILAR TO'},
-    /** regexp matching */ 
+    /** regexp matching */
     '~': {operator: '~'},
     '!~': {operator: '!~'},
-    /** regexp matching, case insensitive */ 
+    /** regexp matching, case insensitive */
     '~*': {operator: '~*'},
     '!~*': {operator: '!~*'},
     // distinct

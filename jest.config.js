@@ -1,23 +1,33 @@
-// For a detailed explanation regarding each configuration property, visit:
-// https://jestjs.io/docs/en/configuration.html
+import 'dotenv/config';
+//const { createDefaultEsmPreset } = require("ts-jest");
+//import type { Config } from 'jest';
+//import { createDefaultEsmPreset } from 'ts-jest';
 
-module.exports = {
-    roots: ["./src"],
-    testMatch: [
-        "**/*.test.ts"
-    ],
-    testPathIgnorePatterns: ["/dist/", "/build/"],
+// const tsJestTransformCfg = createDefaultPreset().transform;
 
-    // A preset that is used as a base for Jest's configuration
-    preset: "ts-jest",
-    testEnvironment: "node",
-    testRunner: "jest-jasmine2",
-
-    globals: {
-        "ts-jest": {
-            tsconfig: "tsconfig.json",
-            isolatedModules: true
-        }
-    },
-    setupFiles: ['dotenv/config']
+/** @type {import("jest").Config} **/
+export default {
+  rootDir: "./",
+  modulePaths: [
+    "<rootDir>"
+  ],
+  testMatch: [
+    "**/*.test.ts"
+  ],
+  testEnvironment: "node",
+  extensionsToTreatAsEsm: ['.ts'],
+  moduleNameMapper: {
+    "^(\\.{1,2}/.*)\\.js$": "$1",
+  },
+  // transform: {
+  //   ...createDefaultEsmPreset().transform,
+  // },
+  transform: {
+    '^.+\\.tsx?$': '@swc/jest',
+  },
+  setupFilesAfterEnv: [
+    "<rootDir>/jest.setup.ts",
+  ],
+  globalSetup: "<rootDir>jest.globalSetup.js",
+  globalTeardown: "<rootDir>jest.globalTeardown.js",
 };

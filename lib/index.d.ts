@@ -1,6 +1,6 @@
-export { PgDb } from './pgDb';
-export { ConnectionOptions } from './connectionOptions';
-export { PgDbLogger } from './pgDbLogger';
-export { PgTable } from './pgTable';
-export { PgSchema } from './pgSchema';
-export { QueryOptions } from './queryAbleInterface';
+export { ConnectionOptions } from './connectionOptions.js';
+export { PgDb } from './pgDb.js';
+export { PgDbLogger } from './pgDbLogger.js';
+export { PgSchema } from './pgSchema.js';
+export { PgTable } from './pgTable.js';
+export { QueryOptions } from './queryAbleInterface.js';

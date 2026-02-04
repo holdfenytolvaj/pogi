@@ -1,13 +1,12 @@
-import { PgDbLogger } from "./pgDbLogger";
-import { pgUtils } from "./pgUtils";
-import * as stream from "stream";
-import * as pg from 'pg';
-import util = require('util');
-import QueryStream = require('pg-query-stream');
-import through = require('through');
-import { ResultFieldType } from "./pgDbInterface";
-import { SqlQueryOptions, IQueryAble, PgRowResult } from "./queryAbleInterface"
-import { PgDb, PgSchema } from ".";
+import stream, { Transform } from "node:stream";
+import util from 'node:util';
+import pg from 'pg';
+import QueryStream from "pg-query-stream";
+import { PgDb, PgSchema } from "./index.js";
+import { ResultFieldType } from "./pgDbInterface.js";
+import { PgDbLogger } from "./pgDbLogger.js";
+import { pgUtils } from "./pgUtils.js";
+import { IQueryAble, PgRowResult, SqlQueryOptions } from "./queryAbleInterface.js";
 
 
 let defaultLogger = {
@@ -94,6 +93,7 @@ export abstract class QueryAble implements IQueryAble {
                     //If any problem has happened in a dedicated connection, (wrong sql format or non-accessible postgres server)
                     //close the connection to be a free connection in the pool,
                     //but keep the db.connection member non - null to crash in all of the following commands
+                    connection.off('error', QueryAble.connectionErrorListener);
                     connection.release();
                 } catch (e) {
                     logger.error('connection error', (<Error>e).message);
@@ -221,24 +221,28 @@ export abstract class QueryAble implements IQueryAble {
         }
         let connection = this.db.connection;
         let logger = (options && options.logger || this.getLogger(false));
-        let pgStream: any;
+        let pgStream: QueryStream;
         let queryable = this;
         let isFirst = true;
-        let convertTypeFilter = through(function (this: stream, data) {
-            try {
-                let fields = pgStream._result && pgStream._result.fields || pgStream.cursor._result && pgStream.cursor._result.fields;
-                if (isFirst) {
-                    if (queryable.hasUnknownOids(fields)) {
-                        throw new Error('[337] Query returns fields with unknown oid.');
+        let convertTypeFilter = new Transform({
+            objectMode: true,
+            transform(this: stream, data, encoding, cb) {
+                try {
+                    let fields = pgStream._result && pgStream._result.fields || pgStream.cursor._result && pgStream.cursor._result.fields;
+                    if (isFirst) {
+                        if (queryable.hasUnknownOids(fields)) {
+                            throw new Error('[337] Query returns fields with unknown oid.');
+                        }
+                        isFirst = false;
                     }
-                    isFirst = false;
-                }
-                queryable.postProcessFields([data], fields, queryable.db.logger);
+                    queryable.postProcessFields([data], fields, queryable.db.logger);
 
-                this.emit('data', data);
-            } catch (err) {
-                this.emit('error', err);
-            }
+                    this.emit('data', data);
+                } catch (err) {
+                    this.emit('error', err);
+                }
+                cb();
+            },
         });
         convertTypeFilter.on('error', (e: Error) => {
             if (connection) {
@@ -296,6 +300,9 @@ export abstract class QueryAble implements IQueryAble {
                         connection.release();
                     }
                     connection = null;
+                });
+                convertTypeFilter.on('close', () => {
+                    pgStream.destroy();
                 });
                 return pgStream.pipe(convertTypeFilter);
             }

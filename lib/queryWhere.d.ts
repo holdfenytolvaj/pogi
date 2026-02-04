@@ -1,4 +1,4 @@
-import { FieldType } from "./pgDb";
+import { FieldType } from "./pgDb.js";
 declare function generateWhere(conditions: Record<string, any>, fieldTypes: {
     [index: string]: FieldType;
 }, tableName: string, placeholderOffset?: number, skipUndefined?: boolean): {

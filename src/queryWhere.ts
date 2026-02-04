@@ -1,8 +1,8 @@
-import operationsMap from "./pgDbOperators";
-import { FieldType } from "./pgDb";
-import _ = require("lodash");
-import util = require("util");
-import { pgUtils } from "./pgUtils";
+import _ from "lodash";
+import util from "node:util";
+import { FieldType } from "./pgDb.js";
+import operationsMap from "./pgDbOperators.js";
+import { pgUtils } from "./pgUtils.js";
 
 interface FieldAndOperator {
     field: string;

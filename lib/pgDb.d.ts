@@ -1,10 +1,10 @@
-import * as pg from 'pg';
-import { ConnectionOptions } from './connectionOptions';
-import { Notification, PostProcessResultFunc, ResultFieldType, TransactionIsolationLevel } from "./pgDbInterface";
-import { PgDbLogger } from './pgDbLogger';
-import { PgSchema } from "./pgSchema";
-import { PgTable } from "./pgTable";
-import { QueryAble } from "./queryAble";
+import pg from 'pg';
+import { ConnectionOptions } from './connectionOptions.js';
+import { Notification, PostProcessResultFunc, ResultFieldType, TransactionIsolationLevel } from "./pgDbInterface.js";
+import { PgDbLogger } from './pgDbLogger.js';
+import { PgSchema } from "./pgSchema.js";
+import { PgTable } from "./pgTable.js";
+import { QueryAble } from "./queryAble.js";
 export declare enum FieldType {
     JSON = 0,
     ARRAY = 1,

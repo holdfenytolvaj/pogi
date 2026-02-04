@@ -1,10 +1,14 @@
-import { Notification, PgDb } from "../pgDb";
-import * as yargs from 'yargs';
-import * as shell from "shelljs";
+import type { Readable } from "node:stream";
+import type { Notification } from "pg";
+import shell from "shelljs";
+import yargs from 'yargs';
+import { PgDb } from "../pgDb.js";
 
-// cd ~/labcup/ ; docker-compose start
-// cd ~/labcup/ ; docker-compose stop
-let argv: any = yargs
+/**
+ * docker run --name pgdb -e POSTGRES_PASSWORD=labcup -d postgres
+ * dotenv --  node lib/test/pgServiceRestartTest.js --postgresOn="docker start pgdb" --postgresOff="docker stop pgdb"
+ */
+let argv: any = await yargs(process.argv.slice(2))
     .usage('node pgServiceRestartTest.js\n Usage: $0')
     .option('postgresOn', {
         describe: 'the command line command which switches on the postgresql server',
@@ -70,7 +74,7 @@ async function testSchemaInit(db: PgDb) {
     await db.run(`INSERT INTO pgdb_test."enumArrayTable"(m) values (ARRAY['sad'::pgdb_test.mood, 'happy'::pgdb_test.mood])`);
 }
 
-async function testDbFreeConnections(db: PgDb): Promise<Error> {
+async function testDbFreeConnections(db: PgDb): Promise<Error | undefined> {
     let dedicatedConnections: PgDb[] = new Array(poolSize).fill(null);
 
     await Promise.race([
@@ -87,10 +91,10 @@ async function testDbFreeConnections(db: PgDb): Promise<Error> {
     for (let conn of dedicatedConnections) {
         await conn.dedicatedConnectionEnd();
     }
-    return null;
+    return;
 }
 
-async function testInsertQuery(db: PgDb): Promise<Error> {
+async function testInsertQuery(db: PgDb): Promise<Error | undefined> {
     let tableContents = await db.query(`select * from pgdb_test.names`);
     if (tableContents.length != 2) {
         return new Error('Simple query fails');
@@ -115,11 +119,11 @@ async function testInsertQuery(db: PgDb): Promise<Error> {
     if (callbackCounter2 != 2) {
         return new Error('Query as stream fails');
     }
-    return null;
+    return;
 }
 
-async function testNotificationSystem(db: PgDb): Promise<Error> {
-    let result: string;
+async function testNotificationSystem(db: PgDb): Promise<Error | undefined> {
+    let result: string | undefined;
     await db.listen('testChannel', (data) => { result = data.payload; });
     await db.notify('testChannel', 'newData');
     await asyncWaitMs(1000);
@@ -129,7 +133,7 @@ async function testNotificationSystem(db: PgDb): Promise<Error> {
     await db.unlisten('testChannel');
 }
 
-async function testDbUsability(db: PgDb): Promise<Error> {
+async function testDbUsability(db: PgDb): Promise<Error | undefined> {
     try {
         console.log('TestSchemaInit');
         await testSchemaInit(db);
@@ -146,7 +150,7 @@ async function testDbUsability(db: PgDb): Promise<Error> {
         await testSchemaClear(db);
         return error;
     } catch (e) {
-        return e;
+        return e as Error;
     }
 }
 
@@ -156,10 +160,10 @@ interface TestDescriptor {
     skipTestDb?: boolean
 }
 
-async function runTestInternal(db: PgDb, test: TestDescriptor): Promise<Error> {
+async function runTestInternal(db: PgDb, test: TestDescriptor): Promise<Error | undefined> {
     let callCounter = 0;
 
-    let errorResult: Error = null;
+    let errorResult: Error | undefined;
     try {
         await test.fn(db, (value: boolean) => {
             ++callCounter;
@@ -169,7 +173,7 @@ async function runTestInternal(db: PgDb, test: TestDescriptor): Promise<Error> {
         });
     } catch (err) {
         if (!errorResult) {
-            errorResult = err;
+            errorResult = err as Error;
         }
     }
 
@@ -922,7 +926,7 @@ let dedicatedConnection_StreamQueryTests: TestDescriptor[] = [
             let stageCounter = 0;
             let db0 = await db.dedicatedConnectionBegin();
             await postgresOff();
-            let stream;
+            let stream: Readable;
             try {
                 stream = await db0.queryAsStream(`select * from pgdb_test.names`);
                 ++stageCounter;
@@ -953,7 +957,7 @@ let dedicatedConnection_StreamQueryTests: TestDescriptor[] = [
             let stageCounter = 0;
             let db0 = await db.dedicatedConnectionBegin();
             await postgresOff();
-            let stream;
+            let stream: Readable;
             try {
                 stream = await db0.queryAsStream(`select * from pgdb_test.names`);
                 ++stageCounter;
@@ -996,7 +1000,7 @@ let dedicatedConnection_StreamQueryTests: TestDescriptor[] = [
             } catch (e) {
                 ++stageCounter;
             }
-            let stream;
+            let stream: Readable;
             try {
                 stream = await db0.queryAsStream(`select * from pgdb_test.names`);
                 ++stageCounter;
@@ -1182,7 +1186,7 @@ let postgresRestartTests: TestDescriptor[] = [
             let db0 = await db.dedicatedConnectionBegin();
             await postgresOff();
             await postgresOn();
-            let stream;
+            let stream: Readable;
             try {
                 stream = await db0.queryAsStream(`select * from pgdb_test.names`);
                 ++stageCounter;
@@ -1255,7 +1259,7 @@ let notifyTests: TestDescriptor[] = [
     {
         name: 'notification 3',
         fn: async (db: PgDb, isTrue: (value: boolean) => void) => {
-            let result: string;
+            let result: string | undefined;
             await db.listen('newChannel', (notif) => { result = notif.payload });
             await postgresOff();
             await postgresOn();
@@ -1268,7 +1272,7 @@ let notifyTests: TestDescriptor[] = [
     {
         name: 'notification 4',
         fn: async (db: PgDb, isTrue: (value: boolean) => void) => {
-            let result: string;
+            let result: string | undefined;
             await db.listen('newChannel', (notif) => { result = notif.payload });
             await postgresOff();
             await postgresOn();
@@ -1281,7 +1285,7 @@ let notifyTests: TestDescriptor[] = [
     {
         name: 'notification 5',
         fn: async (db: PgDb, isTrue: (value: boolean) => void) => {
-            let result: string;
+            let result: string | undefined;
             await db.listen('newChannel', (notif) => { result = notif.payload });
             await postgresOff();
             await postgresOn();
@@ -1297,8 +1301,8 @@ let notifyTests: TestDescriptor[] = [
         name: 'notification 6',
         fn: async (db: PgDb, isTrue: (value: boolean) => void) => {
             let i = 0;
-            let fn1 = (notif: Notification) => { i += +notif.payload };
-            let fn2 = (notif: Notification) => { i += 2 * (+notif.payload) };
+            let fn1 = (notif: Notification) => { i += +notif.payload! };
+            let fn2 = (notif: Notification) => { i += 2 * (+notif.payload!) };
             await db.listen('newChannel', fn1);
             await postgresOff();
             await db.listen('newChannel', fn2);
@@ -1313,8 +1317,8 @@ let notifyTests: TestDescriptor[] = [
         name: 'notification 7',
         fn: async (db: PgDb, isTrue: (value: boolean) => void) => {
             let i = 0;
-            let fn1 = (notif: Notification) => { i += +notif.payload };
-            let fn2 = (notif: Notification) => { i += 2 * (+notif.payload) };
+            let fn1 = (notif: Notification) => { i += +notif.payload! };
+            let fn2 = (notif: Notification) => { i += 2 * (+notif.payload!) };
             await db.listen('newChannel', fn1);
             await postgresOff();
             await db.listen('newChannel', fn2);
@@ -1331,8 +1335,8 @@ let notifyTests: TestDescriptor[] = [
         fn: async (db: PgDb, isTrue: (value: boolean) => void) => {
             let i = 0;
             let j = 0;
-            let fn1 = (notif: Notification) => { i += +notif.payload };
-            let fn2 = (notif: Notification) => { j += +notif.payload };
+            let fn1 = (notif: Notification) => { i += +notif.payload! };
+            let fn2 = (notif: Notification) => { j += +notif.payload! };
             await db.listen('newChannel', fn1);
             await postgresOff();
             try {
@@ -1353,7 +1357,7 @@ let notifyTests: TestDescriptor[] = [
         name: 'notification 9',
         fn: async (db: PgDb, isTrue: (value: boolean) => void) => {
             let i = 0;
-            let fn1 = (notif: Notification) => { i += +notif.payload };
+            let fn1 = (notif: Notification) => { i += +notif.payload! };
             await db.listen('newChannel', fn1);
             await postgresOff();
             try {
@@ -1372,7 +1376,7 @@ let notifyTests: TestDescriptor[] = [
         name: 'notification 10',
         fn: async (db: PgDb, isTrue: (value: boolean) => void) => {
             let i = 0;
-            let fn1 = (notif: Notification) => { i += +notif.payload };
+            let fn1 = (notif: Notification) => { i += +notif.payload! };
             await db.listen('newChannel', fn1);
             await postgresOff();
             try {
@@ -1391,7 +1395,7 @@ let notifyTests: TestDescriptor[] = [
         name: 'notification 11 - automatic notification restart...',
         fn: async (db: PgDb, isTrue: (value: boolean) => void) => {
             let i = 0;
-            let fn1 = (notif: Notification) => { i += +notif.payload };
+            let fn1 = (notif: Notification) => { i += +notif.payload! };
             await db.listen('newChannel', fn1);
             await postgresOff();
             await postgresOn();

@@ -1,9 +1,8 @@
-/// <reference types="node" />
-import { PgDbLogger } from "./pgDbLogger";
-import * as stream from "stream";
-import * as pg from 'pg';
-import { SqlQueryOptions, IQueryAble, PgRowResult } from "./queryAbleInterface";
-import { PgDb, PgSchema } from ".";
+import stream from "node:stream";
+import pg from 'pg';
+import { PgDb, PgSchema } from "./index.js";
+import { PgDbLogger } from "./pgDbLogger.js";
+import { IQueryAble, PgRowResult, SqlQueryOptions } from "./queryAbleInterface.js";
 export declare abstract class QueryAble implements IQueryAble {
     db: PgDb & QueryAble;
     schema: PgSchema;

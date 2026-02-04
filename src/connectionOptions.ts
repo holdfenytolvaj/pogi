@@ -1,4 +1,4 @@
-import { PgDbLogger } from './pgDbLogger';
+import { PgDbLogger } from './pgDbLogger.js';
 
 export interface ForceEscapeColumnsOptions {
     select?: boolean

@@ -1,5 +1,5 @@
-import { PgDb } from "./pgDb";
-import { PgTable } from "./pgTable";
+import { PgDb } from "./pgDb.js";
+import { PgTable } from "./pgTable.js";
 
 describe("pgdb", () => {
     let pgdb: PgDb;
@@ -9,7 +9,6 @@ describe("pgdb", () => {
 
     beforeAll(async () => {
         //jasmine.DEFAULT_TIMEOUT_INTERVAL = 800000;
-
         /**
          * Using environment variables, e.g.
          * PGUSER (defaults USER env var, so optional)
@@ -445,7 +444,7 @@ describe("pgdb", () => {
 function parseComplexTypeArray(str: string) {
     let list = JSON.parse('[' + str.substring(1, str.length - 1) + ']');
 
-    let result = [];
+    let result: any[] = [];
     for (let elementStr of list) {
         result.push(parseComplexType(elementStr));
     }
@@ -456,10 +455,10 @@ function parseComplexType(str: string) {
     //cut of '(', ')'
     str = str.substring(1, str.length - 1);
     let e = /"((?:[^"]|"")*)"(?:,|$)|([^,]*)(?:,|$)/g;
-    let valList = [];
+    let valList: string[] = [];
     let parsingResult;
-    let valStr;
-    let hasNextValue;
+    let valStr: string;
+    let hasNextValue: boolean;
     /**
      * parsingResult.index<str.length check for finish is not reliable
      * as if the last value is null it goes undetected, e.g. (,,)

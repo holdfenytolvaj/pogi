@@ -1,4 +1,4 @@
-import { parseArray } from "./pgConverters";
+import { parseArray } from "./pgConverters.js";
 
 describe("pgConverters.test", () => {
     it("parseArray", async () => {

@@ -1,11 +1,10 @@
-/// <reference types="node" />
-import * as stream from "stream";
-import { PgDb } from '.';
-import { FieldType } from "./pgDb";
-import { PgSchema } from "./pgSchema";
-import { CountOption, InsertOption, Return, Stream, TruncateOptions, UpdateDeleteOption, UpsertOption } from "./pgTableInterface";
-import { QueryAble } from "./queryAble";
-import { QueryOptions } from "./queryAbleInterface";
+import stream from "stream";
+import { PgDb } from './index.js';
+import { FieldType } from "./pgDb.js";
+import { PgSchema } from "./pgSchema.js";
+import { CountOption, InsertOption, Return, Stream, TruncateOptions, UpdateDeleteOption, UpsertOption } from "./pgTableInterface.js";
+import { QueryAble } from "./queryAble.js";
+import { QueryOptions } from "./queryAbleInterface.js";
 export declare class PgTable<T> extends QueryAble {
     schema: PgSchema;
     protected desc: {
@@ -93,7 +92,7 @@ export declare class PgTable<T> extends QueryAble {
         sql: string;
         parameters: any[];
     };
-    protected getUpsertQuery(record: T, options?: UpsertOption): {
+    protected getUpsertQuery<T extends object>(record: T, options?: UpsertOption): {
         sql: string;
         parameters: any[];
     };

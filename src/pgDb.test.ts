@@ -1,6 +1,6 @@
-import { PgDb } from "./pgDb";
-import { PgTable } from "./pgTable";
-import * as _ from 'lodash';
+import _ from 'lodash';
+import { PgDb } from "./pgDb.js";
+import { PgTable } from "./pgTable.js";
 
 /**
  * {,ads,"asdf""fd,",",3,"   "}
@@ -12,7 +12,7 @@ import * as _ from 'lodash';
 function parseComplexTypeArray(str: string) {
     let list = JSON.parse('[' + str.substring(1, str.length - 1) + ']');
 
-    let result = [];
+    let result: any[] = [];
     for (let elementStr of list) {
         result.push(parseComplexType(elementStr));
     }
@@ -23,10 +23,10 @@ function parseComplexType(str: string): any[] {
     //cut of '(', ')'
     str = str.substring(1, str.length - 1);
     let e = /"((?:[^"]|"")*)"(?:,|$)|([^,]*)(?:,|$)/g;
-    let valList = [];
+    let valList: string[] = [];
     let parsingResult;
-    let valStr;
-    let hasNextValue;
+    let valStr: string;
+    let hasNextValue: boolean;
     /**
      * parsingResult.index<str.length check for finish is not reliable
      * as if the last value is null it goes undetected, e.g. (,,)
@@ -67,6 +67,7 @@ describe("pgdb", () => {
             pgdb = await PgDb.connect({ connectionString: "postgres://" });
         } catch (e) {
             console.error("connection failed! Are you specified PGUSER/PGDATABASE/PGPASSWORD correctly?");
+            console.error(e);
             process.exit(1);
         }
 
@@ -550,18 +551,18 @@ describe("pgdb", () => {
         let counter = 0;
         let stream = await table.queryAsStream(`SELECT * FROM generate_series(0,1002) num`);
         await new Promise((resolve, reject) => {
+            stream.on('close', resolve);
             stream.on('end', resolve);
             stream.on('error', reject);
             stream.on('data', (c: any) => {
                 if (counter == 10) {
-                    stream.emit('close', 'e');
-                    return resolve(undefined);
+                    stream.destroy();
                 }
                 counter++;
             });
 
         });
-        expect(counter).toEqual(10);
+        expect(counter).toEqual(11);
     });
 
     it("stream - auto connection handling - error", async () => {
@@ -816,7 +817,7 @@ describe("pgdb", () => {
     });
 
     it("executing sql file - if there is an exception, should be thrown", async () => {
-        let ex = null;
+        let ex: unknown = null;
         try {
             await pgdb.execute('src/test/throw_exception.sql', (cmd) => cmd.replace(/__SCHEMA__/g, '"' + schema + '"'));
         } catch (e) {
@@ -1006,14 +1007,14 @@ describe("pgdb", () => {
     });
 
     it("Testing NOTIFY and LISTEN (unlisten)", async () => {
-        let called = null;
+        let called: string | undefined;
         let payload = 'hello';
 
         await table.db.listen('test_channel', (notification) => called = notification.payload);
         await table.db.unlisten('test_channel');
         await table.db.notify('test_channel', payload);
         await new Promise((resolve) => setTimeout(resolve, 1000));
-        expect(called).toEqual(null);
+        expect(called).toEqual(undefined);
     });
 
     it("Testing Empty 'or' condition", async () => {

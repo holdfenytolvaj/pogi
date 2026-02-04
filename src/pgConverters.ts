@@ -1,7 +1,8 @@
-import * as moment from 'moment';
+import moment from 'moment';
 
 //--- add parsing for array types --------------------------------
 export function parseArray(s: string): (string | null)[] {
+    if (Array.isArray(s)) return s; // do not need to parse
     if (!s || s[0] !== '{' || s[s.length - 1] !== '}') throw new Error('Invalid array value:' + s);
     if (s == "{}") return [];
     s = s.slice(1, s.length - 1); //cut off {}

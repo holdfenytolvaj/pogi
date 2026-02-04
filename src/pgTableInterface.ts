@@ -1,4 +1,4 @@
-import { PgDbLogger } from "./pgDbLogger";
+import { PgDbLogger } from "./pgDbLogger.js";
 
 const util = require('util');
 

@@ -1,9 +1,9 @@
-import { QueryOptions, IQueryAble } from "./queryAbleInterface";
-import { ResultFieldType } from "./pgDbInterface";
-import { FieldType } from "./pgDb";
-import { PgDbLogger } from "./pgDbLogger";
-import * as pg from 'pg';
-import { PgTable } from ".";
+import pg from 'pg';
+import { PgTable } from "./index.js";
+import { FieldType } from "./pgDb.js";
+import { ResultFieldType } from "./pgDbInterface.js";
+import { PgDbLogger } from "./pgDbLogger.js";
+import { IQueryAble, QueryOptions } from "./queryAbleInterface.js";
 export declare let pgUtils: {
     logError(logger: PgDbLogger, options: {
         error?: string | Error;
@@ -21,11 +21,11 @@ export declare let pgUtils: {
     processQueryFields<T>(options: QueryOptions, pgTable: PgTable<T>): string;
     processNamedParams(sql: string, params: Object): {
         sql: string;
-        params: any[];
+        params: string[];
     };
-    handleColumnEscapeGroupBy<T_1>(options: QueryOptions, pgTable?: PgTable<T_1> | undefined): string;
-    handleColumnEscapeOrderBy<T_2>(options: QueryOptions, pgTable: PgTable<T_2>): string;
-    processQueryOptions<T_3>(options: QueryOptions, pgTable: PgTable<T_3>): string;
+    handleColumnEscapeGroupBy<T>(options: QueryOptions, pgTable?: PgTable<T>): string;
+    handleColumnEscapeOrderBy<T>(options: QueryOptions, pgTable: PgTable<T>): string;
+    processQueryOptions<T>(options: QueryOptions, pgTable: PgTable<T>): string;
     transformInsertUpdateParams(param: any, fieldType: FieldType): any;
     postProcessResult(res: any[], fields: ResultFieldType[], pgdbTypeParsers: {
         [oid: number]: (s: string) => any;

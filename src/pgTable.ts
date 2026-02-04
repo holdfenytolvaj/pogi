@@ -1,14 +1,13 @@
-import * as _ from 'lodash';
-import * as stream from "stream";
-import { PgDb } from '.';
-import { FieldType } from "./pgDb";
-import { PgSchema } from "./pgSchema";
-import { CountOption, InsertOption, Return, Stream, TruncateOptions, UpdateDeleteOption, UpsertOption } from "./pgTableInterface";
-import { pgUtils } from "./pgUtils";
-import { QueryAble } from "./queryAble";
-import { QueryOptions } from "./queryAbleInterface";
-import generateWhere from "./queryWhere";
-
+import _ from 'lodash';
+import stream from "stream";
+import { PgDb } from './index.js';
+import { FieldType } from "./pgDb.js";
+import { PgSchema } from "./pgSchema.js";
+import { CountOption, InsertOption, Return, Stream, TruncateOptions, UpdateDeleteOption, UpsertOption } from "./pgTableInterface.js";
+import { pgUtils } from "./pgUtils.js";
+import { QueryAble } from "./queryAble.js";
+import { QueryOptions } from "./queryAbleInterface.js";
+import generateWhere from "./queryWhere.js";
 
 export class PgTable<T> extends QueryAble {
     qualifiedName: string;
@@ -274,17 +273,17 @@ export class PgTable<T> extends QueryAble {
     }
 
 
-    private getInsertQuery(records: T[]) {
-        let columnsMap = {};
+    private getInsertQuery<T extends object>(records: T[]) {
+        let columnsMap = <Record<keyof T, boolean>>{};
         records.forEach(rec => {
-            for (let field in <Object>rec) {
+            for (let field in rec) {
                 columnsMap[field] = true;
             }
         });
         let columns = Object.keys(columnsMap);
         let sql = `INSERT INTO ${this.qualifiedName} (${columns.map(pgUtils.quoteFieldName).join(", ")}) VALUES\n`;
         let parameters: string[] = [];
-        let placeholders = [];
+        let placeholders: string[] = [];
 
         for (let i = 0, seed = 0; i < records.length; i++) {
             placeholders.push('(' + columns.map(c => "$" + (++seed)).join(', ') + ')');
@@ -332,7 +331,7 @@ export class PgTable<T> extends QueryAble {
         return { sql, parameters };
     }
 
-    protected getUpsertQuery(record: T, options?: UpsertOption): { sql: string, parameters: any[] } {
+    protected getUpsertQuery<T extends object>(record: T, options?: UpsertOption): { sql: string, parameters: any[] } {
         options = options || {};
 
         if (_.isEmpty(record)) {

@@ -1,4 +1,4 @@
-import { PgDbLogger } from "./pgDbLogger";
+import { PgDbLogger } from "./pgDbLogger.js";
 export interface ResultFieldType {
     name: string;
     tableID: number;
@@ -19,4 +19,4 @@ export declare enum TransactionIsolationLevel {
     readCommitted = "READ COMMITTED",
     readUncommitted = "READ UNCOMMITTED"
 }
-export declare type PostProcessResultFunc = (res: any[], fields: ResultFieldType[], logger: PgDbLogger) => void;
+export type PostProcessResultFunc = (res: any[], fields: ResultFieldType[], logger: PgDbLogger) => void;

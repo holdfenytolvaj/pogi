@@ -5,6 +5,15 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Attach",
+            "port": 9229,
+            "request": "attach",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "node"
+        },
+        {
             "name": "Debug via npm",
             "type": "node",
             "request": "launch",
@@ -23,16 +32,16 @@
             "cwd": "${workspaceFolder}",
             "program": "${workspaceFolder}/node_modules/jest/bin/jest",
             "args": [
-				"--runInBand",
-				"--config",
-				"jest.config.js",
-				"--runTestsByPath",
-				"${relativeFile}",
-			],
-			"console": "integratedTerminal",
-			"internalConsoleOptions": "neverOpen",
-			"disableOptimisticBPs": true,
-			"skipFiles": [
+                "--runInBand",
+                "--config",
+                "jest.config.js",
+                "--runTestsByPath",
+                "${relativeFile}",
+            ],
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "disableOptimisticBPs": true,
+            "skipFiles": [
                 "fs.js",
                 "typescript.js",
                 "tslib.js",
@@ -50,10 +59,12 @@
                 "--runInBand"
             ],
             "cwd": "${workspaceFolder}",
+            "env": {
+                "NODE_OPTIONS": "--experimental-vm-modules"
+            },
             "envFile": "${workspaceFolder}/.env",
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",
-            "disableOptimisticBPs": true,
             "outFiles": [
                 "${workspaceFolder}/lib/*.js",
                 "!${workspaceFolder}/node_modules/**/*",
@@ -62,6 +73,34 @@
                 "${workspaceFolder}/node_modules/**/*.js",
                 "<node_internals>/**/*.js"
             ],
-        }
+        },
+        {
+            "type": "node",
+            "name": "vscode-jest-tests.v2",
+            "request": "launch",
+            "program": "${workspaceFolder}/node_modules/jest/bin/jest",
+            "args": [
+                "--runInBand",
+                "--config",
+                "jest.config.js",
+                "--testNamePattern",
+                "${jest.testNamePattern}",
+                "--runTestsByPath",
+                "${jest.testFile}"
+            ],
+            "env": {
+                "NODE_OPTIONS": "--experimental-vm-modules"
+            },
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "windows": {
+                "program": "${workspaceFolder}/node_modules/jest/bin/jest"
+            },
+            "skipFiles": [
+                "<node_internals>/**",
+                "**/node_modules/**",
+            ],
+        },
     ]
 }
