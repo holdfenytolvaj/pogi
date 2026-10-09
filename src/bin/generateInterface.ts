@@ -1,6 +1,6 @@
-import {PgDb} from "../pgDb";
-import {PgSchema} from "../pgSchema";
-import {PgTable} from "../pgTable";
+import { PgDb } from "../pgDb.js";
+import { PgSchema } from "../pgSchema.js";
+import { PgTable } from "../pgTable.js";
 
 (async function () {
     try {

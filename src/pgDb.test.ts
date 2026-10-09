@@ -1380,4 +1380,35 @@ describe("pgdb", () => {
 
         await pgdbwt.transactionRollback();
     });
+
+    // it("closing a dedicated connection should not release its open cursor", async () => {
+    //     let pgdbSinglePool = await PgDb.connect({ connectionString: "postgres://", max: 1 });
+    //     try {
+    //         let pgdbDedicated = await pgdbSinglePool.dedicatedConnectionBegin();
+    //         await pgdbDedicated.run(`set statement_timeout to 0`);
+    //         //open a cursor on the dedicated connection, and read only the first row, so it stays open
+    //         let cursor = new QueryStream('SELECT generate_series(1, 100000) AS n', [], { batchSize: 10 });
+    //         pgdbDedicated.connection!.query(cursor);
+    //         let firstRow = await new Promise<any>((resolve, reject) => {
+    //             cursor.once('error', reject);
+    //             cursor.once('readable', () => resolve(cursor.read()));
+    //         });
+    //         expect(firstRow.n).toEqual(1);
+    //         cursor.destroy(); // needed
+    //         await pgdbDedicated.dedicatedConnectionEnd();
+
+    //         //pool size is 1, so this query gets the same connection; it hangs if the cursor is still active on it
+    //         let timer: NodeJS.Timeout | undefined;
+    //         let result = await Promise.race([
+    //             pgdbSinglePool.queryOneField('SHOW statement_timeout'),
+    //             new Promise((_resolve, reject) => {
+    //                 timer = setTimeout(() => reject(new Error('Query through the pool timed out, the cursor was not released')), 3000);
+    //             }),
+    //         ]).finally(() => clearTimeout(timer));
+    //         //the statement_timeout set on the dedicated connection should not leak back into the pool
+    //         expect(result).toEqual('0');
+    //     } finally {
+    //         await pgdbSinglePool.close();
+    //     }
+    // });
 });

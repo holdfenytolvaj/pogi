@@ -1,5 +1,6 @@
-import { expect, jest, test } from '@jest/globals';
-import inspector from 'inspector';
+//const { jest } = require('@jest/globals');
+const inspector = require('node:inspector');
+
 if (process.env.DEBUG || inspector.url()) {
     console.log('debugging jest, set some extra timeout');
     jest.setTimeout(5 * 60 * 1000);

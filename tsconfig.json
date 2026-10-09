@@ -2,8 +2,8 @@
   "compilerOptions": {
     "removeComments": true,
     "target": "es2022",
-    "module": "es2022",
-    "moduleResolution": "node",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
     "allowSyntheticDefaultImports": true,
     "sourceMap": true,
     "declaration": true,
@@ -22,6 +22,6 @@
     ],
   },
   "include": [
-    "src/**/*",
+    "src/**/*"
   ]
 }
