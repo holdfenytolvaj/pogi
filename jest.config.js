@@ -26,7 +26,7 @@ export default {
     '^.+\\.tsx?$': '@swc/jest',
   },
   setupFilesAfterEnv: [
-    "<rootDir>/jest.setup.js",
+    "<rootDir>/jest.setup.ts",
   ],
   globalSetup: "<rootDir>jest.globalSetup.js",
   globalTeardown: "<rootDir>jest.globalTeardown.js",
